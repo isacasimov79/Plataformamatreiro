@@ -279,137 +279,147 @@ export function Templates() {
               Gerencie templates de e-mail e landing pages de phishing
             </p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Template
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <form onSubmit={handleAddTemplate}>
-                <DialogHeader>
-                  <DialogTitle>Criar Novo Template</DialogTitle>
-                  <DialogDescription>
-                    Crie um template de e-mail ou landing page web
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label>Tipo de Template</Label>
-                    <Select
-                      value={newTemplateType}
-                      onValueChange={(value) => setNewTemplateType(value as TemplateType)}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="email">
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4" />
-                            E-mail de Phishing
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="web">
-                          <div className="flex items-center gap-2">
-                            <Globe className="w-4 h-4" />
-                            Landing Page Web
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="name">Nome do Template</Label>
-                    <Input
-                      id="name"
-                      placeholder="Ex: Verificação de Conta"
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-
-                  {newTemplateType === 'email' && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
+              onClick={() => setIsHtmlEditorOpen(true)}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Editor HTML Avançado
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Template
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleAddTemplate}>
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Template</DialogTitle>
+                    <DialogDescription>
+                      Crie um template de e-mail ou landing page web
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="subject">Assunto do E-mail</Label>
+                      <Label>Tipo de Template</Label>
+                      <Select
+                        value={newTemplateType}
+                        onValueChange={(value) => setNewTemplateType(value as TemplateType)}
+                      >
+                        <SelectTrigger className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="email">
+                            <div className="flex items-center gap-2">
+                              <Mail className="w-4 h-4" />
+                              E-mail de Phishing
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="web">
+                            <div className="flex items-center gap-2">
+                              <Globe className="w-4 h-4" />
+                              Landing Page Web
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="name">Nome do Template</Label>
                       <Input
-                        id="subject"
-                        placeholder="Ex: Ação necessária: Verifique sua conta"
+                        id="name"
+                        placeholder="Ex: Verificação de Conta"
                         required
                         className="mt-2"
                       />
                     </div>
-                  )}
 
-                  <div>
-                    <Label htmlFor="category">Categoria</Label>
-                    <Select>
-                      <SelectTrigger className="mt-2" id="category">
-                        <SelectValue placeholder="Selecione a categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="financeiro">Financeiro</SelectItem>
-                        <SelectItem value="ti">TI / Tecnologia</SelectItem>
-                        <SelectItem value="rh">Recursos Humanos</SelectItem>
-                        <SelectItem value="vendas">Vendas</SelectItem>
-                        <SelectItem value="outros">Outros</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    {newTemplateType === 'email' && (
+                      <div>
+                        <Label htmlFor="subject">Assunto do E-mail</Label>
+                        <Input
+                          id="subject"
+                          placeholder="Ex: Ação necessária: Verifique sua conta"
+                          required
+                          className="mt-2"
+                        />
+                      </div>
+                    )}
 
-                  <div>
-                    <Label htmlFor="difficulty">Nível de Dificuldade</Label>
-                    <Select>
-                      <SelectTrigger className="mt-2" id="difficulty">
-                        <SelectValue placeholder="Selecione o nível" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="easy">Fácil (Alto engajamento)</SelectItem>
-                        <SelectItem value="medium">Médio (Moderado)</SelectItem>
-                        <SelectItem value="hard">Difícil (Sofisticado)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="content">
-                      {newTemplateType === 'email' ? 'Conteúdo do E-mail' : 'HTML da Landing Page'}
-                    </Label>
-                    <Textarea
-                      id="content"
-                      placeholder={
-                        newTemplateType === 'email'
-                          ? 'Digite o corpo do e-mail. Use [LINK] para inserir o link de tracking.'
-                          : 'Cole o código HTML da landing page'
-                      }
-                      rows={10}
-                      required
-                      className="mt-2 font-mono text-sm"
-                    />
-                  </div>
-
-                  {newTemplateType === 'web' && (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        💡 <strong>Dica:</strong> Use variáveis como {'{{user.name}}'} e {'{{user.email}}'} para
-                        personalização automática
-                      </p>
+                    <div>
+                      <Label htmlFor="category">Categoria</Label>
+                      <Select>
+                        <SelectTrigger className="mt-2" id="category">
+                          <SelectValue placeholder="Selecione a categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="financeiro">Financeiro</SelectItem>
+                          <SelectItem value="ti">TI / Tecnologia</SelectItem>
+                          <SelectItem value="rh">Recursos Humanos</SelectItem>
+                          <SelectItem value="vendas">Vendas</SelectItem>
+                          <SelectItem value="outros">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                    Criar Template
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+
+                    <div>
+                      <Label htmlFor="difficulty">Nível de Dificuldade</Label>
+                      <Select>
+                        <SelectTrigger className="mt-2" id="difficulty">
+                          <SelectValue placeholder="Selecione o nível" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="easy">Fácil (Alto engajamento)</SelectItem>
+                          <SelectItem value="medium">Médio (Moderado)</SelectItem>
+                          <SelectItem value="hard">Difícil (Sofisticado)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="content">
+                        {newTemplateType === 'email' ? 'Conteúdo do E-mail' : 'HTML da Landing Page'}
+                      </Label>
+                      <Textarea
+                        id="content"
+                        placeholder={
+                          newTemplateType === 'email'
+                            ? 'Digite o corpo do e-mail. Use [LINK] para inserir o link de tracking.'
+                            : 'Cole o código HTML da landing page'
+                        }
+                        rows={10}
+                        required
+                        className="mt-2 font-mono text-sm"
+                      />
+                    </div>
+
+                    {newTemplateType === 'web' && (
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          💡 <strong>Dica:</strong> Use variáveis como {'{{user.name}}'} e {'{{user.email}}'} para
+                          personalização automática
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                      Criar Template
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 

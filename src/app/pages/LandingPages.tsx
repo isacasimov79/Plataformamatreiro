@@ -61,6 +61,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
 
 interface LandingPage {
   id: string;
@@ -138,6 +139,7 @@ export function LandingPages() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPreviewDialogOpen, setIsPreviewDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
+  const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<LandingPage | null>(null);
 
   const filteredPages = mockLandingPages.filter((page) =>
@@ -160,6 +162,7 @@ export function LandingPages() {
       description: 'As alterações foram salvas',
     });
     setIsEditDialogOpen(false);
+    setSelectedPage(null);
   };
 
   const handleCopyUrl = (url: string) => {
@@ -213,137 +216,105 @@ export function LandingPages() {
               Gerencie páginas de captura para campanhas de phishing
             </p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                <Plus className="w-4 h-4 mr-2" />
-                Nova Landing Page
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-              <form onSubmit={handleCreatePage}>
-                <DialogHeader>
-                  <DialogTitle>Criar Nova Landing Page</DialogTitle>
-                  <DialogDescription>
-                    Configure uma página de captura para sua campanha
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label htmlFor="name">Nome da Página</Label>
-                    <Input
-                      id="name"
-                      placeholder="Ex: Login Microsoft 365"
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Descrição</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Descreva o propósito desta página"
-                      rows={2}
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
+              onClick={() => setIsHtmlEditorOpen(true)}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Editor HTML Avançado
+            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Nova Landing Page
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <form onSubmit={handleCreatePage}>
+                  <DialogHeader>
+                    <DialogTitle>Criar Nova Landing Page</DialogTitle>
+                    <DialogDescription>
+                      Configure uma página de captura para sua campanha
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="type">Tipo de Página</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="type">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="login">Login</SelectItem>
-                          <SelectItem value="prize">Prêmio</SelectItem>
-                          <SelectItem value="update">Atualização</SelectItem>
-                          <SelectItem value="survey">Pesquisa</SelectItem>
-                          <SelectItem value="support">Suporte</SelectItem>
-                          <SelectItem value="custom">Customizada</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="name">Nome da Página</Label>
+                      <Input
+                        id="name"
+                        placeholder="Ex: Login Microsoft 365"
+                        required
+                        className="mt-2"
+                      />
                     </div>
 
                     <div>
-                      <Label htmlFor="template">Template Base</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="template">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="microsoft-365-login">Microsoft 365 Login</SelectItem>
-                          <SelectItem value="google-workspace-login">Google Workspace</SelectItem>
-                          <SelectItem value="prize-survey">Pesquisa com Prêmio</SelectItem>
-                          <SelectItem value="password-reset">Reset de Senha</SelectItem>
-                          <SelectItem value="it-support">Suporte TI</SelectItem>
-                          <SelectItem value="blank">Página em Branco</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="description">Descrição</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="Descreva o propósito desta página"
+                        rows={2}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="type">Tipo de Página</Label>
+                        <Select>
+                          <SelectTrigger className="mt-2" id="type">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="login">Login</SelectItem>
+                            <SelectItem value="prize">Prêmio</SelectItem>
+                            <SelectItem value="update">Atualização</SelectItem>
+                            <SelectItem value="survey">Pesquisa</SelectItem>
+                            <SelectItem value="support">Suporte</SelectItem>
+                            <SelectItem value="custom">Customizada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="template">Template Base</Label>
+                        <Select>
+                          <SelectTrigger className="mt-2" id="template">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="microsoft-365-login">Microsoft 365 Login</SelectItem>
+                            <SelectItem value="google-workspace-login">Google Workspace</SelectItem>
+                            <SelectItem value="prize-survey">Pesquisa com Prêmio</SelectItem>
+                            <SelectItem value="password-reset">Reset de Senha</SelectItem>
+                            <SelectItem value="it-support">Suporte TI</SelectItem>
+                            <SelectItem value="blank">Página em Branco</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-700">
+                        💡 <strong>Dica:</strong> Use o Editor HTML Avançado para criar páginas totalmente personalizadas.
+                      </p>
                     </div>
                   </div>
-
-                  <div>
-                    <Label htmlFor="url">URL da Página (opcional)</Label>
-                    <Input
-                      id="url"
-                      placeholder="https://exemplo.com/pagina"
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Se não preenchido, será gerada automaticamente
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label>Editor HTML/CSS</Label>
-                    <Tabs defaultValue="html" className="mt-2">
-                      <TabsList>
-                        <TabsTrigger value="html">HTML</TabsTrigger>
-                        <TabsTrigger value="css">CSS</TabsTrigger>
-                        <TabsTrigger value="preview">Preview</TabsTrigger>
-                      </TabsList>
-                      <TabsContent value="html" className="space-y-2">
-                        <Textarea
-                          placeholder="Cole ou edite o HTML da página..."
-                          rows={10}
-                          className="font-mono text-sm"
-                        />
-                      </TabsContent>
-                      <TabsContent value="css" className="space-y-2">
-                        <Textarea
-                          placeholder="Cole ou edite o CSS da página..."
-                          rows={10}
-                          className="font-mono text-sm"
-                        />
-                      </TabsContent>
-                      <TabsContent value="preview" className="space-y-2">
-                        <div className="border rounded-lg p-4 bg-gray-50 min-h-[200px]">
-                          <p className="text-center text-gray-500">Preview será exibido aqui</p>
-                        </div>
-                      </TabsContent>
-                    </Tabs>
-                  </div>
-
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      💡 <strong>Dica:</strong> Use templates pré-construídos e personalize conforme necessário. Todas as credenciais inseridas são capturadas automaticamente.
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                    Criar Página
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                      Criar Página
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
@@ -532,7 +503,7 @@ export function LandingPages() {
                             <Edit className="w-4 h-4 mr-2" />
                             Editar
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => window.open(page.url, '_blank')}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Abrir em Nova Aba
                           </DropdownMenuItem>
@@ -555,24 +526,58 @@ export function LandingPages() {
         </CardContent>
       </Card>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog - Mock com conteúdo simulado */}
       {selectedPage && (
         <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
           <DialogContent className="max-w-6xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>{selectedPage.name} - Preview</DialogTitle>
-              <DialogDescription>Visualização da landing page</DialogDescription>
+              <DialogDescription>Visualização simulada da landing page</DialogDescription>
             </DialogHeader>
-            <div className="border rounded-lg bg-white" style={{ height: '70vh' }}>
-              <iframe
-                src={selectedPage.url}
-                className="w-full h-full rounded-lg"
-                title={selectedPage.name}
-              />
+            <div className="border rounded-lg bg-gradient-to-br from-blue-50 to-white p-8" style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-xl">
+                <div className="text-center mb-6">
+                  <div className="flex items-center justify-center mb-4">
+                    <svg className="w-12 h-12" viewBox="0 0 23 23">
+                      <rect fill="#f25022" width="11" height="11"/>
+                      <rect fill="#00a4ef" x="12" width="11" height="11"/>
+                      <rect fill="#7fba00" y="12" width="11" height="11"/>
+                      <rect fill="#ffb900" x="12" y="12" width="11" height="11"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-2xl font-semibold mb-2">Microsoft 365</h2>
+                  <p className="text-gray-600 text-sm">Entrar na sua conta</p>
+                </div>
+                <div className="space-y-4">
+                  <input
+                    type="email"
+                    placeholder="Email, telefone ou Skype"
+                    className="w-full p-3 border border-gray-300 rounded"
+                    disabled
+                  />
+                  <button
+                    className="w-full bg-blue-600 text-white p-3 rounded font-semibold hover:bg-blue-700"
+                    disabled
+                  >
+                    Avançar
+                  </button>
+                  <p className="text-sm text-center text-gray-600">
+                    Não tem uma conta? <a href="#" className="text-blue-600">Crie uma!</a>
+                  </p>
+                </div>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>
                 Fechar
+              </Button>
+              <Button className="bg-[#834a8b] hover:bg-[#6d3d75]" onClick={() => {
+                setIsPreviewDialogOpen(false);
+                setSelectedPage(page);
+                setIsEditDialogOpen(true);
+              }}>
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -591,6 +596,7 @@ export function LandingPages() {
               <TabsList>
                 <TabsTrigger value="html">HTML</TabsTrigger>
                 <TabsTrigger value="css">CSS</TabsTrigger>
+                <TabsTrigger value="js">JavaScript</TabsTrigger>
               </TabsList>
               <TabsContent value="html">
                 <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
@@ -598,40 +604,150 @@ export function LandingPages() {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${selectedPage.name}</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
+    <div class="logo">
+      <img src="{{CLIENT_LOGO}}" alt="Logo">
+    </div>
     <h1>Login</h1>
-    <form action="/capture" method="POST">
+    <form id="loginForm" action="/capture" method="POST">
       <input type="email" name="email" placeholder="Email" required>
       <input type="password" name="password" placeholder="Senha" required>
       <button type="submit">Entrar</button>
     </form>
+    <p class="footer-text">
+      Ao entrar, você concorda com nossos <a href="#">Termos de Uso</a>
+    </p>
   </div>
+  <script src="script.js"></script>
 </body>
 </html>`}</pre>
                 </div>
               </TabsContent>
               <TabsContent value="css">
                 <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
-                  <pre>{`body {
+                  <pre>{`* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f0f0f0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 .container {
   background: white;
   padding: 40px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.logo img {
+  max-width: 150px;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 30px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input {
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+button {
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+.footer-text {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #666;
+}
+
+.footer-text a {
+  color: #667eea;
+  text-decoration: none;
+}
+
+.footer-text a:hover {
+  text-decoration: underline;
 }`}</pre>
+                </div>
+              </TabsContent>
+              <TabsContent value="js">
+                <div className="bg-gray-900 text-gray-100 p-4 rounded-lg font-mono text-sm overflow-x-auto">
+                  <pre>{`document.getElementById('loginForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const email = this.email.value;
+  const password = this.password.value;
+  
+  // Capturar credenciais
+  console.log('Credenciais capturadas:', { email, password });
+  
+  // Enviar para backend
+  fetch('/api/capture', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: email,
+      password: password,
+      page: '${selectedPage.id}',
+      timestamp: new Date().toISOString()
+    })
+  }).then(response => {
+    // Redirecionar após captura
+    window.location.href = '{{REDIRECT_URL}}';
+  }).catch(error => {
+    console.error('Erro:', error);
+    alert('Erro ao processar. Tente novamente.');
+  });
+});`}</pre>
                 </div>
               </TabsContent>
             </Tabs>
@@ -647,6 +763,144 @@ export function LandingPages() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Edit Dialog */}
+      {selectedPage && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleEditPage}>
+              <DialogHeader>
+                <DialogTitle>Editar Landing Page</DialogTitle>
+                <DialogDescription>
+                  Atualize as informações da página de captura
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="edit-name">Nome da Página</Label>
+                  <Input
+                    id="edit-name"
+                    defaultValue={selectedPage.name}
+                    required
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Descrição</Label>
+                  <Textarea
+                    id="edit-description"
+                    defaultValue={selectedPage.description}
+                    rows={2}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-type">Tipo de Página</Label>
+                    <Select defaultValue={selectedPage.type}>
+                      <SelectTrigger className="mt-2" id="edit-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="login">Login</SelectItem>
+                        <SelectItem value="prize">Prêmio</SelectItem>
+                        <SelectItem value="update">Atualização</SelectItem>
+                        <SelectItem value="survey">Pesquisa</SelectItem>
+                        <SelectItem value="support">Suporte</SelectItem>
+                        <SelectItem value="custom">Customizada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-status">Status</Label>
+                    <Select defaultValue={selectedPage.status}>
+                      <SelectTrigger className="mt-2" id="edit-status">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativa</SelectItem>
+                        <SelectItem value="draft">Rascunho</SelectItem>
+                        <SelectItem value="archived">Arquivada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-url">URL da Página</Label>
+                  <Input
+                    id="edit-url"
+                    defaultValue={selectedPage.url}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-sm text-purple-700">
+                    ✏️ <strong>Edição Avançada:</strong> Use o Editor HTML Avançado para modificar o código da página.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setSelectedPage(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setIsHtmlEditorOpen(true);
+                  }}
+                >
+                  <Code className="w-4 h-4 mr-2" />
+                  Editor HTML
+                </Button>
+                <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                  Salvar Alterações
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* HTML Template Editor */}
+      <HtmlTemplateEditor
+        isOpen={isHtmlEditorOpen}
+        onClose={() => setIsHtmlEditorOpen(false)}
+        onSave={(data) => {
+          toast.success('Landing page salva!', {
+            description: 'Template HTML criado com sucesso',
+          });
+          setIsHtmlEditorOpen(false);
+        }}
+        title="Editor de Landing Page"
+        description="Crie landing pages HTML personalizadas com JavaScript e captura de dados"
+        templateType="landing"
+        initialHtml={selectedPage ? `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>${selectedPage.name}</title>
+</head>
+<body>
+  <h1>${selectedPage.name}</h1>
+  <p>Edite seu código aqui</p>
+</body>
+</html>` : ''}
+      />
     </div>
   );
 }

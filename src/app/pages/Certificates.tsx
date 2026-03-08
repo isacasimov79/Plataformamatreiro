@@ -1,3 +1,6 @@
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -59,9 +62,8 @@ import {
   Palette,
   Shield,
   Calendar,
+  Code,
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
 
 interface Certificate {
   id: string;
@@ -176,6 +178,7 @@ export function Certificates() {
     null
   );
   const [activeTab, setActiveTab] = useState('certificates');
+  const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
 
   const filteredCertificates = mockCertificates.filter(
     (cert) =>
@@ -401,7 +404,15 @@ export function Certificates() {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
+              onClick={() => setIsHtmlEditorOpen(true)}
+            >
+              <Code className="w-4 h-4 mr-2" />
+              Editor HTML Avançado
+            </Button>
             <Dialog open={isCreateTemplateOpen} onOpenChange={setIsCreateTemplateOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
@@ -622,6 +633,21 @@ export function Certificates() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* HTML Template Editor Dialog */}
+      <HtmlTemplateEditor
+        isOpen={isHtmlEditorOpen}
+        onClose={() => setIsHtmlEditorOpen(false)}
+        onSave={(data) => {
+          toast.success('Template de certificado salvo!', {
+            description: 'Template HTML criado com sucesso',
+          });
+          setIsHtmlEditorOpen(false);
+        }}
+        title="Editor de Template de Certificado"
+        description="Crie certificados HTML personalizados com variáveis dinâmicas"
+        templateType="certificate"
+      />
     </div>
   );
 }
