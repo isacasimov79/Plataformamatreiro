@@ -631,6 +631,141 @@ export function Trainings() {
         </Dialog>
       )}
 
+      {/* Edit Training Dialog */}
+      {selectedTraining && (
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <form onSubmit={handleEditTraining}>
+              <DialogHeader>
+                <DialogTitle>Editar Treinamento</DialogTitle>
+                <DialogDescription>
+                  Atualize as informações de "{selectedTraining.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="edit-title">Título do Treinamento</Label>
+                  <Input
+                    id="edit-title"
+                    placeholder="Ex: Identificando Phishing"
+                    required
+                    className="mt-2"
+                    defaultValue={selectedTraining.title}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-description">Descrição</Label>
+                  <Textarea
+                    id="edit-description"
+                    placeholder="Descreva o conteúdo do treinamento"
+                    rows={3}
+                    required
+                    className="mt-2"
+                    defaultValue={selectedTraining.description}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="edit-type">Tipo de Conteúdo</Label>
+                    <Select defaultValue={selectedTraining.type}>
+                      <SelectTrigger className="mt-2" id="edit-type">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="video">
+                          <div className="flex items-center gap-2">
+                            <Video className="w-4 h-4" />
+                            Vídeo
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="slides">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Slides (PDF/PPT)
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="edit-category">Categoria</Label>
+                    <Select defaultValue={selectedTraining.category.toLowerCase()}>
+                      <SelectTrigger className="mt-2" id="edit-category">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basico">Básico</SelectItem>
+                        <SelectItem value="intermediario">Intermediário</SelectItem>
+                        <SelectItem value="avancado">Avançado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-duration">Duração (minutos)</Label>
+                  <Input
+                    id="edit-duration"
+                    type="number"
+                    placeholder="15"
+                    required
+                    className="mt-2"
+                    defaultValue={selectedTraining.duration}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-media">Arquivo Atual</Label>
+                  {selectedTraining.mediaUrl && (
+                    <div className="p-3 bg-gray-50 rounded-lg mt-2 mb-2">
+                      <p className="text-sm text-gray-600 truncate">
+                        {selectedTraining.mediaUrl}
+                      </p>
+                    </div>
+                  )}
+                  <Label htmlFor="edit-media-file" className="text-sm text-gray-600">
+                    Substituir arquivo (opcional)
+                  </Label>
+                  <Input
+                    id="edit-media-file"
+                    type="file"
+                    accept="video/*,.pdf,.ppt,.pptx"
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Ou atualize a URL do vídeo
+                  </p>
+                  <Input
+                    id="edit-media-url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="mt-2"
+                    defaultValue={selectedTraining.mediaUrl}
+                  />
+                </div>
+
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-700">
+                    ℹ️ <strong>Inscritos:</strong> {selectedTraining.enrolledCount} pessoas ���{' '}
+                    <strong>Completaram:</strong> {selectedTraining.completedCount} ({Math.round((selectedTraining.completedCount / selectedTraining.enrolledCount) * 100)}%)
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                  Salvar Alterações
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Results Dialog */}
       {selectedTraining && (
         <Dialog open={isResultsDialogOpen} onOpenChange={setIsResultsDialogOpen}>

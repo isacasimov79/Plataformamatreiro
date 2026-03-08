@@ -58,6 +58,7 @@ import {
   Code,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
 
 type TemplateType = 'email' | 'web';
 
@@ -174,6 +175,7 @@ export function Templates() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [newTemplateType, setNewTemplateType] = useState<TemplateType>('email');
 
@@ -204,6 +206,18 @@ export function Templates() {
     });
     setIsEditDialogOpen(false);
     setSelectedTemplate(null);
+  };
+
+  const handleSaveHtmlTemplate = (data: {
+    html: string;
+    css: string;
+    javascript: string;
+    images: Array<{ id: string; url: string; name: string }>;
+  }) => {
+    toast.success('Template HTML salvo!', {
+      description: 'Template criado com editor avançado',
+    });
+    setIsHtmlEditorOpen(false);
   };
 
   const handleClone = (templateId: string) => {
@@ -730,6 +744,16 @@ export function Templates() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* HTML Editor Dialog */}
+      <HtmlTemplateEditor
+        isOpen={isHtmlEditorOpen}
+        onClose={() => setIsHtmlEditorOpen(false)}
+        onSave={handleSaveHtmlTemplate}
+        title="Editor de Template HTML"
+        description="Crie templates HTML avançados com suporte a imagens e JavaScript"
+        templateType="email"
+      />
     </div>
   );
 }

@@ -40,13 +40,15 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { Building2, Eye, Edit, Trash2, Search, Settings, Zap } from 'lucide-react';
+import { Building2, Eye, Edit, Trash2, Search, Settings, Zap, Image as ImageIcon } from 'lucide-react';
+import { ClientLogoUpload } from '../components/ClientLogoUpload';
 
 export function Tenants() {
   const { impersonateTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<typeof mockTenants[0] | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
   const [autoPhishingEnabled, setAutoPhishingEnabled] = useState(false);
   const [delayDays, setDelayDays] = useState(30);
   const [selectedTemplate, setSelectedTemplate] = useState('');
@@ -64,6 +66,13 @@ export function Tenants() {
       description: `Phishing automático ${autoPhishingEnabled ? 'ativado' : 'desativado'} para ${selectedTenant?.name}`,
     });
     setIsConfigDialogOpen(false);
+  };
+
+  const handleSaveLogo = (logoUrl: string) => {
+    toast.success('Logo salva!', {
+      description: `Logo de ${selectedTenant?.name} foi atualizada com sucesso`,
+    });
+    setIsLogoDialogOpen(false);
   };
 
   const filteredTenants = mockTenants.filter(
@@ -208,6 +217,18 @@ export function Tenants() {
                         >
                           <Settings className="w-4 h-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-600 hover:text-gray-700"
+                          title="Upload de Logo"
+                          onClick={() => {
+                            setSelectedTenant(tenant);
+                            setIsLogoDialogOpen(true);
+                          }}
+                        >
+                          <ImageIcon className="w-4 h-4" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -283,6 +304,16 @@ export function Tenants() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Client Logo Upload Dialog */}
+      {selectedTenant && (
+        <ClientLogoUpload
+          isOpen={isLogoDialogOpen}
+          onClose={() => setIsLogoDialogOpen(false)}
+          onSave={handleSaveLogo}
+          clientName={selectedTenant.name}
+        />
+      )}
     </div>
   );
 }

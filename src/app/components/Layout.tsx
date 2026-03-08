@@ -21,6 +21,12 @@ import {
   X,
   Zap,
   FolderTree,
+  Globe,
+  Bell,
+  FileText as FileTextIcon,
+  TrendingUp,
+  Settings as SettingsIcon,
+  Award,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import {
@@ -36,17 +42,23 @@ import { useState } from 'react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
   { name: 'Clientes', href: '/tenants', icon: Building2, requiresSuperAdmin: true },
   { name: 'Campanhas', href: '/campaigns', icon: Mail },
   { name: 'Templates', href: '/templates', icon: FileText },
+  { name: 'Landing Pages', href: '/landing-pages', icon: Globe },
   { name: 'Relatórios', href: '/reports', icon: BarChart3 },
   { name: 'Treinamentos', href: '/trainings', icon: GraduationCap },
+  { name: 'Certificados', href: '/certificates', icon: Award },
   { name: 'E-mails Alvo', href: '/targets', icon: Target },
   { name: 'Grupos de Alvos', href: '/target-groups', icon: FolderTree },
   { name: 'Automações', href: '/automations', icon: Zap },
   { name: 'Usuários do Sistema', href: '/system-users', icon: UserCog },
   { name: 'Permissões', href: '/permissions', icon: Shield, requiresSuperAdmin: true },
   { name: 'Integrações', href: '/integrations', icon: Plug },
+  { name: 'Notificações', href: '/notifications', icon: Bell },
+  { name: 'Logs de Auditoria', href: '/audit-logs', icon: FileTextIcon },
+  { name: 'Configurações', href: '/settings', icon: SettingsIcon },
   { name: 'Modo Debug', href: '/debug', icon: Bug, requiresSuperAdmin: true },
 ];
 

@@ -17,6 +17,12 @@ import Permissions from './pages/Permissions';
 import Integrations from './pages/Integrations';
 import { Debug } from './pages/Debug';
 import { NotFound } from './pages/NotFound';
+import { LandingPages } from './pages/LandingPages';
+import { Notifications } from './pages/Notifications';
+import { AuditLogs } from './pages/AuditLogs';
+import { AdvancedDashboard } from './pages/AdvancedDashboard';
+import { Settings } from './pages/Settings';
+import { Certificates } from './pages/Certificates';
 
 export const router = createBrowserRouter([
   {
@@ -32,11 +38,14 @@ export const router = createBrowserRouter([
         Component: Layout,
         children: [
           { index: true, Component: Dashboard },
+          { path: 'analytics', Component: AdvancedDashboard },
           { path: 'tenants', Component: Tenants },
           { path: 'campaigns', Component: Campaigns },
           { path: 'templates', Component: Templates },
+          { path: 'landing-pages', Component: LandingPages },
           { path: 'reports', Component: Reports },
           { path: 'trainings', Component: Trainings },
+          { path: 'certificates', Component: Certificates },
           { path: 'targets', Component: Targets },
           { path: 'targets/import', Component: TargetsImport },
           { path: 'target-groups', Component: TargetGroups },
@@ -44,6 +53,9 @@ export const router = createBrowserRouter([
           { path: 'system-users', Component: SystemUsers },
           { path: 'permissions', Component: Permissions },
           { path: 'integrations', Component: Integrations },
+          { path: 'notifications', Component: Notifications },
+          { path: 'audit-logs', Component: AuditLogs },
+          { path: 'settings', Component: Settings },
           { path: 'debug', Component: Debug },
           { path: '*', Component: NotFound },
         ],

@@ -39,6 +39,7 @@ import {
   Search,
 } from 'lucide-react';
 import { NewCampaignDialog } from '../components/NewCampaignDialog';
+import { PhishingSyslogDialog } from '../components/PhishingSyslogDialog';
 
 function getTemplateById(id: string) {
   return mockTemplates.find((t) => t.id === id);
@@ -286,6 +287,10 @@ export function Campaigns() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <PhishingSyslogDialog
+                          campaignId={campaign.id}
+                          campaignName={campaign.name}
+                        />
                         <Button
                           variant="ghost"
                           size="sm"

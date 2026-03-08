@@ -148,12 +148,12 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
 
             <div className="grid gap-2">
               <Label htmlFor="edit-parent">Cliente Pai (Opcional)</Label>
-              <Select value={formData.parentId} onValueChange={(value) => setFormData({ ...formData, parentId: value })}>
+              <Select value={formData.parentId || 'none'} onValueChange={(value) => setFormData({ ...formData, parentId: value === 'none' ? '' : value })}>
                 <SelectTrigger id="edit-parent">
                   <SelectValue placeholder="Nenhum (cliente raiz)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum (cliente raiz)</SelectItem>
+                  <SelectItem value="none">Nenhum (cliente raiz)</SelectItem>
                   {availableParents.map((parent) => (
                     <SelectItem key={parent.id} value={parent.id}>
                       {parent.name}
