@@ -1,0 +1,375 @@
+import { Badge } from './ui/badge';
+import { cn } from './ui/utils';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+import { Checkbox } from './ui/checkbox';
+import { toast } from 'sonner';
+import { mockTemplates, mockTenants, mockTargetGroups, getTargetGroupsByTenant } from '../lib/mockData';
+import { useAuth } from '../contexts/AuthContext';
+import { Calendar } from './ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
+import { CalendarIcon, Plus, Users, Cloud, RefreshCw } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+export function NewCampaignDialog() {
+  const { impersonatedTenant } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    templateId: '',
+    targetGroupIds: [] as string[],
+    tenantId: impersonatedTenant?.id || '',
+    scheduledDate: undefined as Date | undefined,
+    type: 'standard',
+  });
+
+  // Fechar calendário ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
+        setCalendarOpen(false);
+      }
+    };
+
+    if (calendarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [calendarOpen]);
+
+  const availableTemplates = impersonatedTenant
+    ? mockTemplates.filter(t => t.tenantId === null || t.tenantId === impersonatedTenant.id)
+    : mockTemplates;
+
+  const availableGroups = impersonatedTenant
+    ? getTargetGroupsByTenant(impersonatedTenant.id)
+    : mockTargetGroups;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.templateId || formData.targetGroupIds.length === 0) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+
+    if (!impersonatedTenant && !formData.tenantId) {
+      toast.error('Selecione um cliente');
+      return;
+    }
+
+    const totalTargets = formData.targetGroupIds.reduce((sum, groupId) => {
+      const group = availableGroups.find(g => g.id === groupId);
+      return sum + (group?.memberCount || 0);
+    }, 0);
+
+    // Simular criação
+    toast.success(`Campanha "${formData.name}" criada com sucesso!`, {
+      description: formData.scheduledDate 
+        ? `Agendada para ${format(formData.scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })} • ${totalTargets} alvos`
+        : `Pronta para ser iniciada • ${totalTargets} alvos`,
+    });
+
+    // Reset form
+    setFormData({
+      name: '',
+      description: '',
+      templateId: '',
+      targetGroupIds: [],
+      tenantId: impersonatedTenant?.id || '',
+      scheduledDate: undefined,
+      type: 'standard',
+    });
+
+    setOpen(false);
+  };
+
+  const toggleGroup = (groupId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      targetGroupIds: prev.targetGroupIds.includes(groupId)
+        ? prev.targetGroupIds.filter(id => id !== groupId)
+        : [...prev.targetGroupIds, groupId]
+    }));
+  };
+
+  const getSourceBadge = (source: string) => {
+    const sourceConfig = {
+      manual: { label: 'Manual', className: 'bg-gray-100 text-gray-700' },
+      azure_ad: { label: 'Azure AD', className: 'bg-blue-100 text-blue-700' },
+      entra_id: { label: 'Entra ID', className: 'bg-purple-100 text-purple-700' },
+      office365: { label: 'Office 365', className: 'bg-orange-100 text-orange-700' },
+      google_workspace: { label: 'Google Workspace', className: 'bg-green-100 text-green-700' },
+      nested: { label: 'Grupo de Grupos', className: 'bg-indigo-100 text-indigo-700' },
+    };
+    const config = sourceConfig[source as keyof typeof sourceConfig] || sourceConfig.manual;
+    return <Badge variant="outline" className={`text-xs ${config.className}`}>{config.label}</Badge>;
+  };
+
+  const totalSelectedTargets = formData.targetGroupIds.reduce((sum, groupId) => {
+    const group = availableGroups.find(g => g.id === groupId);
+    return sum + (group?.memberCount || 0);
+  }, 0);
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-[#834a8b] hover:bg-[#9a5ba1] text-white w-full sm:w-auto">
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Campanha
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Nova Campanha de Phishing</DialogTitle>
+          <DialogDescription>
+            Configure uma nova campanha de simulação de phishing
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Nome da Campanha */}
+          <div>
+            <Label htmlFor="name">Nome da Campanha *</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="Ex: Teste de Segurança Q1 2024"
+              className="mt-1"
+            />
+          </div>
+
+          {/* Cliente (apenas para master view) */}
+          {!impersonatedTenant && (
+            <div>
+              <Label htmlFor="tenant">Cliente *</Label>
+              <Select
+                value={formData.tenantId}
+                onValueChange={(value) => setFormData({ ...formData, tenantId: value })}
+              >
+                <SelectTrigger id="tenant" className="mt-1">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {mockTenants.filter(t => t.status === 'active').map((tenant) => (
+                    <SelectItem key={tenant.id} value={tenant.id}>
+                      {tenant.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Template */}
+            <div>
+              <Label htmlFor="template">Template *</Label>
+              <Select
+                value={formData.templateId}
+                onValueChange={(value) => setFormData({ ...formData, templateId: value })}
+              >
+                <SelectTrigger id="template" className="mt-1">
+                  <SelectValue placeholder="Selecione o template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableTemplates.map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name} - {template.category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tipo de Campanha */}
+            <div>
+              <Label htmlFor="type">Tipo de Campanha</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) => setFormData({ ...formData, type: value })}
+              >
+                <SelectTrigger id="type" className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Padrão</SelectItem>
+                  <SelectItem value="welcome_automation">Automação Boas-vindas</SelectItem>
+                  <SelectItem value="scheduled">Agendada Recorrente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Data de Agendamento */}
+          <div className="space-y-2">
+            <Label>Data de Agendamento (Opcional)</Label>
+            <div className="relative">
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCalendarOpen(!calendarOpen)}
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !formData.scheduledDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {formData.scheduledDate ? (
+                    format(formData.scheduledDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                  ) : (
+                    <span>Selecione a data</span>
+                  )}
+                </Button>
+              </div>
+              
+              {calendarOpen && (
+                <div className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg" ref={calendarRef}>
+                  <Calendar
+                    mode="single"
+                    selected={formData.scheduledDate}
+                    onSelect={(date) => {
+                      setFormData((prev) => ({ ...prev, scheduledDate: date }));
+                      if (date) {
+                        setCalendarOpen(false);
+                      }
+                    }}
+                    disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today;
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+            {formData.scheduledDate && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setFormData((prev) => ({ ...prev, scheduledDate: undefined }))}
+                className="h-8 text-xs text-gray-500 hover:text-gray-700"
+              >
+                Limpar data
+              </Button>
+            )}
+          </div>
+
+          {/* Grupos de Alvos */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <Label>Grupos de Alvos *</Label>
+              {formData.targetGroupIds.length > 0 && (
+                <Badge variant="outline" className="bg-[#834a8b] text-white">
+                  <Users className="w-3 h-3 mr-1" />
+                  {totalSelectedTargets} alvos selecionados
+                </Badge>
+              )}
+            </div>
+            <div className="border rounded-lg p-4 max-h-64 overflow-y-auto space-y-2">
+              {availableGroups.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  Nenhum grupo disponível. Crie grupos de alvos primeiro.
+                </p>
+              ) : (
+                availableGroups.map((group) => (
+                  <div
+                    key={group.id}
+                    className="flex items-start space-x-3 p-3 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    <Checkbox
+                      id={group.id}
+                      checked={formData.targetGroupIds.includes(group.id)}
+                      onCheckedChange={() => toggleGroup(group.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1">
+                      <label
+                        htmlFor={group.id}
+                        className="text-sm font-medium leading-none cursor-pointer flex items-center gap-2"
+                      >
+                        {group.name}
+                        {getSourceBadge(group.source)}
+                        {group.syncEnabled && (
+                          <Cloud className="w-3 h-3 text-blue-500" title="Sincronização ativa" />
+                        )}
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">{group.description}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-gray-600">
+                          <Users className="w-3 h-3 inline mr-1" />
+                          {group.memberCount} membros
+                        </span>
+                        {group.syncEnabled && group.lastSyncAt && (
+                          <span className="text-xs text-gray-500">
+                            <RefreshCw className="w-3 h-3 inline mr-1" />
+                            Última sync: {format(new Date(group.lastSyncAt), 'dd/MM/yyyy HH:mm')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Descrição */}
+          <div>
+            <Label htmlFor="description">Descrição</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Descrição opcional da campanha..."
+              rows={3}
+              className="mt-1"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="bg-[#834a8b] hover:bg-[#9a5ba1]">
+              Criar Campanha
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

@@ -1,0 +1,230 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "actions": "Actions",
+    "status": "Status",
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "close": "Close",
+    "view": "View",
+    "download": "Download",
+    "upload": "Upload",
+    "yes": "Yes",
+    "no": "No",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "campaigns": "Campaigns",
+    "templates": "Templates",
+    "targets": "Targets",
+    "trainings": "Trainings",
+    "reports": "Reports",
+    "tenants": "Clients",
+    "users": "Users",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview of all clients",
+    "client": "Client",
+    "activeCampaigns": "Active Campaigns",
+    "totalCampaigns": "total",
+    "emailsSent": "Emails Sent",
+    "last30Days": "Last 30 days",
+    "clickRate": "Click Rate",
+    "clicks": "clicks",
+    "compromiseRate": "Compromise Rate",
+    "compromises": "compromises",
+    "campaignPerformance": "Campaign Performance",
+    "recentCampaigns": "Recent Campaigns",
+    "sent": "sent",
+    "compromised": "compromised",
+    "completed": "Completed",
+    "running": "Running",
+    "scheduled": "Scheduled"
+  },
+  "campaigns": {
+    "title": "Campaigns",
+    "newCampaign": "New Campaign",
+    "editCampaign": "Edit Campaign",
+    "deleteCampaign": "Delete Campaign",
+    "campaignName": "Campaign Name",
+    "description": "Description",
+    "template": "Template",
+    "selectTemplate": "Select Template",
+    "targets": "Targets",
+    "schedule": "Schedule",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "active": "Active",
+      "paused": "Paused",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "metrics": {
+      "sent": "Sent",
+      "opened": "Opened",
+      "clicked": "Clicked",
+      "submitted": "Compromised"
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "newTemplate": "New Template",
+    "editTemplate": "Edit Template",
+    "deleteTemplate": "Delete Template",
+    "templateName": "Template Name",
+    "category": "Category",
+    "subject": "Subject",
+    "emailContent": "Email Content",
+    "landingPage": "Landing Page",
+    "preview": "Preview",
+    "categories": {
+      "credential_harvest": "Credential Harvest",
+      "malware": "Malware",
+      "business_email": "Business Email Compromise",
+      "social_engineering": "Social Engineering"
+    }
+  },
+  "targets": {
+    "title": "Targets",
+    "newTarget": "New Target",
+    "importTargets": "Import Targets",
+    "targetName": "Name",
+    "department": "Department",
+    "position": "Position",
+    "phone": "Phone",
+    "importFrom": {
+      "csv": "CSV/Excel",
+      "microsoft": "Microsoft 365",
+      "google": "Google Workspace"
+    }
+  },
+  "trainings": {
+    "title": "Trainings",
+    "newTraining": "New Training",
+    "trainingName": "Training Name",
+    "duration": "Duration",
+    "passingScore": "Passing Score",
+    "enrolledUsers": "Enrolled Users",
+    "completionRate": "Completion Rate"
+  },
+  "reports": {
+    "title": "Reports and Analytics",
+    "exportPDF": "Export PDF",
+    "openRate": "Open Rate",
+    "clickRate": "Click Rate",
+    "compromiseRate": "Compromise Rate",
+    "evaluatedUsers": "Evaluated Users",
+    "overview": "Overview",
+    "departments": "By Department",
+    "vulnerable": "Vulnerable Users",
+    "timeline": "Timeline",
+    "metricEvolution": "Metrics Evolution",
+    "riskDistribution": "Risk Distribution",
+    "departmentAnalysis": "Department Analysis",
+    "mostVulnerable": "Most Vulnerable Users",
+    "timelineHistory": "Campaign Timeline"
+  },
+  "tenants": {
+    "title": "Clients",
+    "newTenant": "New Client",
+    "editTenant": "Edit Client",
+    "tenantName": "Client Name",
+    "contactInfo": "Contact Information",
+    "subscription": "Subscription",
+    "integrations": "Integrations",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended",
+      "trial": "Trial"
+    }
+  },
+  "users": {
+    "title": "Users",
+    "newUser": "New User",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "role": "Role",
+    "permissions": "Permissions",
+    "roles": {
+      "superadmin": "Super Admin",
+      "tenant_admin": "Tenant Admin",
+      "sub_tenant_admin": "Sub-Tenant Admin",
+      "manager": "Manager",
+      "analyst": "Analyst",
+      "viewer": "Viewer"
+    }
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "loginTitle": "Login - Matreiro Platform",
+    "loginSubtitle": "Phishing Simulation and Security Awareness",
+    "keycloakLogin": "Login via Keycloak",
+    "fallbackMode": "Fallback Mode Active",
+    "username": "Username",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up"
+  },
+  "permissions": {
+    "title": "Permissions",
+    "roles": "Roles",
+    "newRole": "New Role",
+    "assignPermissions": "Assign Permissions",
+    "modules": {
+      "campaigns": "Campaigns",
+      "targets": "Targets",
+      "templates": "Templates",
+      "users": "Users",
+      "tenants": "Clients",
+      "trainings": "Trainings",
+      "reports": "Reports",
+      "system": "System"
+    }
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email",
+    "passwordMismatch": "Passwords don't match",
+    "minLength": "Minimum {{count}} characters",
+    "maxLength": "Maximum {{count}} characters"
+  },
+  "messages": {
+    "saveSuccess": "Saved successfully!",
+    "deleteSuccess": "Deleted successfully!",
+    "updateSuccess": "Updated successfully!",
+    "createSuccess": "Created successfully!",
+    "error": "An error occurred. Please try again.",
+    "confirmDelete": "Are you sure you want to delete?",
+    "noData": "No data found",
+    "loading": "Loading..."
+  }
+}

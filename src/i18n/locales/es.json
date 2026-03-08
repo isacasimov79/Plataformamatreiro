@@ -1,0 +1,230 @@
+{
+  "common": {
+    "welcome": "Bienvenido",
+    "loading": "Cargando...",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "actions": "Acciones",
+    "status": "Estado",
+    "name": "Nombre",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirm": "Confirmar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "finish": "Finalizar",
+    "close": "Cerrar",
+    "view": "Ver",
+    "download": "Descargar",
+    "upload": "Subir",
+    "yes": "Sí",
+    "no": "No",
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "campaigns": "Campañas",
+    "templates": "Plantillas",
+    "targets": "Objetivos",
+    "trainings": "Entrenamientos",
+    "reports": "Informes",
+    "tenants": "Clientes",
+    "users": "Usuarios",
+    "settings": "Configuración",
+    "logout": "Salir"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "overview": "Visión general de todos los clientes",
+    "client": "Cliente",
+    "activeCampaigns": "Campañas Activas",
+    "totalCampaigns": "en total",
+    "emailsSent": "Correos Enviados",
+    "last30Days": "Últimos 30 días",
+    "clickRate": "Tasa de Clics",
+    "clicks": "clics",
+    "compromiseRate": "Tasa de Compromiso",
+    "compromises": "compromisos",
+    "campaignPerformance": "Rendimiento de Campañas",
+    "recentCampaigns": "Campañas Recientes",
+    "sent": "enviados",
+    "compromised": "comprometidos",
+    "completed": "Completada",
+    "running": "En ejecución",
+    "scheduled": "Programada"
+  },
+  "campaigns": {
+    "title": "Campañas",
+    "newCampaign": "Nueva Campaña",
+    "editCampaign": "Editar Campaña",
+    "deleteCampaign": "Eliminar Campaña",
+    "campaignName": "Nombre de la Campaña",
+    "description": "Descripción",
+    "template": "Plantilla",
+    "selectTemplate": "Seleccionar Plantilla",
+    "targets": "Objetivos",
+    "schedule": "Programación",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Finalización",
+    "status": {
+      "draft": "Borrador",
+      "scheduled": "Programada",
+      "active": "Activa",
+      "paused": "Pausada",
+      "completed": "Completada",
+      "cancelled": "Cancelada"
+    },
+    "metrics": {
+      "sent": "Enviados",
+      "opened": "Abiertos",
+      "clicked": "Clicados",
+      "submitted": "Comprometidos"
+    }
+  },
+  "templates": {
+    "title": "Plantillas",
+    "newTemplate": "Nueva Plantilla",
+    "editTemplate": "Editar Plantilla",
+    "deleteTemplate": "Eliminar Plantilla",
+    "templateName": "Nombre de la Plantilla",
+    "category": "Categoría",
+    "subject": "Asunto",
+    "emailContent": "Contenido del Correo",
+    "landingPage": "Página de Destino",
+    "preview": "Vista Previa",
+    "categories": {
+      "credential_harvest": "Recolección de Credenciales",
+      "malware": "Malware",
+      "business_email": "Compromiso de Correo Corporativo",
+      "social_engineering": "Ingeniería Social"
+    }
+  },
+  "targets": {
+    "title": "Objetivos",
+    "newTarget": "Nuevo Objetivo",
+    "importTargets": "Importar Objetivos",
+    "targetName": "Nombre",
+    "department": "Departamento",
+    "position": "Cargo",
+    "phone": "Teléfono",
+    "importFrom": {
+      "csv": "CSV/Excel",
+      "microsoft": "Microsoft 365",
+      "google": "Google Workspace"
+    }
+  },
+  "trainings": {
+    "title": "Entrenamientos",
+    "newTraining": "Nuevo Entrenamiento",
+    "trainingName": "Nombre del Entrenamiento",
+    "duration": "Duración",
+    "passingScore": "Puntuación Mínima",
+    "enrolledUsers": "Usuarios Inscritos",
+    "completionRate": "Tasa de Finalización"
+  },
+  "reports": {
+    "title": "Informes y Análisis",
+    "exportPDF": "Exportar PDF",
+    "openRate": "Tasa de Apertura",
+    "clickRate": "Tasa de Clics",
+    "compromiseRate": "Tasa de Compromiso",
+    "evaluatedUsers": "Usuarios Evaluados",
+    "overview": "Visión General",
+    "departments": "Por Departamento",
+    "vulnerable": "Usuarios Vulnerables",
+    "timeline": "Línea de Tiempo",
+    "metricEvolution": "Evolución de Métricas",
+    "riskDistribution": "Distribución de Riesgo",
+    "departmentAnalysis": "Análisis por Departamento",
+    "mostVulnerable": "Usuarios Más Vulnerables",
+    "timelineHistory": "Línea de Tiempo de Campañas"
+  },
+  "tenants": {
+    "title": "Clientes",
+    "newTenant": "Nuevo Cliente",
+    "editTenant": "Editar Cliente",
+    "tenantName": "Nombre del Cliente",
+    "contactInfo": "Información de Contacto",
+    "subscription": "Suscripción",
+    "integrations": "Integraciones",
+    "status": {
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "suspended": "Suspendido",
+      "trial": "Prueba"
+    }
+  },
+  "users": {
+    "title": "Usuarios",
+    "newUser": "Nuevo Usuario",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "role": "Rol",
+    "permissions": "Permisos",
+    "roles": {
+      "superadmin": "Super Admin",
+      "tenant_admin": "Admin del Cliente",
+      "sub_tenant_admin": "Admin del Sub-Cliente",
+      "manager": "Gerente",
+      "analyst": "Analista",
+      "viewer": "Visualizador"
+    }
+  },
+  "auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión",
+    "loginTitle": "Inicio de sesión - Plataforma Matreiro",
+    "loginSubtitle": "Simulación de Phishing y Concienciación en Seguridad",
+    "keycloakLogin": "Iniciar sesión con Keycloak",
+    "fallbackMode": "Modo Alternativo Activo",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "rememberMe": "Recordarme",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "noAccount": "¿No tienes cuenta?",
+    "signUp": "Regístrate"
+  },
+  "permissions": {
+    "title": "Permisos",
+    "roles": "Roles",
+    "newRole": "Nuevo Rol",
+    "assignPermissions": "Asignar Permisos",
+    "modules": {
+      "campaigns": "Campañas",
+      "targets": "Objetivos",
+      "templates": "Plantillas",
+      "users": "Usuarios",
+      "tenants": "Clientes",
+      "trainings": "Entrenamientos",
+      "reports": "Informes",
+      "system": "Sistema"
+    }
+  },
+  "validation": {
+    "required": "Este campo es obligatorio",
+    "invalidEmail": "Correo electrónico inválido",
+    "passwordMismatch": "Las contraseñas no coinciden",
+    "minLength": "Mínimo {{count}} caracteres",
+    "maxLength": "Máximo {{count}} caracteres"
+  },
+  "messages": {
+    "saveSuccess": "¡Guardado exitosamente!",
+    "deleteSuccess": "¡Eliminado exitosamente!",
+    "updateSuccess": "¡Actualizado exitosamente!",
+    "createSuccess": "¡Creado exitosamente!",
+    "error": "Ocurrió un error. Inténtalo de nuevo.",
+    "confirmDelete": "¿Estás seguro de que deseas eliminar?",
+    "noData": "No se encontraron datos",
+    "loading": "Cargando..."
+  }
+}
