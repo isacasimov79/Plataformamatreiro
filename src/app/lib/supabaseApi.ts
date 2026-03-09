@@ -229,6 +229,54 @@ export async function deleteAutomation(id: string) {
 }
 
 // =====================================================
+// LANDING PAGES
+// =====================================================
+
+export async function getLandingPages() {
+  return apiRequest<any[]>('/landing-pages', 'GET');
+}
+
+export async function getLandingPage(id: string) {
+  return apiRequest<any>(`/landing-pages/${id}`, 'GET');
+}
+
+export async function createLandingPage(data: any) {
+  return apiRequest<any>('/landing-pages', 'POST', data);
+}
+
+export async function updateLandingPage(id: string, data: any) {
+  return apiRequest<any>(`/landing-pages/${id}`, 'PUT', data);
+}
+
+export async function deleteLandingPage(id: string) {
+  return apiRequest<any>(`/landing-pages/${id}`, 'DELETE');
+}
+
+// =====================================================
+// CERTIFICATES
+// =====================================================
+
+export async function getCertificates() {
+  return apiRequest<any[]>('/certificates', 'GET');
+}
+
+export async function getCertificate(id: string) {
+  return apiRequest<any>(`/certificates/${id}`, 'GET');
+}
+
+export async function createCertificate(data: any) {
+  return apiRequest<any>('/certificates', 'POST', data);
+}
+
+export async function updateCertificate(id: string, data: any) {
+  return apiRequest<any>(`/certificates/${id}`, 'PUT', data);
+}
+
+export async function deleteCertificate(id: string) {
+  return apiRequest<any>(`/certificates/${id}`, 'DELETE');
+}
+
+// =====================================================
 // SEED DATA - Popular banco com dados iniciais
 // =====================================================
 

@@ -428,7 +428,7 @@ export function Reports() {
                 <CardDescription>Classificação dos colaboradores</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-center">
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minHeight={300}>
                   <PieChart key={`risk-pie-${riskDistribution.length}`}>
                     <Pie
                       data={riskDistribution}
@@ -441,8 +441,8 @@ export function Reports() {
                       dataKey="value"
                       isAnimationActive={false}
                     >
-                      {riskDistribution.map((entry) => (
-                        <Cell key={`risk-cell-${entry.id}`} fill={entry.color} />
+                      {riskDistribution.map((entry, index) => (
+                        <Cell key={`risk-cell-${entry.id}-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
                     <Tooltip />

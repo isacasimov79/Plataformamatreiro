@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -63,6 +63,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { getTrainings, deleteTraining, getTenants } from '../lib/supabaseApi';
+import { NewTrainingDialog } from '../components/NewTrainingDialog';
 
 interface Training {
   id: string;
@@ -76,6 +78,7 @@ interface Training {
   averageScore: number;
   mediaUrl?: string;
   createdAt: string;
+  tenantId?: string | null;
 }
 
 interface TrainingResult {
@@ -89,143 +92,77 @@ interface TrainingResult {
   status: 'completed' | 'in_progress' | 'failed';
 }
 
-const mockTrainings: Training[] = [
-  {
-    id: 'trn-1',
-    title: 'Introdução à Segurança da Informação',
-    description: 'Conceitos básicos de segurança digital e proteção de dados',
-    type: 'video',
-    duration: 15,
-    category: 'Básico',
-    enrolledCount: 450,
-    completedCount: 380,
-    averageScore: 87,
-    mediaUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    createdAt: '2026-01-15T00:00:00Z',
-  },
-  {
-    id: 'trn-2',
-    title: 'Identificando Ataques de Phishing',
-    description: 'Aprenda a reconhecer e-mails maliciosos e golpes comuns',
-    type: 'video',
-    duration: 20,
-    category: 'Intermediário',
-    enrolledCount: 380,
-    completedCount: 310,
-    averageScore: 82,
-    mediaUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    createdAt: '2026-01-20T00:00:00Z',
-  },
-  {
-    id: 'trn-3',
-    title: 'Boas Práticas de Senha',
-    description: 'Como criar e gerenciar senhas fortes e seguras',
-    type: 'slides',
-    duration: 10,
-    category: 'Básico',
-    enrolledCount: 420,
-    completedCount: 390,
-    averageScore: 91,
-    createdAt: '2026-02-01T00:00:00Z',
-  },
-  {
-    id: 'trn-4',
-    title: 'Engenharia Social Avançada',
-    description: 'Técnicas sofisticadas de manipulação e como se proteger',
-    type: 'video',
-    duration: 25,
-    category: 'Avançado',
-    enrolledCount: 200,
-    completedCount: 145,
-    averageScore: 78,
-    mediaUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    createdAt: '2026-02-10T00:00:00Z',
-  },
-];
-
-const mockResults: TrainingResult[] = [
-  {
-    id: 'res-1',
-    trainingId: 'trn-1',
-    userName: 'João Silva',
-    userEmail: 'joao.silva@empresa.com.br',
-    completedAt: '2026-03-05T14:30:00Z',
-    score: 95,
-    timeSpent: 18,
-    status: 'completed',
-  },
-  {
-    id: 'res-2',
-    trainingId: 'trn-1',
-    userName: 'Maria Santos',
-    userEmail: 'maria.santos@empresa.com.br',
-    completedAt: '2026-03-04T10:15:00Z',
-    score: 82,
-    timeSpent: 22,
-    status: 'completed',
-  },
-  {
-    id: 'res-3',
-    trainingId: 'trn-2',
-    userName: 'Pedro Oliveira',
-    userEmail: 'pedro.oliveira@empresa.com.br',
-    completedAt: '2026-03-03T16:45:00Z',
-    score: 88,
-    timeSpent: 25,
-    status: 'completed',
-  },
-  {
-    id: 'res-4',
-    trainingId: 'trn-1',
-    userName: 'Ana Costa',
-    userEmail: 'ana.costa@empresa.com.br',
-    completedAt: '',
-    score: 0,
-    timeSpent: 5,
-    status: 'in_progress',
-  },
-  {
-    id: 'res-5',
-    trainingId: 'trn-4',
-    userName: 'Carlos Souza',
-    userEmail: 'carlos.souza@empresa.com.br',
-    completedAt: '2026-03-01T11:20:00Z',
-    score: 62,
-    timeSpent: 30,
-    status: 'failed',
-  },
-];
-
 export function Trainings() {
-  const { impersonatedTenant } = useAuth();
+  const { user, impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isWatchDialogOpen, setIsWatchDialogOpen] = useState(false);
-  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
+  const [isWatchDialogOpen, setIsWatchDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isResultsDialogOpen, setIsResultsDialogOpen] = useState(false);
   const [selectedResults, setSelectedResults] = useState<TrainingResult[]>([]);
+  
+  // Estados para dados do banco
+  const [trainings, setTrainings] = useState<Training[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredTrainings = mockTrainings.filter((trn) =>
-    trn.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trn.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    trn.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const handleAddTraining = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast.success('Treinamento criado!', {
-      description: 'O treinamento foi adicionado com sucesso',
-    });
-    setIsAddDialogOpen(false);
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [trainingsData, tenantsData] = await Promise.all([
+        getTrainings(),
+        getTenants(),
+      ]);
+      
+      console.log('🎓 Trainings data loaded:', {
+        trainings: trainingsData?.length || 0,
+        tenants: tenantsData?.length || 0,
+      });
+      
+      setTrainings(trainingsData || []);
+      setTenants(tenantsData || []);
+    } catch (error) {
+      console.error('❌ Error loading trainings data:', error);
+      toast.error('Erro ao carregar treinamentos');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditTraining = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    toast.success('Treinamento atualizado!', {
-      description: 'As alterações foram salvas com sucesso',
-    });
-    setIsEditDialogOpen(false);
+  // Filtrar trainings baseado em impersonation
+  const isMasterView = !impersonatedTenant;
+  const relevantTrainings = isMasterView
+    ? trainings
+    : trainings.filter(t => !t.tenantId || t.tenantId === impersonatedTenant.id);
+
+  const filteredTrainings = relevantTrainings.filter((training) => {
+    const matchesSearch = training.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      training.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || training.category === selectedCategory;
+    const matchesType = selectedType === 'all' || training.type === selectedType;
+    return matchesSearch && matchesCategory && matchesType;
+  });
+
+  const handleDelete = async (trainingId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este treinamento?')) {
+      return;
+    }
+
+    try {
+      await deleteTraining(trainingId);
+      toast.success('Treinamento excluído!');
+      loadData();
+    } catch (error) {
+      console.error('Error deleting training:', error);
+      toast.error('Erro ao excluir treinamento');
+    }
   };
 
   const handleWatchTraining = (training: Training) => {
@@ -234,25 +171,27 @@ export function Trainings() {
   };
 
   const handleViewResults = (training: Training) => {
-    const results = mockResults.filter((r) => r.trainingId === training.id);
-    setSelectedResults(results);
     setSelectedTraining(training);
+    setSelectedResults(mockResults);
     setIsResultsDialogOpen(true);
   };
 
-  const handleDelete = (trainingId: string) => {
-    const training = mockTrainings.find((t) => t.id === trainingId);
-    toast.success('Treinamento removido!', {
-      description: `"${training?.title}" foi deletado`,
-    });
+  const handleEditTraining = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success('Treinamento atualizado!');
+    setIsEditDialogOpen(false);
+    loadData();
   };
 
+  // Dados mock para resultados (por enquanto)
+  const mockResults: TrainingResult[] = [];
+
   const stats = {
-    total: mockTrainings.length,
-    totalEnrolled: mockTrainings.reduce((sum, t) => sum + t.enrolledCount, 0),
-    totalCompleted: mockTrainings.reduce((sum, t) => sum + t.completedCount, 0),
+    total: trainings.length,
+    totalEnrolled: trainings.reduce((sum, t) => sum + t.enrolledCount, 0),
+    totalCompleted: trainings.reduce((sum, t) => sum + t.completedCount, 0),
     avgScore: Math.round(
-      mockTrainings.reduce((sum, t) => sum + t.averageScore, 0) / mockTrainings.length
+      trainings.reduce((sum, t) => sum + t.averageScore, 0) / trainings.length
     ),
   };
 
@@ -269,129 +208,7 @@ export function Trainings() {
               Gerencie vídeos e slides de conscientização em segurança
             </p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Treinamento
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <form onSubmit={handleAddTraining}>
-                <DialogHeader>
-                  <DialogTitle>Criar Novo Treinamento</DialogTitle>
-                  <DialogDescription>
-                    Adicione um vídeo ou apresentação de slides
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Label htmlFor="title">Título do Treinamento</Label>
-                    <Input
-                      id="title"
-                      placeholder="Ex: Identificando Phishing"
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="description">Descrição</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Descreva o conteúdo do treinamento"
-                      rows={3}
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="type">Tipo de Conteúdo</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="type">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="video">
-                            <div className="flex items-center gap-2">
-                              <Video className="w-4 h-4" />
-                              Vídeo
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="slides">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4" />
-                              Slides (PDF/PPT)
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="category">Categoria</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="category">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="basico">Básico</SelectItem>
-                          <SelectItem value="intermediario">Intermediário</SelectItem>
-                          <SelectItem value="avancado">Avançado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="duration">Duração (minutos)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      placeholder="15"
-                      required
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="media">Upload de Arquivo / URL</Label>
-                    <Input
-                      id="media"
-                      type="file"
-                      accept="video/*,.pdf,.ppt,.pptx"
-                      className="mt-2"
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Ou cole a URL do vídeo (YouTube, Vimeo)
-                    </p>
-                    <Input
-                      id="media-url"
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="mt-2"
-                    />
-                  </div>
-
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      💡 <strong>Dica:</strong> Vídeos são mais engajantes. Recomendamos
-                      duração entre 10-25 minutos para melhor retenção.
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                    Criar Treinamento
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <NewTrainingDialog onTrainingCreated={loadData} />
         </div>
       </div>
 
@@ -748,7 +565,7 @@ export function Trainings() {
 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm text-blue-700">
-                    ℹ️ <strong>Inscritos:</strong> {selectedTraining.enrolledCount} pessoas ���{' '}
+                    ℹ️ <strong>Inscritos:</strong> {selectedTraining.enrolledCount} pessoas {' '}
                     <strong>Completaram:</strong> {selectedTraining.completedCount} ({Math.round((selectedTraining.completedCount / selectedTraining.enrolledCount) * 100)}%)
                   </p>
                 </div>

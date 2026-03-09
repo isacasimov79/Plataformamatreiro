@@ -83,9 +83,9 @@ export function Targets() {
   // Filtrar targets com busca
   const filteredTargets = relevantTargets.filter(
     (target) =>
-      target.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      target.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      target.department.toLowerCase().includes(searchQuery.toLowerCase())
+      target.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      target.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      target.department?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleAddTarget = (e: React.FormEvent<HTMLFormElement>) => {

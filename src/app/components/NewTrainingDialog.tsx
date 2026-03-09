@@ -1,236 +1,222 @@
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 import { toast } from 'sonner';
-import { getTenants } from '../lib/supabaseApi';
+import { createTraining } from '../lib/supabaseApi';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Plus, Video, FileText } from 'lucide-react';
 
-export function NewTrainingDialog() {
-  const { user, impersonatedTenant } = useAuth();
+interface NewTrainingDialogProps {
+  onTrainingCreated?: () => void;
+}
+
+export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps) {
+  const { impersonatedTenant } = useAuth();
   const [open, setOpen] = useState(false);
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Carregar tenants
-  useEffect(() => {
-    if (open && !impersonatedTenant) {
-      loadTenants();
-    }
-  }, [open, impersonatedTenant]);
-
-  const loadTenants = async () => {
-    try {
-      setLoading(true);
-      const tenantsData = await getTenants();
-      setTenants(tenantsData);
-    } catch (error) {
-      console.error('Error loading tenants:', error);
-      toast.error('Erro ao carregar clientes');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    title: '',
     description: '',
-    category: 'phishing',
-    difficulty: 'beginner',
+    type: 'video' as 'video' | 'slides',
     duration: 15,
-    tenantId: impersonatedTenant?.id || '',
-    hasQuiz: true,
-    passingScore: 70,
-    aiValidation: true,
+    category: 'Básico',
+    mediaUrl: '',
+    tenantId: impersonatedTenant?.id || null,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.description) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!formData.title.trim()) {
+      toast.error('Por favor, preencha o título do treinamento');
       return;
     }
 
-    if (!impersonatedTenant && !formData.tenantId) {
-      toast.error('Selecione um cliente');
-      return;
+    try {
+      setIsSubmitting(true);
+      
+      await createTraining({
+        ...formData,
+        enrolledCount: 0,
+        completedCount: 0,
+        averageScore: 0,
+      });
+
+      toast.success('Treinamento criado!', {
+        description: 'O treinamento foi criado com sucesso.',
+      });
+
+      setOpen(false);
+      setFormData({
+        title: '',
+        description: '',
+        type: 'video',
+        duration: 15,
+        category: 'Básico',
+        mediaUrl: '',
+        tenantId: impersonatedTenant?.id || null,
+      });
+
+      if (onTrainingCreated) {
+        onTrainingCreated();
+      }
+    } catch (error) {
+      console.error('Error creating training:', error);
+      toast.error('Erro ao criar treinamento', {
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    toast.success(`Treinamento "${formData.name}" criado com sucesso!`, {
-      description: `Categoria: ${formData.category} • Duração: ${formData.duration} min`,
-    });
-
-    setFormData({
-      name: '',
-      description: '',
-      category: 'phishing',
-      difficulty: 'beginner',
-      duration: 15,
-      tenantId: impersonatedTenant?.id || '',
-      hasQuiz: true,
-      passingScore: 70,
-      aiValidation: true,
-    });
-
-    setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-[#834a8b] hover:bg-[#9a5ba1] text-white w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
+        <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
+          <Plus className="w-4 h-4 mr-2" />
           Novo Treinamento
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Novo Treinamento</DialogTitle>
-          <DialogDescription>
-            Crie um novo módulo de treinamento em segurança da informação
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[600px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Criar Novo Treinamento</DialogTitle>
+            <DialogDescription>
+              Adicione um novo treinamento de segurança da informação
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Nome */}
-            <div className="md:col-span-2">
-              <Label htmlFor="name">Nome do Treinamento *</Label>
+          <div className="grid gap-4 py-4">
+            {/* Título */}
+            <div className="grid gap-2">
+              <Label htmlFor="title">Título *</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Identificação de Phishing Avançado"
-                className="mt-1"
+                id="title"
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                placeholder="Ex: Introdução à Segurança da Informação"
+                required
               />
-            </div>
-
-            {/* Cliente (apenas para master view) */}
-            {!impersonatedTenant && (
-              <div className="md:col-span-2">
-                <Label htmlFor="tenant">Cliente *</Label>
-                <Select
-                  value={formData.tenantId}
-                  onValueChange={(value) => setFormData({ ...formData, tenantId: value })}
-                >
-                  <SelectTrigger id="tenant" className="mt-1">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tenants.map((tenant) => (
-                      <SelectItem key={tenant.id} value={tenant.id}>
-                        {tenant.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {/* Categoria */}
-            <div>
-              <Label htmlFor="category">Categoria *</Label>
-              <Select
-                value={formData.category}
-                onValueChange={(value) => setFormData({ ...formData, category: value })}
-              >
-                <SelectTrigger id="category" className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="phishing">Phishing</SelectItem>
-                  <SelectItem value="password">Senhas Seguras</SelectItem>
-                  <SelectItem value="social_engineering">Engenharia Social</SelectItem>
-                  <SelectItem value="malware">Malware e Ransomware</SelectItem>
-                  <SelectItem value="data_protection">Proteção de Dados</SelectItem>
-                  <SelectItem value="compliance">Compliance e LGPD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Dificuldade */}
-            <div>
-              <Label htmlFor="difficulty">Nível de Dificuldade *</Label>
-              <Select
-                value={formData.difficulty}
-                onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
-              >
-                <SelectTrigger id="difficulty" className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="beginner">Iniciante</SelectItem>
-                  <SelectItem value="intermediate">Intermediário</SelectItem>
-                  <SelectItem value="advanced">Avançado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Duração */}
-            <div>
-              <Label htmlFor="duration">Duração (minutos) *</Label>
-              <Input
-                id="duration"
-                type="number"
-                min="5"
-                max="240"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                className="mt-1"
-              />
-            </div>
-
-            {/* Nota de Aprovação */}
-            <div>
-              <Label htmlFor="passingScore">Nota Mínima (%) *</Label>
-              <Input
-                id="passingScore"
-                type="number"
-                min="0"
-                max="100"
-                value={formData.passingScore}
-                onChange={(e) => setFormData({ ...formData, passingScore: parseInt(e.target.value) })}
-                className="mt-1"
-              />
-            </div>
-
-            {/* Switches */}
-            <div className="md:col-span-2 space-y-4 border-t pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="hasQuiz">Incluir Quiz de Avaliação</Label>
-                  <p className="text-sm text-gray-500">Adicionar perguntas ao final do treinamento</p>
-                </div>
-                <Switch
-                  id="hasQuiz"
-                  checked={formData.hasQuiz}
-                  onCheckedChange={(checked) => setFormData({ ...formData, hasQuiz: checked })}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="aiValidation">Validação por IA (Anti-ChatGPT)</Label>
-                  <p className="text-sm text-gray-500">Detectar respostas geradas por IA</p>
-                </div>
-                <Switch
-                  id="aiValidation"
-                  checked={formData.aiValidation}
-                  onCheckedChange={(checked) => setFormData({ ...formData, aiValidation: checked })}
-                />
-              </div>
             </div>
 
             {/* Descrição */}
-            <div className="md:col-span-2">
-              <Label htmlFor="description">Descrição do Conteúdo *</Label>
+            <div className="grid gap-2">
+              <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Descreva os tópicos e objetivos do treinamento..."
-                rows={4}
-                className="mt-1"
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                placeholder="Descreva o conteúdo do treinamento..."
+                rows={3}
               />
+            </div>
+
+            {/* Tipo e Duração */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="type">Tipo</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value: 'video' | 'slides') =>
+                    setFormData({ ...formData, type: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="video">
+                      <div className="flex items-center gap-2">
+                        <Video className="w-4 h-4" />
+                        Vídeo
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="slides">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Slides
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="duration">Duração (minutos)</Label>
+                <Input
+                  id="duration"
+                  type="number"
+                  min="1"
+                  value={formData.duration}
+                  onChange={(e) =>
+                    setFormData({ ...formData, duration: parseInt(e.target.value) || 15 })
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Categoria */}
+            <div className="grid gap-2">
+              <Label htmlFor="category">Categoria</Label>
+              <Select
+                value={formData.category}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, category: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Básico">Básico</SelectItem>
+                  <SelectItem value="Intermediário">Intermediário</SelectItem>
+                  <SelectItem value="Avançado">Avançado</SelectItem>
+                  <SelectItem value="Phishing">Phishing</SelectItem>
+                  <SelectItem value="Engenharia Social">Engenharia Social</SelectItem>
+                  <SelectItem value="LGPD">LGPD</SelectItem>
+                  <SelectItem value="Compliance">Compliance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* URL do Conteúdo */}
+            <div className="grid gap-2">
+              <Label htmlFor="mediaUrl">URL do Conteúdo (opcional)</Label>
+              <Input
+                id="mediaUrl"
+                type="url"
+                value={formData.mediaUrl}
+                onChange={(e) =>
+                  setFormData({ ...formData, mediaUrl: e.target.value })
+                }
+                placeholder="https://exemplo.com/video.mp4"
+              />
+              <p className="text-xs text-gray-500">
+                Link para o vídeo ou apresentação do treinamento
+              </p>
             </div>
           </div>
 
@@ -239,11 +225,16 @@ export function NewTrainingDialog() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={isSubmitting}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="bg-[#834a8b] hover:bg-[#9a5ba1]">
-              Criar Treinamento
+            <Button
+              type="submit"
+              className="bg-[#834a8b] hover:bg-[#6d3d75]"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Criando...' : 'Criar Treinamento'}
             </Button>
           </DialogFooter>
         </form>

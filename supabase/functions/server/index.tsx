@@ -772,4 +772,631 @@ app.put("/make-server-99a65fc7/settings", async (c) => {
   }
 });
 
+// =====================================================
+// LANDING PAGES - CRUD
+// =====================================================
+
+// Listar todas as landing pages
+app.get("/make-server-99a65fc7/landing-pages", async (c) => {
+  try {
+    const landingPages = await kv.getByPrefix("landing-page:");
+    return c.json(landingPages || []);
+  } catch (error) {
+    console.error("Error fetching landing pages:", error);
+    return c.json({ error: "Failed to fetch landing pages", details: String(error) }, 500);
+  }
+});
+
+// Buscar landing page por ID
+app.get("/make-server-99a65fc7/landing-pages/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const landingPage = await kv.get(`landing-page:${id}`);
+    if (!landingPage) {
+      return c.json({ error: "Landing page not found" }, 404);
+    }
+    return c.json(landingPage);
+  } catch (error) {
+    console.error("Error fetching landing page:", error);
+    return c.json({ error: "Failed to fetch landing page", details: String(error) }, 500);
+  }
+});
+
+// Criar nova landing page
+app.post("/make-server-99a65fc7/landing-pages", async (c) => {
+  try {
+    const body = await c.req.json();
+    const id = `landing-page-${Date.now()}`;
+    const landingPage = {
+      id,
+      tenantId: body.tenantId || null,
+      name: body.name,
+      description: body.description || '',
+      url: body.url || `https://lp-${Date.now()}.example.com`,
+      type: body.type || 'custom',
+      template: body.template || 'blank',
+      htmlContent: body.htmlContent || '',
+      cssContent: body.cssContent || '',
+      jsContent: body.jsContent || '',
+      captureFields: body.captureFields || [],
+      capturesCount: body.capturesCount || 0,
+      clicksCount: body.clicksCount || 0,
+      status: body.status || 'draft',
+      createdAt: new Date().toISOString(),
+    };
+    await kv.set(`landing-page:${id}`, landingPage);
+    return c.json(landingPage, 201);
+  } catch (error) {
+    console.error("Error creating landing page:", error);
+    return c.json({ error: "Failed to create landing page", details: String(error) }, 500);
+  }
+});
+
+// Atualizar landing page
+app.put("/make-server-99a65fc7/landing-pages/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const existing = await kv.get(`landing-page:${id}`);
+    
+    if (!existing) {
+      return c.json({ error: "Landing page not found" }, 404);
+    }
+
+    const updated = {
+      ...existing,
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    await kv.set(`landing-page:${id}`, updated);
+    return c.json(updated);
+  } catch (error) {
+    console.error("Error updating landing page:", error);
+    return c.json({ error: "Failed to update landing page", details: String(error) }, 500);
+  }
+});
+
+// Deletar landing page
+app.delete("/make-server-99a65fc7/landing-pages/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`landing-page:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting landing page:", error);
+    return c.json({ error: "Failed to delete landing page", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// CERTIFICATES - CRUD
+// =====================================================
+
+// Listar todos os certificados
+app.get("/make-server-99a65fc7/certificates", async (c) => {
+  try {
+    const certificates = await kv.getByPrefix("certificate:");
+    return c.json(certificates || []);
+  } catch (error) {
+    console.error("Error fetching certificates:", error);
+    return c.json({ error: "Failed to fetch certificates", details: String(error) }, 500);
+  }
+});
+
+// Buscar certificado por ID
+app.get("/make-server-99a65fc7/certificates/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const certificate = await kv.get(`certificate:${id}`);
+    if (!certificate) {
+      return c.json({ error: "Certificate not found" }, 404);
+    }
+    return c.json(certificate);
+  } catch (error) {
+    console.error("Error fetching certificate:", error);
+    return c.json({ error: "Failed to fetch certificate", details: String(error) }, 500);
+  }
+});
+
+// Criar novo certificado
+app.post("/make-server-99a65fc7/certificates", async (c) => {
+  try {
+    const body = await c.req.json();
+    const id = `certificate-${Date.now()}`;
+    const certificate = {
+      id,
+      tenantId: body.tenantId || null,
+      userId: body.userId,
+      userName: body.userName,
+      userEmail: body.userEmail,
+      trainingId: body.trainingId,
+      trainingTitle: body.trainingTitle,
+      completedAt: body.completedAt || new Date().toISOString(),
+      issuedAt: new Date().toISOString(),
+      certificateCode: body.certificateCode || `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      score: body.score || 0,
+      templateId: body.templateId || 'default',
+      status: body.status || 'issued',
+      createdAt: new Date().toISOString(),
+    };
+    await kv.set(`certificate:${id}`, certificate);
+    return c.json(certificate, 201);
+  } catch (error) {
+    console.error("Error creating certificate:", error);
+    return c.json({ error: "Failed to create certificate", details: String(error) }, 500);
+  }
+});
+
+// Atualizar certificado
+app.put("/make-server-99a65fc7/certificates/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const existing = await kv.get(`certificate:${id}`);
+    
+    if (!existing) {
+      return c.json({ error: "Certificate not found" }, 404);
+    }
+
+    const updated = {
+      ...existing,
+      ...body,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    await kv.set(`certificate:${id}`, updated);
+    return c.json(updated);
+  } catch (error) {
+    console.error("Error updating certificate:", error);
+    return c.json({ error: "Failed to update certificate", details: String(error) }, 500);
+  }
+});
+
+// Deletar certificado
+app.delete("/make-server-99a65fc7/certificates/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`certificate:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting certificate:", error);
+    return c.json({ error: "Failed to delete certificate", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// SEED - Popular banco com dados de exemplo
+// =====================================================
+
+app.post("/make-server-99a65fc7/seed", async (c) => {
+  try {
+    console.log("🌱 Iniciando seed do banco de dados...");
+    
+    // Verificar se já tem dados
+    const existingTenants = await kv.getByPrefix("tenant:");
+    if (existingTenants && existingTenants.length > 0) {
+      console.log("⚠️ Banco já possui dados, pulando seed");
+      return c.json({ 
+        message: "Database already seeded",
+        existing: {
+          tenants: existingTenants.length
+        }
+      });
+    }
+
+    const created = {
+      tenants: 0,
+      templates: 0,
+      targets: 0,
+      targetGroups: 0,
+      campaigns: 0,
+      trainings: 0,
+      certificates: 0,
+      landingPages: 0,
+      automations: 0,
+    };
+
+    // 1. TENANTS
+    const tenants = [
+      {
+        id: 'tenant-acme-corp',
+        name: 'Acme Corporation',
+        domain: 'acme.com',
+        industry: 'Tecnologia',
+        employeeCount: 500,
+        status: 'active',
+        adminName: 'João Silva',
+        adminEmail: 'joao.silva@acme.com',
+        plan: 'enterprise',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'tenant-global-bank',
+        name: 'Global Bank',
+        domain: 'globalbank.com.br',
+        industry: 'Financeiro',
+        employeeCount: 1200,
+        status: 'active',
+        adminName: 'Maria Santos',
+        adminEmail: 'maria.santos@globalbank.com.br',
+        plan: 'enterprise',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'tenant-health-plus',
+        name: 'Health Plus',
+        domain: 'healthplus.com.br',
+        industry: 'Saúde',
+        employeeCount: 300,
+        status: 'active',
+        adminName: 'Pedro Oliveira',
+        adminEmail: 'pedro@healthplus.com.br',
+        plan: 'professional',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    for (const tenant of tenants) {
+      await kv.set(`tenant:${tenant.id}`, tenant);
+      created.tenants++;
+    }
+
+    // 2. TEMPLATES
+    const templates = [
+      {
+        id: 'template-office365',
+        tenantId: null,
+        name: 'Login Office 365',
+        subject: 'Atualize sua senha do Office 365',
+        content: '<html><body><h1>Office 365</h1><p>Sua senha expirará em breve. Clique aqui para atualizar.</p></body></html>',
+        type: 'email',
+        category: 'Credential Harvesting',
+        difficulty: 'medium',
+        language: 'pt-BR',
+        sender: 'noreply@microsoft.com',
+        isPublic: true,
+        clicksCount: 0,
+        submitsCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'template-payroll',
+        tenantId: null,
+        name: 'RH - Contracheque',
+        subject: 'Seu contracheque está disponível',
+        content: '<html><body><h1>Departamento de RH</h1><p>Seu contracheque do mês está disponível para download.</p></body></html>',
+        type: 'email',
+        category: 'Pretexting',
+        difficulty: 'easy',
+        language: 'pt-BR',
+        sender: 'rh@empresa.com',
+        isPublic: true,
+        clicksCount: 0,
+        submitsCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'template-urgent-ceo',
+        tenantId: null,
+        name: 'CEO - Transferência Urgente',
+        subject: 'URGENTE: Transferência necessária',
+        content: '<html><body><h1>Assunto Urgente</h1><p>Preciso que você faça uma transferência imediatamente. Não comente com ninguém.</p></body></html>',
+        type: 'email',
+        category: 'Business Email Compromise',
+        difficulty: 'hard',
+        language: 'pt-BR',
+        sender: 'ceo@empresa.com',
+        isPublic: true,
+        clicksCount: 0,
+        submitsCount: 0,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    for (const template of templates) {
+      await kv.set(`template:${template.id}`, template);
+      created.templates++;
+    }
+
+    // 3. TARGETS (Alvos)
+    const targets = [
+      { id: 'target-1', tenantId: 'tenant-acme-corp', firstName: 'Ana', lastName: 'Costa', email: 'ana.costa@acme.com', department: 'TI', position: 'Analista', phone: '+5511987654321', createdAt: new Date().toISOString() },
+      { id: 'target-2', tenantId: 'tenant-acme-corp', firstName: 'Bruno', lastName: 'Lima', email: 'bruno.lima@acme.com', department: 'Vendas', position: 'Gerente', phone: '+5511987654322', createdAt: new Date().toISOString() },
+      { id: 'target-3', tenantId: 'tenant-acme-corp', firstName: 'Carla', lastName: 'Mendes', email: 'carla.mendes@acme.com', department: 'RH', position: 'Coordenadora', phone: '+5511987654323', createdAt: new Date().toISOString() },
+      { id: 'target-4', tenantId: 'tenant-global-bank', firstName: 'Daniel', lastName: 'Rocha', email: 'daniel.rocha@globalbank.com.br', department: 'Compliance', position: 'Analista', phone: '+5511987654324', createdAt: new Date().toISOString() },
+      { id: 'target-5', tenantId: 'tenant-global-bank', firstName: 'Elena', lastName: 'Ferreira', email: 'elena.ferreira@globalbank.com.br', department: 'Operações', position: 'Supervisora', phone: '+5511987654325', createdAt: new Date().toISOString() },
+      { id: 'target-6', tenantId: 'tenant-health-plus', firstName: 'Felipe', lastName: 'Alves', email: 'felipe.alves@healthplus.com.br', department: 'TI', position: 'Técnico', phone: '+5511987654326', createdAt: new Date().toISOString() },
+    ];
+
+    for (const target of targets) {
+      await kv.set(`target:${target.id}`, target);
+      created.targets++;
+    }
+
+    // 4. TARGET GROUPS
+    const targetGroups = [
+      { id: 'group-1', tenantId: 'tenant-acme-corp', name: 'Equipe TI', description: 'Departamento de TI', targetIds: ['target-1'], createdAt: new Date().toISOString() },
+      { id: 'group-2', tenantId: 'tenant-acme-corp', name: 'Gerentes', description: 'Todos os gerentes', targetIds: ['target-2'], createdAt: new Date().toISOString() },
+      { id: 'group-3', tenantId: 'tenant-global-bank', name: 'Compliance', description: 'Equipe de compliance', targetIds: ['target-4', 'target-5'], createdAt: new Date().toISOString() },
+    ];
+
+    for (const group of targetGroups) {
+      await kv.set(`target-group:${group.id}`, group);
+      created.targetGroups++;
+    }
+
+    // 5. CAMPAIGNS
+    const campaigns = [
+      {
+        id: 'campaign-1',
+        tenantId: 'tenant-acme-corp',
+        name: 'Campanha Q1 2026 - Office 365',
+        templateId: 'template-office365',
+        targetGroupIds: ['group-1', 'group-2'],
+        status: 'completed',
+        type: 'standard',
+        scheduledAt: null,
+        createdBy: 'João Silva',
+        stats: { sent: 150, opened: 98, clicked: 45, submitted: 12 },
+        createdAt: new Date('2026-01-15').toISOString(),
+      },
+      {
+        id: 'campaign-2',
+        tenantId: 'tenant-acme-corp',
+        name: 'Teste RH - Contracheque',
+        templateId: 'template-payroll',
+        targetGroupIds: ['group-1'],
+        status: 'running',
+        type: 'standard',
+        scheduledAt: null,
+        createdBy: 'João Silva',
+        stats: { sent: 85, opened: 62, clicked: 28, submitted: 8 },
+        createdAt: new Date('2026-03-01').toISOString(),
+      },
+      {
+        id: 'campaign-3',
+        tenantId: 'tenant-global-bank',
+        name: 'Segurança Financeira 2026',
+        templateId: 'template-urgent-ceo',
+        targetGroupIds: ['group-3'],
+        status: 'completed',
+        type: 'standard',
+        scheduledAt: null,
+        createdBy: 'Maria Santos',
+        stats: { sent: 220, opened: 185, clicked: 67, submitted: 15 },
+        createdAt: new Date('2026-02-10').toISOString(),
+      },
+      {
+        id: 'campaign-4',
+        tenantId: 'tenant-health-plus',
+        name: 'Campanha Saúde Digital',
+        templateId: 'template-office365',
+        targetGroupIds: [],
+        status: 'scheduled',
+        type: 'standard',
+        scheduledAt: new Date('2026-04-01').toISOString(),
+        createdBy: 'Pedro Oliveira',
+        stats: { sent: 0, opened: 0, clicked: 0, submitted: 0 },
+        createdAt: new Date('2026-03-05').toISOString(),
+      },
+    ];
+
+    for (const campaign of campaigns) {
+      await kv.set(`campaign:${campaign.id}`, campaign);
+      created.campaigns++;
+    }
+
+    // 6. TRAININGS
+    const trainings = [
+      {
+        id: 'training-1',
+        tenantId: null,
+        title: 'Introdução à Segurança da Informação',
+        description: 'Fundamentos básicos de segurança digital e proteção de dados corporativos.',
+        type: 'video',
+        duration: 25,
+        category: 'Básico',
+        enrolledCount: 450,
+        completedCount: 387,
+        averageScore: 85,
+        mediaUrl: 'https://example.com/videos/intro-security.mp4',
+        createdAt: new Date('2026-01-01').toISOString(),
+      },
+      {
+        id: 'training-2',
+        tenantId: null,
+        title: 'Identificando Ataques de Phishing',
+        description: 'Aprenda a reconhecer e-mails maliciosos e técnicas de phishing avançadas.',
+        type: 'video',
+        duration: 30,
+        category: 'Phishing',
+        enrolledCount: 520,
+        completedCount: 445,
+        averageScore: 78,
+        mediaUrl: 'https://example.com/videos/phishing-detection.mp4',
+        createdAt: new Date('2026-01-15').toISOString(),
+      },
+      {
+        id: 'training-3',
+        tenantId: null,
+        title: 'Segurança em Dispositivos Móveis',
+        description: 'Boas práticas para proteger smartphones e tablets corporativos.',
+        type: 'slides',
+        duration: 20,
+        category: 'Intermediário',
+        enrolledCount: 280,
+        completedCount: 235,
+        averageScore: 82,
+        mediaUrl: 'https://example.com/slides/mobile-security.pdf',
+        createdAt: new Date('2026-02-01').toISOString(),
+      },
+      {
+        id: 'training-4',
+        tenantId: null,
+        title: 'LGPD na Prática',
+        description: 'Entenda as obrigações da Lei Geral de Proteção de Dados e como aplicá-la no dia a dia.',
+        type: 'video',
+        duration: 40,
+        category: 'LGPD',
+        enrolledCount: 650,
+        completedCount: 580,
+        averageScore: 88,
+        mediaUrl: 'https://example.com/videos/lgpd-practical.mp4',
+        createdAt: new Date('2026-02-10').toISOString(),
+      },
+      {
+        id: 'training-5',
+        tenantId: null,
+        title: 'Engenharia Social e Manipulação',
+        description: 'Técnicas de manipulação psicológica e como se proteger contra ataques de engenharia social.',
+        type: 'video',
+        duration: 35,
+        category: 'Engenharia Social',
+        enrolledCount: 420,
+        completedCount: 365,
+        averageScore: 76,
+        mediaUrl: 'https://example.com/videos/social-engineering.mp4',
+        createdAt: new Date('2026-02-20').toISOString(),
+      },
+      {
+        id: 'training-6',
+        tenantId: 'tenant-acme-corp',
+        title: 'Políticas de Segurança Acme Corp',
+        description: 'Treinamento específico sobre as políticas internas de segurança da Acme Corporation.',
+        type: 'slides',
+        duration: 15,
+        category: 'Compliance',
+        enrolledCount: 150,
+        completedCount: 142,
+        averageScore: 92,
+        mediaUrl: 'https://example.com/slides/acme-policies.pdf',
+        createdAt: new Date('2026-03-01').toISOString(),
+      },
+    ];
+
+    for (const training of trainings) {
+      await kv.set(`training:${training.id}`, training);
+      created.trainings++;
+    }
+
+    // 7. CERTIFICATES
+    const certificates = [
+      {
+        id: 'cert-1',
+        tenantId: 'tenant-acme-corp',
+        userId: 'target-1',
+        userName: 'Ana Costa',
+        userEmail: 'ana.costa@acme.com',
+        trainingId: 'training-1',
+        trainingTitle: 'Introdução à Segurança da Informação',
+        completedAt: new Date('2026-03-05T14:30:00Z').toISOString(),
+        issuedAt: new Date('2026-03-05T14:35:00Z').toISOString(),
+        certificateCode: 'CERT-2026-ABC123',
+        score: 95,
+        templateId: 'default',
+        status: 'issued',
+      },
+      {
+        id: 'cert-2',
+        tenantId: 'tenant-acme-corp',
+        userId: 'target-2',
+        userName: 'Bruno Lima',
+        userEmail: 'bruno.lima@acme.com',
+        trainingId: 'training-2',
+        trainingTitle: 'Identificando Ataques de Phishing',
+        completedAt: new Date('2026-03-04T10:15:00Z').toISOString(),
+        issuedAt: new Date('2026-03-04T10:20:00Z').toISOString(),
+        certificateCode: 'CERT-2026-DEF456',
+        score: 88,
+        templateId: 'default',
+        status: 'issued',
+      },
+      {
+        id: 'cert-3',
+        tenantId: 'tenant-global-bank',
+        userId: 'target-4',
+        userName: 'Daniel Rocha',
+        userEmail: 'daniel.rocha@globalbank.com.br',
+        trainingId: 'training-4',
+        trainingTitle: 'LGPD na Prática',
+        completedAt: new Date('2026-03-03T16:45:00Z').toISOString(),
+        issuedAt: new Date('2026-03-03T16:50:00Z').toISOString(),
+        certificateCode: 'CERT-2026-GHI789',
+        score: 92,
+        templateId: 'default',
+        status: 'issued',
+      },
+    ];
+
+    for (const cert of certificates) {
+      await kv.set(`certificate:${cert.id}`, cert);
+      created.certificates++;
+    }
+
+    // 8. LANDING PAGES
+    const landingPages = [
+      {
+        id: 'landing-1',
+        tenantId: null,
+        name: 'Login Office 365',
+        description: 'Página de login falsa do Office 365',
+        url: 'https://login-office365.example.com',
+        type: 'credential_harvesting',
+        template: 'office365',
+        htmlContent: '<html><body><h1>Office 365 Login</h1></body></html>',
+        cssContent: 'body { font-family: Arial; }',
+        jsContent: '',
+        captureFields: ['email', 'password'],
+        capturesCount: 45,
+        clicksCount: 150,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    for (const lp of landingPages) {
+      await kv.set(`landing-page:${lp.id}`, lp);
+      created.landingPages++;
+    }
+
+    // 9. AUTOMATIONS
+    const automations = [
+      {
+        id: 'automation-1',
+        tenantId: 'tenant-acme-corp',
+        name: 'Treinamento Automático após Comprometimento',
+        description: 'Envia automaticamente um treinamento quando um usuário cai em phishing',
+        trigger: 'user_compromised',
+        conditions: { minScore: 0, maxScore: 50 },
+        actions: [{ type: 'enroll_training', trainingId: 'training-2' }],
+        isActive: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    for (const automation of automations) {
+      await kv.set(`automation:${automation.id}`, automation);
+      created.automations++;
+    }
+
+    console.log("✅ Seed concluído com sucesso:", created);
+
+    return c.json({
+      success: true,
+      message: "Database seeded successfully",
+      created,
+    });
+
+  } catch (error) {
+    console.error("❌ Error seeding database:", error);
+    return c.json(
+      { error: "Failed to seed database", details: String(error) },
+      500
+    );
+  }
+});
+
 Deno.serve(app.fetch);

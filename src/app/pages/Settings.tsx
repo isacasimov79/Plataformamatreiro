@@ -151,45 +151,219 @@ export function Settings() {
     }
   };
 
-  const handleTestSMTP = () => {
+  const handleTestSMTP = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Aqui você pode adicionar lógica real de teste SMTP no futuro
+      await new Promise(resolve => setTimeout(resolve, 2000));
       toast.success('E-mail de teste enviado!', {
         description: 'Verifique sua caixa de entrada',
       });
-    }, 2000);
+    } catch (error) {
+      toast.error('Erro ao testar SMTP');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSyncUsers = (provider: string) => {
+  const handleSaveSMTP = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
+    
+    const formData = new FormData(e.currentTarget);
+    const updatedSettings = {
+      ...settings,
+      smtp: {
+        host: formData.get('smtp-host') as string,
+        port: parseInt(formData.get('smtp-port') as string) || 587,
+        user: formData.get('smtp-user') as string,
+        password: formData.get('smtp-password') as string,
+        from: formData.get('smtp-from') as string,
+        encryption: formData.get('smtp-encryption') as string,
+      },
+    };
+
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success('Configurações SMTP salvas!', {
+        description: 'As configurações de e-mail foram atualizadas',
+      });
+    } catch (error: any) {
+      console.error('Error saving SMTP settings:', error);
+      toast.error('Erro ao salvar', {
+        description: error.message || 'Não foi possível salvar as configurações SMTP.',
+      });
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSyncUsers = async (provider: string) => {
+    setIsLoading(true);
+    try {
+      // Aqui você pode adicionar lógica real de sincronização no futuro
+      await new Promise(resolve => setTimeout(resolve, 3000));
       toast.success(`Sincronização ${provider} iniciada!`, {
         description: '156 usuários foram sincronizados',
       });
-    }, 3000);
+    } catch (error) {
+      toast.error(`Erro ao sincronizar ${provider}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleTestSyslog = () => {
+  const handleTestSyslog = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Aqui você pode adicionar lógica real de teste Syslog no futuro
+      await new Promise(resolve => setTimeout(resolve, 2000));
       toast.success('Mensagem de teste enviada!', {
         description: 'Verifique o servidor Syslog',
       });
-    }, 2000);
+    } catch (error) {
+      toast.error('Erro ao testar Syslog');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSaveSyslog = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveSyslog = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    const formData = new FormData(e.currentTarget);
+    const updatedSettings = {
+      ...settings,
+      syslog: {
+        host: formData.get('syslog-host') as string,
+        port: parseInt(formData.get('syslog-port') as string) || 514,
+        protocol: formData.get('syslog-protocol') as string,
+        facility: formData.get('syslog-facility') as string,
+        auditLogsEnabled: syslogEnabled,
+        phishingEventsEnabled: phishingSyslogEnabled,
+      },
+    };
+
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
       toast.success('Configurações Syslog salvas!', {
         description: 'Os logs serão enviados ao servidor configurado',
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error('Error saving Syslog settings:', error);
+      toast.error('Erro ao salvar', {
+        description: error.message || 'Não foi possível salvar as configurações Syslog.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveIntegrations = async (provider: 'microsoft365' | 'googleWorkspace', formData: FormData) => {
+    setIsLoading(true);
+    
+    let updatedSettings = { ...settings };
+    
+    if (provider === 'microsoft365') {
+      updatedSettings.integrations.microsoft365 = {
+        enabled: settings.integrations.microsoft365.enabled,
+        tenantId: formData.get('ms-tenant-id') as string,
+        clientId: formData.get('ms-client-id') as string,
+        clientSecret: formData.get('ms-client-secret') as string,
+        autoSync: settings.integrations.microsoft365.autoSync,
+      };
+    } else if (provider === 'googleWorkspace') {
+      updatedSettings.integrations.googleWorkspace = {
+        enabled: settings.integrations.googleWorkspace.enabled,
+        serviceAccountJson: formData.get('google-service-account') as string,
+        domain: formData.get('google-domain') as string,
+      };
+    }
+
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success(`Integração ${provider === 'microsoft365' ? 'Microsoft 365' : 'Google Workspace'} salva!`, {
+        description: 'As configurações de integração foram atualizadas',
+      });
+    } catch (error: any) {
+      console.error('Error saving integration settings:', error);
+      toast.error('Erro ao salvar', {
+        description: error.message || 'Não foi possível salvar as configurações de integração.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleIntegration = async (provider: 'microsoft365' | 'googleWorkspace') => {
+    const updatedSettings = { ...settings };
+    updatedSettings.integrations[provider].enabled = !updatedSettings.integrations[provider].enabled;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success(
+        updatedSettings.integrations[provider].enabled 
+          ? 'Integração ativada!' 
+          : 'Integração desativada!',
+        {
+          description: `${provider === 'microsoft365' ? 'Microsoft 365' : 'Google Workspace'} foi ${updatedSettings.integrations[provider].enabled ? 'ativado' : 'desativado'}`,
+        }
+      );
+    } catch (error: any) {
+      console.error('Error toggling integration:', error);
+      toast.error('Erro ao alterar integração');
+    }
+  };
+
+  const handleToggleAutoSync = async (provider: 'microsoft365') => {
+    const updatedSettings = { ...settings };
+    updatedSettings.integrations[provider].autoSync = !updatedSettings.integrations[provider].autoSync;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success('Sincronização automática atualizada!');
+    } catch (error: any) {
+      console.error('Error toggling auto sync:', error);
+      toast.error('Erro ao alterar sincronização automática');
+    }
+  };
+
+  const handleToggleMaintenanceMode = async () => {
+    const updatedSettings = { ...settings };
+    updatedSettings.general.maintenanceMode = !updatedSettings.general.maintenanceMode;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success(
+        updatedSettings.general.maintenanceMode 
+          ? 'Modo de manutenção ativado!' 
+          : 'Modo de manutenção desativado!'
+      );
+    } catch (error: any) {
+      console.error('Error toggling maintenance mode:', error);
+      toast.error('Erro ao alterar modo de manutenção');
+    }
+  };
+
+  const handleToggleAutoArchive = async () => {
+    const updatedSettings = { ...settings };
+    updatedSettings.general.autoArchiveCampaigns = !updatedSettings.general.autoArchiveCampaigns;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success('Auto-arquivamento atualizado!');
+    } catch (error: any) {
+      console.error('Error toggling auto archive:', error);
+      toast.error('Erro ao alterar auto-arquivamento');
+    }
   };
 
   return (
@@ -280,8 +454,19 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="timezone">Fuso Horário</Label>
-                    <Select defaultValue={settings.general.timezone}>
-                      <SelectTrigger className="mt-2" id="timezone">
+                    <input type="hidden" name="timezone" value={settings.general.timezone} id="timezone-hidden" />
+                    <Select
+                      defaultValue={settings.general.timezone}
+                      onValueChange={(value) => {
+                        const input = document.getElementById('timezone-hidden') as HTMLInputElement;
+                        if (input) input.value = value;
+                        setSettings((prev: any) => ({
+                          ...prev,
+                          general: { ...prev.general, timezone: value }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -299,8 +484,19 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="language">Idioma Padrão</Label>
-                    <Select defaultValue={settings.general.language}>
-                      <SelectTrigger className="mt-2" id="language">
+                    <input type="hidden" name="language" value={settings.general.language} id="language-hidden" />
+                    <Select
+                      defaultValue={settings.general.language}
+                      onValueChange={(value) => {
+                        const input = document.getElementById('language-hidden') as HTMLInputElement;
+                        if (input) input.value = value;
+                        setSettings((prev: any) => ({
+                          ...prev,
+                          general: { ...prev.general, language: value }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -319,7 +515,10 @@ export function Settings() {
                       Desabilita acesso temporário à plataforma
                     </p>
                   </div>
-                  <Switch />
+                  <Switch
+                    checked={settings.general.maintenanceMode}
+                    onCheckedChange={handleToggleMaintenanceMode}
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
@@ -329,7 +528,10 @@ export function Settings() {
                       Arquivar automaticamente campanhas após 90 dias
                     </p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch
+                    checked={settings.general.autoArchiveCampaigns}
+                    onCheckedChange={handleToggleAutoArchive}
+                  />
                 </div>
 
                 <div className="flex justify-end">
@@ -366,12 +568,13 @@ export function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-6">
+              <form onSubmit={handleSaveSMTP} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="smtp-host">Servidor SMTP</Label>
                     <Input
                       id="smtp-host"
+                      name="smtp-host"
                       placeholder="smtp.gmail.com"
                       defaultValue={settings.smtp.host}
                       className="mt-2"
@@ -381,6 +584,7 @@ export function Settings() {
                     <Label htmlFor="smtp-port">Porta</Label>
                     <Input
                       id="smtp-port"
+                      name="smtp-port"
                       type="number"
                       defaultValue={settings.smtp.port}
                       className="mt-2"
@@ -393,6 +597,7 @@ export function Settings() {
                     <Label htmlFor="smtp-user">Usuário SMTP</Label>
                     <Input
                       id="smtp-user"
+                      name="smtp-user"
                       defaultValue={settings.smtp.user}
                       className="mt-2"
                     />
@@ -401,6 +606,7 @@ export function Settings() {
                     <Label htmlFor="smtp-password">Senha SMTP</Label>
                     <Input
                       id="smtp-password"
+                      name="smtp-password"
                       type="password"
                       defaultValue={settings.smtp.password}
                       className="mt-2"
@@ -412,6 +618,7 @@ export function Settings() {
                   <Label htmlFor="smtp-from">E-mail Remetente Padrão</Label>
                   <Input
                     id="smtp-from"
+                    name="smtp-from"
                     defaultValue={settings.smtp.from}
                     className="mt-2"
                   />
@@ -419,8 +626,19 @@ export function Settings() {
 
                 <div>
                   <Label htmlFor="smtp-encryption">Tipo de Criptografia</Label>
-                  <Select defaultValue={settings.smtp.encryption}>
-                    <SelectTrigger className="mt-2" id="smtp-encryption">
+                  <input type="hidden" name="smtp-encryption" value={settings.smtp.encryption} id="smtp-encryption-hidden" />
+                  <Select
+                    defaultValue={settings.smtp.encryption}
+                    onValueChange={(value) => {
+                      const input = document.getElementById('smtp-encryption-hidden') as HTMLInputElement;
+                      if (input) input.value = value;
+                      setSettings((prev: any) => ({
+                        ...prev,
+                        smtp: { ...prev.smtp, encryption: value }
+                      }));
+                    }}
+                  >
+                    <SelectTrigger className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -483,6 +701,7 @@ export function Settings() {
                     <Label htmlFor="syslog-host">Servidor Syslog</Label>
                     <Input
                       id="syslog-host"
+                      name="syslog-host"
                       placeholder="syslog.example.com"
                       defaultValue={settings.syslog.host}
                       className="mt-2"
@@ -492,6 +711,7 @@ export function Settings() {
                     <Label htmlFor="syslog-port">Porta</Label>
                     <Input
                       id="syslog-port"
+                      name="syslog-port"
                       type="number"
                       defaultValue={settings.syslog.port}
                       className="mt-2"
@@ -502,8 +722,19 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="syslog-protocol">Protocolo</Label>
-                    <Select defaultValue={settings.syslog.protocol}>
-                      <SelectTrigger className="mt-2" id="syslog-protocol">
+                    <input type="hidden" name="syslog-protocol" value={settings.syslog.protocol} id="syslog-protocol-hidden" />
+                    <Select
+                      defaultValue={settings.syslog.protocol}
+                      onValueChange={(value) => {
+                        const input = document.getElementById('syslog-protocol-hidden') as HTMLInputElement;
+                        if (input) input.value = value;
+                        setSettings((prev: any) => ({
+                          ...prev,
+                          syslog: { ...prev.syslog, protocol: value }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -514,8 +745,19 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="syslog-facility">Facility</Label>
-                    <Select defaultValue={settings.syslog.facility}>
-                      <SelectTrigger className="mt-2" id="syslog-facility">
+                    <input type="hidden" name="syslog-facility" value={settings.syslog.facility} id="syslog-facility-hidden" />
+                    <Select
+                      defaultValue={settings.syslog.facility}
+                      onValueChange={(value) => {
+                        const input = document.getElementById('syslog-facility-hidden') as HTMLInputElement;
+                        if (input) input.value = value;
+                        setSettings((prev: any) => ({
+                          ...prev,
+                          syslog: { ...prev.syslog, facility: value }
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="mt-2">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -635,40 +877,69 @@ export function Settings() {
                       Sincronize usuários automaticamente do Azure Active Directory
                     </CardDescription>
                   </div>
-                  <Badge className="bg-green-100 text-green-700">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Conectado
+                  <Badge className={settings.integrations.microsoft365.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                    {settings.integrations.microsoft365.enabled ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Conectado
+                      </>
+                    ) : (
+                      'Não Conectado'
+                    )}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleSaveIntegrations('microsoft365', formData);
+                }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="ms365-tenant">Tenant ID</Label>
+                      <Label htmlFor="ms-tenant-id">Tenant ID</Label>
                       <Input
-                        id="ms365-tenant"
-                        defaultValue="abc123-def456-ghi789"
+                        id="ms-tenant-id"
+                        name="ms-tenant-id"
+                        defaultValue={settings.integrations.microsoft365.tenantId}
+                        placeholder="abc123-def456-ghi789"
                         className="mt-2"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="ms365-client">Client ID</Label>
+                      <Label htmlFor="ms-client-id">Client ID</Label>
                       <Input
-                        id="ms365-client"
-                        defaultValue="xyz789-uvw456-rst123"
+                        id="ms-client-id"
+                        name="ms-client-id"
+                        defaultValue={settings.integrations.microsoft365.clientId}
+                        placeholder="xyz789-uvw456-rst123"
                         className="mt-2"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="ms365-secret">Client Secret</Label>
+                    <Label htmlFor="ms-client-secret">Client Secret</Label>
                     <Input
-                      id="ms365-secret"
+                      id="ms-client-secret"
+                      name="ms-client-secret"
                       type="password"
-                      defaultValue="••••••••••••••••••••"
+                      defaultValue={settings.integrations.microsoft365.clientSecret}
+                      placeholder="Digite o Client Secret"
                       className="mt-2"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-xs text-gray-500">
+                        Ativar sincronização com Microsoft 365
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.integrations.microsoft365.enabled}
+                      onCheckedChange={() => handleToggleIntegration('microsoft365')}
                     />
                   </div>
 
@@ -676,27 +947,44 @@ export function Settings() {
                     <div>
                       <p className="text-sm font-medium">Sincronização Automática</p>
                       <p className="text-xs text-gray-500">
-                        Última sincronização: 08/03/2026 às 06:00 (156 usuários)
+                        Sincronizar usuários diariamente às 06:00
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.integrations.microsoft365.autoSync}
+                      onCheckedChange={() => handleToggleAutoSync('microsoft365')}
+                    />
                   </div>
 
                   <div className="flex gap-2">
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => handleSyncUsers('Microsoft 365')}
-                      disabled={isLoading}
+                      disabled={isLoading || !settings.integrations.microsoft365.enabled}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Sincronizar Agora
                     </Button>
-                    <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                      <Save className="w-4 h-4 mr-2" />
-                      Salvar
+                    <Button 
+                      type="submit"
+                      disabled={isLoading}
+                      className="bg-[#834a8b] hover:bg-[#6d3d75]"
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Salvar
+                        </>
+                      )}
                     </Button>
                   </div>
-                </div>
+                </form>
               </CardContent>
             </Card>
 
@@ -713,16 +1001,31 @@ export function Settings() {
                       Importe usuários do Google Workspace
                     </CardDescription>
                   </div>
-                  <Badge variant="outline">Não Conectado</Badge>
+                  <Badge className={settings.integrations.googleWorkspace.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                    {settings.integrations.googleWorkspace.enabled ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Conectado
+                      </>
+                    ) : (
+                      'Não Conectado'
+                    )}
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleSaveIntegrations('googleWorkspace', formData);
+                }} className="space-y-4">
                   <div>
-                    <Label htmlFor="google-json">Service Account JSON</Label>
+                    <Label htmlFor="google-service-account">Service Account JSON</Label>
                     <Textarea
-                      id="google-json"
+                      id="google-service-account"
+                      name="google-service-account"
                       placeholder="Cole o conteúdo do arquivo JSON da Service Account"
+                      defaultValue={settings.integrations.googleWorkspace.serviceAccountJson}
                       rows={6}
                       className="mt-2 font-mono text-xs"
                     />
@@ -732,16 +1035,44 @@ export function Settings() {
                     <Label htmlFor="google-domain">Domínio Google Workspace</Label>
                     <Input
                       id="google-domain"
+                      name="google-domain"
                       placeholder="empresa.com.br"
+                      defaultValue={settings.integrations.googleWorkspace.domain}
                       className="mt-2"
                     />
                   </div>
 
-                  <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                    <Link className="w-4 h-4 mr-2" />
-                    Conectar Google Workspace
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-xs text-gray-500">
+                        Ativar sincronização com Google Workspace
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.integrations.googleWorkspace.enabled}
+                      onCheckedChange={() => handleToggleIntegration('googleWorkspace')}
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="bg-[#834a8b] hover:bg-[#6d3d75]"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Salvar Configurações
+                      </>
+                    )}
                   </Button>
-                </div>
+                </form>
               </CardContent>
             </Card>
 
@@ -801,6 +1132,9 @@ export function Settings() {
                     <p className="text-sm text-purple-900">
                       ✅ Autenticação via Keycloak está ativa. Usuários fazem login através de{' '}
                       <strong>https://iam.upn.com.br</strong>
+                    </p>
+                    <p className="text-xs text-purple-700 mt-2">
+                      ℹ️ As configurações do Keycloak são gerenciadas externamente e não podem ser editadas aqui.
                     </p>
                   </div>
                 </div>

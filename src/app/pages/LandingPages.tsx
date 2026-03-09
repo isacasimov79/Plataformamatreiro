@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -26,7 +26,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '../components/ui/dialog';
 import {
   DropdownMenu,
@@ -60,8 +59,9 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
 import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
+import { NewLandingPageDialog } from '../components/NewLandingPageDialog';
+import * as supabaseApi from '../lib/supabaseApi';
 
 interface LandingPage {
   id: string;
@@ -70,67 +70,15 @@ interface LandingPage {
   url: string;
   type: 'login' | 'prize' | 'update' | 'survey' | 'support' | 'custom';
   template: string;
+  htmlContent?: string;
+  cssContent?: string;
+  jsContent?: string;
   capturesCount: number;
   clicksCount: number;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
   status: 'active' | 'draft' | 'archived';
 }
-
-const mockLandingPages: LandingPage[] = [
-  {
-    id: 'lp-1',
-    name: 'Login Microsoft 365',
-    description: 'Página de login falsa do Microsoft 365',
-    url: 'https://login-microsoft.example.com/auth',
-    type: 'login',
-    template: 'microsoft-365-login',
-    capturesCount: 45,
-    clicksCount: 120,
-    createdAt: '2026-02-15T00:00:00Z',
-    updatedAt: '2026-03-01T00:00:00Z',
-    status: 'active',
-  },
-  {
-    id: 'lp-2',
-    name: 'Prêmio RH',
-    description: 'Landing page de pesquisa falsa com prêmio',
-    url: 'https://premio-empresa.example.com',
-    type: 'prize',
-    template: 'prize-survey',
-    capturesCount: 32,
-    clicksCount: 88,
-    createdAt: '2026-02-20T00:00:00Z',
-    updatedAt: '2026-02-28T00:00:00Z',
-    status: 'active',
-  },
-  {
-    id: 'lp-3',
-    name: 'Atualização de Senha',
-    description: 'Solicitação de atualização de credenciais',
-    url: 'https://update-password.example.com',
-    type: 'update',
-    template: 'password-reset',
-    capturesCount: 28,
-    clicksCount: 75,
-    createdAt: '2026-03-01T00:00:00Z',
-    updatedAt: '2026-03-05T00:00:00Z',
-    status: 'active',
-  },
-  {
-    id: 'lp-4',
-    name: 'Suporte TI',
-    description: 'Página de suporte técnico falso',
-    url: 'https://support-it.example.com',
-    type: 'support',
-    template: 'it-support',
-    capturesCount: 0,
-    clicksCount: 0,
-    createdAt: '2026-03-06T00:00:00Z',
-    updatedAt: '2026-03-06T00:00:00Z',
-    status: 'draft',
-  },
-];
 
 export function LandingPages() {
   const { impersonatedTenant } = useAuth();
@@ -141,8 +89,33 @@ export function LandingPages() {
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<LandingPage | null>(null);
+  const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredPages = mockLandingPages.filter((page) =>
+  // Carregar landing pages do banco
+  useEffect(() => {
+    loadLandingPages();
+  }, []);
+
+  const loadLandingPages = async () => {
+    try {
+      setIsLoading(true);
+      console.log('🔄 Carregando landing pages do banco...');
+      const pages = await supabaseApi.getLandingPages();
+      console.log('✅ Landing pages carregadas:', pages);
+      setLandingPages(pages);
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar landing pages:', error);
+      toast.error('Erro ao carregar landing pages', {
+        description: error.message || 'Não foi possível carregar as landing pages',
+      });
+      setLandingPages([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const filteredPages = landingPages.filter((page) =>
     page.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     page.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     page.type.toLowerCase().includes(searchQuery.toLowerCase())
@@ -173,7 +146,7 @@ export function LandingPages() {
   };
 
   const handleDelete = (pageId: string) => {
-    const page = mockLandingPages.find((p) => p.id === pageId);
+    const page = landingPages.find((p) => p.id === pageId);
     toast.success('Landing page removida!', {
       description: `"${page?.name}" foi deletada`,
     });
@@ -225,95 +198,13 @@ export function LandingPages() {
               <Code className="w-4 h-4 mr-2" />
               Editor HTML Avançado
             </Button>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Landing Page
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <form onSubmit={handleCreatePage}>
-                  <DialogHeader>
-                    <DialogTitle>Criar Nova Landing Page</DialogTitle>
-                    <DialogDescription>
-                      Configure uma página de captura para sua campanha
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <Label htmlFor="name">Nome da Página</Label>
-                      <Input
-                        id="name"
-                        placeholder="Ex: Login Microsoft 365"
-                        required
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="description">Descrição</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Descreva o propósito desta página"
-                        rows={2}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="type">Tipo de Página</Label>
-                        <Select>
-                          <SelectTrigger className="mt-2" id="type">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="login">Login</SelectItem>
-                            <SelectItem value="prize">Prêmio</SelectItem>
-                            <SelectItem value="update">Atualização</SelectItem>
-                            <SelectItem value="survey">Pesquisa</SelectItem>
-                            <SelectItem value="support">Suporte</SelectItem>
-                            <SelectItem value="custom">Customizada</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="template">Template Base</Label>
-                        <Select>
-                          <SelectTrigger className="mt-2" id="template">
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="microsoft-365-login">Microsoft 365 Login</SelectItem>
-                            <SelectItem value="google-workspace-login">Google Workspace</SelectItem>
-                            <SelectItem value="prize-survey">Pesquisa com Prêmio</SelectItem>
-                            <SelectItem value="password-reset">Reset de Senha</SelectItem>
-                            <SelectItem value="it-support">Suporte TI</SelectItem>
-                            <SelectItem value="blank">Página em Branco</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-sm text-blue-700">
-                        💡 <strong>Dica:</strong> Use o Editor HTML Avançado para criar páginas totalmente personalizadas.
-                      </p>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                      Criar Página
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              className="bg-[#834a8b] hover:bg-[#6d3d75]"
+              onClick={() => setIsCreateDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nova Landing Page
+            </Button>
           </div>
         </div>
       </div>
@@ -326,7 +217,7 @@ export function LandingPages() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">
-              {mockLandingPages.length}
+              {landingPages.length}
             </div>
           </CardContent>
         </Card>
@@ -336,7 +227,7 @@ export function LandingPages() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockLandingPages.filter((p) => p.status === 'active').length}
+              {landingPages.filter((p) => p.status === 'active').length}
             </div>
           </CardContent>
         </Card>
@@ -346,7 +237,7 @@ export function LandingPages() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {mockLandingPages.reduce((sum, p) => sum + p.capturesCount, 0)}
+              {landingPages.reduce((sum, p) => sum + p.capturesCount, 0)}
             </div>
           </CardContent>
         </Card>
@@ -356,7 +247,7 @@ export function LandingPages() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              {mockLandingPages.reduce((sum, p) => sum + p.clicksCount, 0)}
+              {landingPages.reduce((sum, p) => sum + p.clicksCount, 0)}
             </div>
           </CardContent>
         </Card>
@@ -900,6 +791,13 @@ button:hover {
   <p>Edite seu código aqui</p>
 </body>
 </html>` : ''}
+      />
+
+      {/* New Landing Page Dialog */}
+      <NewLandingPageDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={loadLandingPages}
       />
     </div>
   );

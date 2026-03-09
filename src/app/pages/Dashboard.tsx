@@ -110,21 +110,25 @@ export function Dashboard() {
 
   const activeCampaigns = relevantCampaigns.filter(c => c.status === 'running').length;
   const totalCampaigns = relevantCampaigns.length;
-  const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0';
-  const clickRate = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : '0';
-  const compromiseRate = totalSent > 0 ? ((totalSubmitted / totalSent) * 100).toFixed(1) : '0';
+  const openRate = totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : '0.0';
+  const clickRate = totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(1) : '0.0';
+  const compromiseRate = totalSent > 0 ? ((totalSubmitted / totalSent) * 100).toFixed(1) : '0.0';
 
   // Dados para gráficos
-  const campaignData = relevantCampaigns.length > 0 
-    ? relevantCampaigns.slice(0, 5).map((c, index) => ({
-        id: `campaign-${c.id}-${index}`,
-        name: c.name.length > 20 ? c.name.substring(0, 20) + '...' : c.name,
-        Enviados: c.stats.sent,
-        Abertos: c.stats.opened,
-        Clicados: c.stats.clicked,
-        Comprometidos: c.stats.submitted,
-      }))
-    : [
+  const campaignData =
+    relevantCampaigns.length > 0
+      ? relevantCampaigns.slice(0, 5).map((campaign) => {
+          const stats = campaign.stats || { sent: 0, opened: 0, clicked: 0, submitted: 0 };
+          return {
+            id: campaign.id,
+            name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
+            Enviados: stats.sent || 0,
+            Abertos: stats.opened || 0,
+            Clicados: stats.clicked || 0,
+            Comprometidos: stats.submitted || 0,
+          };
+        })
+      : [
         {
           id: 'empty-campaign-1',
           name: 'Sem dados',
@@ -141,7 +145,7 @@ export function Dashboard() {
         { id: 'pie-compromised', name: 'Comprometidos', value: totalSubmitted, color: '#834a8b' },
       ]
     : [
-        { id: 'pie-empty', name: 'Sem dados', value: 1, color: '#e5e7eb' }
+        { id: 'pie-empty-data', name: 'Sem dados', value: 1, color: '#e5e7eb' }
       ];
 
   return (
@@ -296,46 +300,62 @@ export function Dashboard() {
           <CardDescription>Status das últimas campanhas executadas</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {relevantCampaigns.slice(0, 5).map((campaign) => (
-              <div
-                key={campaign.id}
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div>
-                    <Mail className="w-8 h-8 text-blue-500" />
+          {relevantCampaigns.length > 0 ? (
+            <div className="space-y-4">
+              {relevantCampaigns.slice(0, 5).map((campaign) => {
+                const stats = campaign.stats || { sent: 0, opened: 0, clicked: 0, submitted: 0 };
+                return (
+                  <div
+                    key={campaign.id}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <Mail className="w-8 h-8 text-blue-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">{campaign.name}</h4>
+                        <p className="text-sm text-gray-500">
+                          {stats.sent} enviados • {stats.submitted} comprometidos
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {campaign.status === 'completed' && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Concluída
+                        </Badge>
+                      )}
+                      {campaign.status === 'running' && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Em execução
+                        </Badge>
+                      )}
+                      {campaign.status === 'scheduled' && (
+                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Agendada
+                        </Badge>
+                      )}
+                      {campaign.status === 'draft' && (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                          Rascunho
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{campaign.name}</h4>
-                    <p className="text-sm text-gray-500">
-                      {campaign.stats.sent} enviados • {campaign.stats.submitted} comprometidos
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  {campaign.status === 'completed' && (
-                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Concluída
-                    </Badge>
-                  )}
-                  {campaign.status === 'running' && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Em execução
-                    </Badge>
-                  )}
-                  {campaign.status === 'scheduled' && (
-                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                      <Clock className="w-3 h-3 mr-1" />
-                      Agendada
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-gray-500">
+              <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-sm">Nenhuma campanha criada ainda.</p>
+              <p className="text-xs mt-1">Use o botão "Popular Banco" acima para criar dados de exemplo.</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

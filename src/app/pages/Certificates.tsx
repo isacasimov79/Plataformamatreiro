@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -64,6 +64,7 @@ import {
   Calendar,
   Code,
 } from 'lucide-react';
+import { getCertificates, deleteCertificate, getTenants, getTrainings } from '../lib/supabaseApi';
 
 interface Certificate {
   id: string;
