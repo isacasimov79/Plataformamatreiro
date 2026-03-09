@@ -1,85 +1,84 @@
-import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
+import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
+import { getTenants, getTargets } from '../lib/supabaseApi';
+import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Badge } from '../components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '../components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '../components/ui/dropdown-menu';
 import { Label } from '../components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import {
   Mail,
   Plus,
   Search,
-  Upload,
-  MoreHorizontal,
-  Trash2,
-  Edit,
-  UserX,
   Download,
-  FileText,
-  Building,
-  ChevronDown,
-  Users,
-  ListPlus,
   FolderTree,
+  ChevronDown,
+  ListPlus,
+  Upload,
+  Users,
+  Building,
+  Edit,
+  FileText,
+  Trash2,
+  MoreHorizontal,
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { mockTargets, mockTenants, getTargetsByTenant } from '../lib/mockData';
 
 export function Targets() {
   const { user, impersonatedTenant } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [isNewTargetOpen, setIsNewTargetOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = useState(false);
   const [isIntegrationDialogOpen, setIsIntegrationDialogOpen] = useState(false);
+  const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [bulkEmails, setBulkEmails] = useState('');
+  
+  // Estados para dados do banco
+  const [targets, setTargets] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [targetsData, tenantsData] = await Promise.all([
+        getTargets(),
+        getTenants(),
+      ]);
+      setTargets(targetsData);
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Error loading targets data:', error);
+      toast.error('Erro ao carregar targets');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar targets baseado em impersonation
   const isMasterView = !impersonatedTenant;
   const relevantTargets = isMasterView
-    ? mockTargets
-    : getTargetsByTenant(impersonatedTenant.id);
+    ? targets
+    : targets.filter(t => t.tenantId === impersonatedTenant.id);
 
   // Filtrar targets com busca
   const filteredTargets = relevantTargets.filter(
@@ -94,7 +93,7 @@ export function Targets() {
     toast.success('E-mail alvo adicionado!', {
       description: 'O alvo foi adicionado com sucesso à lista',
     });
-    setIsAddDialogOpen(false);
+    setIsNewTargetOpen(false);
   };
 
   const handleBulkAddTarget = (e: React.FormEvent<HTMLFormElement>) => {
@@ -197,7 +196,7 @@ export function Targets() {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>Escolha o método</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setIsAddDialogOpen(true)}>
+                <DropdownMenuItem onClick={() => setIsNewTargetOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Individual
                 </DropdownMenuItem>
@@ -218,7 +217,7 @@ export function Targets() {
             </DropdownMenu>
             
             {/* Dialog Individual */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <Dialog open={isNewTargetOpen} onOpenChange={setIsNewTargetOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                   <Plus className="w-4 h-4 mr-2" />
@@ -294,7 +293,7 @@ export function Targets() {
                             <SelectValue placeholder="Selecione o cliente" />
                           </SelectTrigger>
                           <SelectContent>
-                            {mockTenants.map((tenant) => (
+                            {tenants.map((tenant) => (
                               <SelectItem key={tenant.id} value={tenant.id}>
                                 {tenant.name}
                               </SelectItem>
@@ -308,7 +307,7 @@ export function Targets() {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setIsAddDialogOpen(false)}
+                      onClick={() => setIsNewTargetOpen(false)}
                     >
                       Cancelar
                     </Button>
@@ -390,7 +389,7 @@ export function Targets() {
                             <SelectValue placeholder="Selecione o cliente" />
                           </SelectTrigger>
                           <SelectContent>
-                            {mockTenants.map((tenant) => (
+                            {tenants.map((tenant) => (
                               <SelectItem key={tenant.id} value={tenant.id}>
                                 {tenant.name}
                               </SelectItem>
@@ -631,7 +630,7 @@ export function Targets() {
                       <div className="flex items-center gap-2">
                         <Building className="w-4 h-4 text-gray-400" />
                         <span className="text-sm">
-                          {mockTenants.find((t) => t.id === target.tenantId)?.name ||
+                          {tenants.find((t) => t.id === target.tenantId)?.name ||
                             'N/A'}
                         </span>
                       </div>

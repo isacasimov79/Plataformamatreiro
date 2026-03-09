@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
-import { mockTenants, getTenantById, mockTemplates } from '../lib/mockData';
+import { getTenants, deleteTenant, updateTenant, getTemplates } from '../lib/supabaseApi';
 import { NewTenantDialog } from '../components/NewTenantDialog';
 import { EditTenantDialog } from '../components/EditTenantDialog';
 import { toast } from 'sonner';
@@ -46,14 +46,65 @@ import { ClientLogoUpload } from '../components/ClientLogoUpload';
 export function Tenants() {
   const { impersonateTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTenant, setSelectedTenant] = useState<typeof mockTenants[0] | null>(null);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
   const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
   const [autoPhishingEnabled, setAutoPhishingEnabled] = useState(false);
   const [delayDays, setDelayDays] = useState(30);
   const [selectedTemplate, setSelectedTemplate] = useState('');
 
-  const handleConfigureAutoPhishing = (tenant: typeof mockTenants[0]) => {
+  // Carregar tenants do banco
+  useEffect(() => {
+    loadTenants();
+    loadTemplates();
+  }, []);
+
+  const loadTenants = async () => {
+    try {
+      setLoading(true);
+      const data = await getTenants();
+      setTenants(data);
+    } catch (error) {
+      console.error('Error loading tenants:', error);
+      toast.error('Erro ao carregar clientes', {
+        description: 'Não foi possível carregar a lista de clientes. Tente novamente.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTemplates = async () => {
+    try {
+      const data = await getTemplates();
+      setTemplates(data);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast.error('Erro ao carregar modelos', {
+        description: 'Não foi possível carregar a lista de modelos. Tente novamente.',
+      });
+    }
+  };
+
+  const handleDeleteTenant = async (id: string, name: string) => {
+    try {
+      await deleteTenant(id);
+      toast.success('Cliente removido', {
+        description: `${name} foi removido com sucesso.`,
+      });
+      await loadTenants(); // Recarregar lista
+    } catch (error) {
+      console.error('Error deleting tenant:', error);
+      toast.error('Erro ao remover cliente', {
+        description: 'Não foi possível remover o cliente. Tente novamente.',
+      });
+    }
+  };
+
+  const handleConfigureAutoPhishing = (tenant: any) => {
     setSelectedTenant(tenant);
     setAutoPhishingEnabled(tenant.autoPhishingConfig?.enabled || false);
     setDelayDays(tenant.autoPhishingConfig?.delayDays || 30);
@@ -61,11 +112,30 @@ export function Tenants() {
     setIsConfigDialogOpen(true);
   };
 
-  const handleSaveAutoPhishing = () => {
-    toast.success('Configuração salva!', {
-      description: `Phishing automático ${autoPhishingEnabled ? 'ativado' : 'desativado'} para ${selectedTenant?.name}`,
-    });
-    setIsConfigDialogOpen(false);
+  const handleSaveAutoPhishing = async () => {
+    if (!selectedTenant) return;
+
+    try {
+      await updateTenant(selectedTenant.id, {
+        ...selectedTenant,
+        autoPhishingConfig: {
+          enabled: autoPhishingEnabled,
+          delayDays,
+          templateId: selectedTemplate,
+        },
+      });
+
+      toast.success('Configuração salva!', {
+        description: `Phishing automático ${autoPhishingEnabled ? 'ativado' : 'desativado'} para ${selectedTenant?.name}`,
+      });
+      setIsConfigDialogOpen(false);
+      await loadTenants(); // Recarregar lista
+    } catch (error) {
+      console.error('Error saving auto phishing config:', error);
+      toast.error('Erro ao salvar configuração', {
+        description: 'Não foi possível salvar as configurações. Tente novamente.',
+      });
+    }
   };
 
   const handleSaveLogo = (logoUrl: string) => {
@@ -75,11 +145,15 @@ export function Tenants() {
     setIsLogoDialogOpen(false);
   };
 
-  const filteredTenants = mockTenants.filter(
+  const filteredTenants = tenants.filter(
     (tenant) =>
       tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tenant.document.includes(searchQuery)
   );
+
+  const getTenantById = (id: string) => {
+    return tenants.find((t) => t.id === id);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -202,9 +276,7 @@ export function Tenants() {
                           size="sm"
                           className="text-red-600 hover:text-red-700"
                           title="Excluir cliente"
-                          onClick={() => toast.error(`Cliente ${tenant.name} removido`, {
-                            description: 'Esta é uma simulação. Nada foi excluído.'
-                          })}
+                          onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -278,7 +350,7 @@ export function Tenants() {
                   <SelectValue placeholder="Selecione um modelo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockTemplates.map((template) => (
+                  {templates.map((template) => (
                     <SelectItem key={template.id} value={template.id}>
                       {template.name}
                     </SelectItem>

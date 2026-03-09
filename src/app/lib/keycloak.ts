@@ -37,16 +37,26 @@ export const isAuthenticated = (): boolean => {
 
 // Helper para fazer logout
 export const logout = (): void => {
-  keycloak.logout({
-    redirectUri: window.location.origin,
-  });
+  // Only call logout if keycloak is actually initialized and authenticated
+  if (keycloak.authenticated && keycloak.adapter) {
+    keycloak.logout({
+      redirectUri: window.location.origin,
+    });
+  } else {
+    console.log('🔐 Keycloak not initialized, skipping logout call');
+  }
 };
 
 // Helper para fazer login
 export const login = (): void => {
-  keycloak.login({
-    redirectUri: window.location.origin,
-  });
+  // Only call login if keycloak adapter is initialized
+  if (keycloak.adapter) {
+    keycloak.login({
+      redirectUri: window.location.origin,
+    });
+  } else {
+    console.log('🔐 Keycloak not initialized, skipping login call');
+  }
 };
 
 // Helper para atualizar o token

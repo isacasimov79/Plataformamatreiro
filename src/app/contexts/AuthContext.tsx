@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { superadminUser, mockTenants, type User, type Tenant } from '../lib/mockData';
+import { superadminUser, type User, type Tenant } from '../lib/mockData';
 import keycloak, { logout as keycloakLogout, login as keycloakLogin, getUserInfo, getRoles } from '../lib/keycloak';
 import { toast } from 'sonner';
 import { LoadingScreen } from '../components/LoadingScreen';
+import { getTenants } from '../lib/supabaseApi';
 
 interface AuthContextType {
   user: User | null;
@@ -22,16 +23,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [impersonatedTenant, setImpersonatedTenant] = useState<Tenant | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [keycloakToken, setKeycloakToken] = useState<string | undefined>();
+  const [contextReady, setContextReady] = useState(false);
 
   // Inicializar Keycloak
   useEffect(() => {
+    console.log('🔑 AuthProvider - Inicializando...');
     const initKeycloak = async () => {
       try {
         // Verificar se Keycloak está habilitado
-        const keycloakEnabled = import.meta.env.VITE_KEYCLOAK_ENABLED !== 'false';
+        // Por padrão, desabilitar Keycloak se a variável não estiver definida
+        const keycloakEnabled = import.meta.env.VITE_KEYCLOAK_ENABLED === 'true';
         const isDev = import.meta.env.DEV;
         
-        // Se Keycloak está desabilitado, pular para modo fallback imediatamente
+        // Se Keycloak está desabilitado ou não configurado, pular para modo fallback imediatamente
         if (!keycloakEnabled) {
           console.log('🔧 Keycloak desabilitado - usando modo desenvolvimento');
           throw new Error('Keycloak disabled');
@@ -105,8 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Em produção, mostrar erro apenas se não for timeout esperado
           console.warn('Keycloak não disponível:', error);
           
-          // Apenas mostrar toast se não for desabilitado explicitamente
-          if (import.meta.env.VITE_KEYCLOAK_ENABLED !== 'false') {
+          // Apenas mostrar toast se Keycloak foi explicitamente habilitado
+          if (import.meta.env.VITE_KEYCLOAK_ENABLED === 'true') {
             toast.warning('Servidor de autenticação indisponível', {
               description: 'Usando autenticação local temporariamente',
               duration: 3000,
@@ -118,8 +122,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const storedUser = localStorage.getItem('matreiro_user');
         if (storedUser) {
           setUser(JSON.parse(storedUser));
-        } else if (import.meta.env.DEV) {
-          // Apenas em desenvolvimento: auto-login como superadmin
+        } else if (import.meta.env.DEV || !import.meta.env.VITE_KEYCLOAK_ENABLED) {
+          // Em desenvolvimento ou sem Keycloak configurado: auto-login como superadmin
           console.log('🔧 Auto-login como superadmin (modo desenvolvimento)');
           setUser(superadminUser);
           localStorage.setItem('matreiro_user', JSON.stringify(superadminUser));
@@ -132,6 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } finally {
         setIsLoading(false);
+        setContextReady(true);
+        console.log('🔑 AuthProvider - Inicialização completa. User:', !!user || !!localStorage.getItem('matreiro_user'));
       }
     };
 
@@ -156,12 +162,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('matreiro_impersonated_tenant');
   };
 
-  const impersonateTenant = (tenantId: string | null) => {
+  const impersonateTenant = async (tenantId: string | null) => {
     if (tenantId) {
-      const tenant = mockTenants.find((t) => t.id === tenantId);
-      if (tenant) {
-        setImpersonatedTenant(tenant);
-        localStorage.setItem('matreiro_impersonated_tenant', JSON.stringify(tenant));
+      try {
+        const tenants = await getTenants();
+        const tenant = tenants.find((t: any) => t.id === tenantId);
+        if (tenant) {
+          setImpersonatedTenant(tenant);
+          localStorage.setItem('matreiro_impersonated_tenant', JSON.stringify(tenant));
+        }
+      } catch (error) {
+        console.error('Error loading tenant for impersonation:', error);
+        toast.error('Erro ao trocar visualização de cliente');
       }
     } else {
       setImpersonatedTenant(null);
@@ -182,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         keycloakToken,
       }}
     >
-      {isLoading ? <LoadingScreen /> : children}
+      {contextReady ? (isLoading ? <LoadingScreen /> : children) : <LoadingScreen />}
     </AuthContext.Provider>
   );
 }
@@ -190,7 +202,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // During HMR (Hot Module Reload) or initial render, the context might temporarily be undefined
+    // Return a safe default context to prevent crashes
+    console.warn('⚠️ useAuth called before AuthProvider is ready. Returning safe default context.');
+    
+    // Return a safe default context that shows loading state
+    return {
+      user: null,
+      impersonatedTenant: null,
+      isAuthenticated: false,
+      isLoading: true, // Important: mark as loading to prevent navigation
+      login: async () => {
+        console.warn('Auth not ready - login called too early');
+      },
+      logout: () => {
+        console.warn('Auth not ready - logout called too early');
+      },
+      impersonateTenant: async () => {
+        console.warn('Auth not ready - impersonateTenant called too early');
+      },
+      keycloakToken: undefined,
+    } as AuthContextType;
   }
   return context;
 }

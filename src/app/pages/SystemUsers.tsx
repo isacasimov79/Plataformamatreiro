@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -58,7 +58,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockTenants } from '../lib/mockData';
+import { getTenants } from '../lib/supabaseApi';
 import { format } from 'date-fns';
 
 // Mock data para usuários do sistema
@@ -129,6 +129,7 @@ export function SystemUsers() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<typeof mockSystemUsers[0] | null>(null);
+  const [tenants, setTenants] = useState([]);
 
   // Apenas superadmin pode ver TODOS os usuários
   const isSuperAdmin = user?.role === 'superadmin' && !impersonatedTenant;
@@ -183,6 +184,14 @@ export function SystemUsers() {
     superadmins: relevantUsers.filter((u) => u.role === 'superadmin').length,
     admins: relevantUsers.filter((u) => u.role === 'admin').length,
   };
+
+  useEffect(() => {
+    const fetchTenants = async () => {
+      const data = await getTenants();
+      setTenants(data);
+    };
+    fetchTenants();
+  }, []);
 
   return (
     <div className="p-4 md:p-8">
@@ -279,7 +288,7 @@ export function SystemUsers() {
                             </div>
                           </SelectItem>
                         )}
-                        {mockTenants.map((tenant) => (
+                        {tenants.map((tenant: any) => (
                           <SelectItem key={tenant.id} value={tenant.id}>
                             <div className="flex items-center gap-2">
                               <Building className="w-4 h-4 text-gray-600" />
@@ -410,7 +419,7 @@ export function SystemUsers() {
                         <div className="flex items-center gap-2">
                           <Building className="w-4 h-4 text-gray-400" />
                           <span className="text-sm">
-                            {mockTenants.find((t) => t.id === systemUser.tenantId)
+                            {tenants.find((t: any) => t.id === systemUser.tenantId)
                               ?.name || 'N/A'}
                           </span>
                         </div>

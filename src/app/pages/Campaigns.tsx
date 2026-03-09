@@ -1,13 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
-import {
-  mockCampaigns,
-  getCampaignsByTenant,
-  mockTemplates,
-  mockTargets,
-  mockTenants,
-} from '../lib/mockData';
+import { useTranslation } from 'react-i18next';
+import { getTenants, getTemplates, getTargets, getCampaigns } from '../lib/supabaseApi';
 import { toast } from 'sonner';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -41,24 +36,66 @@ import {
 import { NewCampaignDialog } from '../components/NewCampaignDialog';
 import { PhishingSyslogDialog } from '../components/PhishingSyslogDialog';
 
-function getTemplateById(id: string) {
-  return mockTemplates.find((t) => t.id === id);
-}
-
-function getTenantById(id: string) {
-  return mockTenants.find((t) => t.id === id);
-}
-
 export function Campaigns() {
   const { impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Estados para dados do banco
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [campaignsData, templatesData, targetsData, tenantsData] = await Promise.all([
+        getCampaigns(),
+        getTemplates(),
+        getTargets(),
+        getTenants(),
+      ]);
+      
+      console.log('📧 Campaigns data loaded:', {
+        campaigns: campaignsData?.length || 0,
+        templates: templatesData?.length || 0,
+        targets: targetsData?.length || 0,
+        tenants: tenantsData?.length || 0,
+      });
+      
+      setCampaigns(campaignsData || []);
+      setTemplates(templatesData || []);
+      setTargets(targetsData || []);
+      setTenants(tenantsData || []);
+    } catch (error) {
+      console.error('❌ Error loading campaigns data:', error);
+      toast.error('Erro ao carregar campanhas', {
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTemplateById = (id: string) => {
+    return templates.find((t) => t.id === id);
+  };
+
+  const getTenantById = (id: string) => {
+    return tenants.find((t) => t.id === id);
+  };
 
   const isMasterView = !impersonatedTenant;
   const relevantCampaigns = impersonatedTenant
-    ? getCampaignsByTenant(impersonatedTenant.id)
-    : mockCampaigns;
+    ? campaigns.filter(c => c.tenantId === impersonatedTenant.id)
+    : campaigns;
 
-  const campaigns = relevantCampaigns;
   const filteredCampaigns = relevantCampaigns.filter((campaign) =>
     campaign.name.toLowerCase().includes(searchQuery.toLowerCase())
   );

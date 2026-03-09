@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardContent,
@@ -40,18 +42,40 @@ import {
   Download,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { mockCampaigns, getCampaignsByTenant } from '../lib/mockData';
+import { getCampaigns } from '../lib/supabaseApi';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 
 export function Reports() {
-  const { impersonatedTenant } = useAuth();
+  const { user, impersonatedTenant } = useAuth();
+  
+  // Estados para dados do banco
+  const [campaigns, setCampaigns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const campaignsData = await getCampaigns();
+      setCampaigns(campaignsData);
+    } catch (error) {
+      console.error('Error loading reports data:', error);
+      toast.error('Erro ao carregar dados de relatórios');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const relevantCampaigns = impersonatedTenant
-    ? getCampaignsByTenant(impersonatedTenant.id)
-    : mockCampaigns;
+    ? campaigns.filter(c => c.tenantId === impersonatedTenant.id)
+    : campaigns;
 
   const handleExportPDF = async () => {
     try {
@@ -354,7 +378,7 @@ export function Reports() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={timelineData}>
+                  <LineChart data={timelineData} id="timeline-chart">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -366,6 +390,7 @@ export function Reports() {
                       dataKey="enviados"
                       stroke="#3b82f6"
                       strokeWidth={2}
+                      isAnimationActive={false}
                     />
                     <Line
                       key="line-abertos"
@@ -373,6 +398,7 @@ export function Reports() {
                       dataKey="abertos"
                       stroke="#10b981"
                       strokeWidth={2}
+                      isAnimationActive={false}
                     />
                     <Line
                       key="line-cliques"
@@ -380,6 +406,7 @@ export function Reports() {
                       dataKey="cliques"
                       stroke="#f59e0b"
                       strokeWidth={2}
+                      isAnimationActive={false}
                     />
                     <Line
                       key="line-comprometidos"
@@ -387,6 +414,7 @@ export function Reports() {
                       dataKey="comprometidos"
                       stroke="#ef4444"
                       strokeWidth={2}
+                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -401,7 +429,7 @@ export function Reports() {
               </CardHeader>
               <CardContent className="flex items-center justify-center">
                 <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
+                  <PieChart key={`risk-pie-${riskDistribution.length}`}>
                     <Pie
                       data={riskDistribution}
                       cx="50%"
@@ -411,6 +439,7 @@ export function Reports() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
+                      isAnimationActive={false}
                     >
                       {riskDistribution.map((entry) => (
                         <Cell key={`risk-cell-${entry.id}`} fill={entry.color} />
@@ -433,14 +462,14 @@ export function Reports() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={departmentData}>
+                <BarChart data={departmentData} id="dept-chart">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="total" fill="#3b82f6" name="Total de Colaboradores" />
-                  <Bar dataKey="comprometidos" fill="#ef4444" name="Comprometidos" />
+                  <Bar key="bar-total" dataKey="total" fill="#3b82f6" name="Total de Colaboradores" isAnimationActive={false} />
+                  <Bar key="bar-comprometidos" dataKey="comprometidos" fill="#ef4444" name="Comprometidos" isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -457,14 +486,14 @@ export function Reports() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {topVulnerable.map((user, index) => (
+                {topVulnerable.map((user) => (
                   <div
-                    key={index}
+                    key={user.id}
                     className="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                        <span className="text-red-700 font-bold">#{index + 1}</span>
+                        <span className="text-red-700 font-bold">#{topVulnerable.indexOf(user) + 1}</span>
                       </div>
                       <div>
                         <div className="font-medium">{user.name}</div>

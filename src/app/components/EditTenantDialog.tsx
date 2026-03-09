@@ -1,3 +1,6 @@
+import { toast } from 'sonner';
+import { getTenants, getTemplates } from '../lib/supabaseApi';
+import { Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import {
@@ -18,11 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { toast } from 'sonner';
-import { mockTenants } from '../lib/mockData';
-import { Edit } from 'lucide-react';
 
-type Tenant = typeof mockTenants[0];
+type Tenant = {
+  id: string;
+  name: string;
+  document: string;
+  email: string;
+  phone: string;
+  status: string;
+  parentId: string | null;
+};
 
 interface EditTenantDialogProps {
   tenant: Tenant;
@@ -30,6 +38,8 @@ interface EditTenantDialogProps {
 
 export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
   const [open, setOpen] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: tenant.name,
     document: tenant.document,
@@ -49,8 +59,22 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
         status: tenant.status,
         parentId: tenant.parentId || '',
       });
+      loadTenants();
     }
   }, [open, tenant]);
+
+  const loadTenants = async () => {
+    try {
+      setLoading(true);
+      const tenantsData = await getTenants();
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Error loading tenants:', error);
+      toast.error('Erro ao carregar clientes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +87,7 @@ export function EditTenantDialog({ tenant }: EditTenantDialogProps) {
   };
 
   // Filtrar tenants para select (excluir o próprio tenant e seus filhos)
-  const availableParents = mockTenants.filter(t => 
+  const availableParents = tenants.filter(t => 
     t.id !== tenant.id && t.parentId !== tenant.id
   );
 

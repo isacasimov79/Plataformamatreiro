@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
 import {
@@ -61,7 +61,7 @@ import {
   Network,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockTargetGroups, mockTargets, mockTenants } from '../lib/mockData';
+import { getTargetGroups, getTargets, getTenants } from '../lib/supabaseApi';
 
 export function TargetGroups() {
   const { user, impersonatedTenant } = useAuth();
@@ -71,15 +71,45 @@ export function TargetGroups() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAddMembersDialogOpen, setIsAddMembersDialogOpen] = useState(false);
   const [isImportIntegrationOpen, setIsImportIntegrationOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<typeof mockTargetGroups[0] | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  
+  // Estados para dados do banco
+  const [targetGroups, setTargetGroups] = useState<any[]>([]);
+  const [targets, setTargets] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [groupsData, targetsData, tenantsData] = await Promise.all([
+        getTargetGroups(),
+        getTargets(),
+        getTenants(),
+      ]);
+      setTargetGroups(groupsData);
+      setTargets(targetsData);
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Error loading target groups data:', error);
+      toast.error('Erro ao carregar grupos de alvos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const isMasterView = !impersonatedTenant;
 
   // Filtrar grupos baseado em impersonation
   const relevantGroups = isMasterView
-    ? mockTargetGroups
-    : mockTargetGroups.filter((g) => g.tenantId === impersonatedTenant?.id);
+    ? targetGroups
+    : targetGroups.filter(g => g.tenantId === impersonatedTenant?.id);
 
   // Filtrar grupos com busca
   const filteredGroups = relevantGroups.filter(
@@ -186,7 +216,7 @@ export function TargetGroups() {
             <div className="flex items-center gap-2">
               <Building className="w-4 h-4 text-gray-400" />
               <span className="text-sm">
-                {mockTenants.find((t) => t.id === group.tenantId)?.name || 'N/A'}
+                {tenants.find((t) => t.id === group.tenantId)?.name || 'N/A'}
               </span>
             </div>
           </TableCell>
@@ -454,7 +484,7 @@ export function TargetGroups() {
                       <SelectValue placeholder="Selecione o cliente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockTenants.map((tenant) => (
+                      {tenants.map((tenant) => (
                         <SelectItem key={tenant.id} value={tenant.id}>
                           {tenant.name}
                         </SelectItem>
@@ -553,7 +583,7 @@ export function TargetGroups() {
                       <SelectValue placeholder="Selecione o cliente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockTenants.map((tenant) => (
+                      {tenants.map((tenant) => (
                         <SelectItem key={tenant.id} value={tenant.id}>
                           {tenant.name}
                         </SelectItem>

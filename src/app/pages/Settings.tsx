@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -41,22 +41,114 @@ import {
   Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getSettings, updateSettings } from '../lib/supabaseApi';
 
 export function Settings() {
   const { user, impersonatedTenant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [syslogEnabled, setSyslogEnabled] = useState(false);
   const [phishingSyslogEnabled, setPhishingSyslogEnabled] = useState(false);
+  
+  // Settings state
+  const [settings, setSettings] = useState<any>({
+    general: {
+      organizationName: '',
+      domain: '',
+      description: '',
+      timezone: 'america-sao-paulo',
+      language: 'pt-br',
+      maintenanceMode: false,
+      autoArchiveCampaigns: true,
+    },
+    smtp: {
+      host: '',
+      port: 587,
+      user: '',
+      password: '',
+      from: '',
+      encryption: 'tls',
+    },
+    syslog: {
+      host: '',
+      port: 514,
+      protocol: 'udp',
+      facility: 'local0',
+      auditLogsEnabled: false,
+      phishingEventsEnabled: false,
+    },
+    integrations: {
+      microsoft365: {
+        enabled: false,
+        tenantId: '',
+        clientId: '',
+        clientSecret: '',
+        autoSync: false,
+      },
+      googleWorkspace: {
+        enabled: false,
+        serviceAccountJson: '',
+        domain: '',
+      },
+    },
+  });
 
-  const handleSaveGeneral = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const data = await getSettings();
+      console.log('✅ Settings loaded:', data);
+      if (data && data.settings) {
+        setSettings(data.settings);
+        setSyslogEnabled(data.settings.syslog?.auditLogsEnabled || false);
+        setPhishingSyslogEnabled(data.settings.syslog?.phishingEventsEnabled || false);
+      }
+    } catch (error) {
+      console.error('❌ Error loading settings:', error);
+      toast.error('Erro ao carregar configurações', {
+        description: 'As configurações padrão serão usadas.',
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  const handleSaveGeneral = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    const formData = new FormData(e.currentTarget);
+    const updatedSettings = {
+      ...settings,
+      general: {
+        organizationName: formData.get('org-name') as string,
+        domain: formData.get('org-domain') as string,
+        description: formData.get('org-description') as string,
+        timezone: formData.get('timezone') as string,
+        language: formData.get('language') as string,
+        maintenanceMode: settings.general.maintenanceMode,
+        autoArchiveCampaigns: settings.general.autoArchiveCampaigns,
+      },
+    };
+
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
       toast.success('Configurações salvas!', {
         description: 'As alterações gerais foram aplicadas',
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error('Error saving settings:', error);
+      toast.error('Erro ao salvar', {
+        description: error.message || 'Não foi possível salvar as configurações.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleTestSMTP = () => {
@@ -161,7 +253,7 @@ export function Settings() {
                     <Label htmlFor="org-name">Nome da Organização</Label>
                     <Input
                       id="org-name"
-                      defaultValue="Empresa XYZ Ltda"
+                      defaultValue={settings.general.organizationName}
                       className="mt-2"
                     />
                   </div>
@@ -169,7 +261,7 @@ export function Settings() {
                     <Label htmlFor="org-domain">Domínio Principal</Label>
                     <Input
                       id="org-domain"
-                      defaultValue="empresa.com.br"
+                      defaultValue={settings.general.domain}
                       className="mt-2"
                     />
                   </div>
@@ -179,7 +271,7 @@ export function Settings() {
                   <Label htmlFor="org-description">Descrição</Label>
                   <Textarea
                     id="org-description"
-                    defaultValue="Empresa de tecnologia focada em inovação"
+                    defaultValue={settings.general.description}
                     rows={3}
                     className="mt-2"
                   />
@@ -188,7 +280,7 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="timezone">Fuso Horário</Label>
-                    <Select defaultValue="america-sao-paulo">
+                    <Select defaultValue={settings.general.timezone}>
                       <SelectTrigger className="mt-2" id="timezone">
                         <SelectValue />
                       </SelectTrigger>
@@ -207,7 +299,7 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="language">Idioma Padrão</Label>
-                    <Select defaultValue="pt-br">
+                    <Select defaultValue={settings.general.language}>
                       <SelectTrigger className="mt-2" id="language">
                         <SelectValue />
                       </SelectTrigger>
@@ -281,7 +373,7 @@ export function Settings() {
                     <Input
                       id="smtp-host"
                       placeholder="smtp.gmail.com"
-                      defaultValue="smtp.empresa.com.br"
+                      defaultValue={settings.smtp.host}
                       className="mt-2"
                     />
                   </div>
@@ -290,7 +382,7 @@ export function Settings() {
                     <Input
                       id="smtp-port"
                       type="number"
-                      defaultValue="587"
+                      defaultValue={settings.smtp.port}
                       className="mt-2"
                     />
                   </div>
@@ -301,7 +393,7 @@ export function Settings() {
                     <Label htmlFor="smtp-user">Usuário SMTP</Label>
                     <Input
                       id="smtp-user"
-                      defaultValue="noreply@empresa.com.br"
+                      defaultValue={settings.smtp.user}
                       className="mt-2"
                     />
                   </div>
@@ -310,7 +402,7 @@ export function Settings() {
                     <Input
                       id="smtp-password"
                       type="password"
-                      defaultValue="••••••••••••"
+                      defaultValue={settings.smtp.password}
                       className="mt-2"
                     />
                   </div>
@@ -320,14 +412,14 @@ export function Settings() {
                   <Label htmlFor="smtp-from">E-mail Remetente Padrão</Label>
                   <Input
                     id="smtp-from"
-                    defaultValue="noreply@empresa.com.br"
+                    defaultValue={settings.smtp.from}
                     className="mt-2"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="smtp-encryption">Tipo de Criptografia</Label>
-                  <Select defaultValue="tls">
+                  <Select defaultValue={settings.smtp.encryption}>
                     <SelectTrigger className="mt-2" id="smtp-encryption">
                       <SelectValue />
                     </SelectTrigger>
@@ -392,7 +484,7 @@ export function Settings() {
                     <Input
                       id="syslog-host"
                       placeholder="syslog.example.com"
-                      defaultValue="syslog.empresa.com.br"
+                      defaultValue={settings.syslog.host}
                       className="mt-2"
                     />
                   </div>
@@ -401,7 +493,7 @@ export function Settings() {
                     <Input
                       id="syslog-port"
                       type="number"
-                      defaultValue="514"
+                      defaultValue={settings.syslog.port}
                       className="mt-2"
                     />
                   </div>
@@ -410,7 +502,7 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="syslog-protocol">Protocolo</Label>
-                    <Select defaultValue="udp">
+                    <Select defaultValue={settings.syslog.protocol}>
                       <SelectTrigger className="mt-2" id="syslog-protocol">
                         <SelectValue />
                       </SelectTrigger>
@@ -422,7 +514,7 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="syslog-facility">Facility</Label>
-                    <Select defaultValue="local0">
+                    <Select defaultValue={settings.syslog.facility}>
                       <SelectTrigger className="mt-2" id="syslog-facility">
                         <SelectValue />
                       </SelectTrigger>

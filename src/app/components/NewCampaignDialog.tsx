@@ -23,7 +23,7 @@ import {
 } from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
-import { mockTemplates, mockTenants, mockTargetGroups, getTargetGroupsByTenant } from '../lib/mockData';
+import { getTemplates, getTenants, getTargetGroups } from '../lib/supabaseApi';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -45,6 +45,36 @@ export function NewCampaignDialog() {
     scheduledDate: undefined as Date | undefined,
     type: 'standard',
   });
+  
+  // Estados para dados do banco
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [targetGroups, setTargetGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [templatesData, tenantsData, groupsData] = await Promise.all([
+        getTemplates(),
+        getTenants(),
+        getTargetGroups(),
+      ]);
+      setTemplates(templatesData);
+      setTenants(tenantsData);
+      setTargetGroups(groupsData);
+    } catch (error) {
+      console.error('Error loading campaign dialog data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fechar calendário ao clicar fora
   useEffect(() => {
@@ -64,12 +94,12 @@ export function NewCampaignDialog() {
   }, [calendarOpen]);
 
   const availableTemplates = impersonatedTenant
-    ? mockTemplates.filter(t => t.tenantId === null || t.tenantId === impersonatedTenant.id)
-    : mockTemplates;
+    ? templates.filter(t => t.tenantId === null || t.tenantId === impersonatedTenant.id)
+    : templates;
 
   const availableGroups = impersonatedTenant
-    ? getTargetGroupsByTenant(impersonatedTenant.id)
-    : mockTargetGroups;
+    ? targetGroups.filter(g => g.tenantId === impersonatedTenant.id)
+    : targetGroups;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,7 +208,7 @@ export function NewCampaignDialog() {
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockTenants.filter(t => t.status === 'active').map((tenant) => (
+                  {tenants.filter(t => t.status === 'active').map((tenant) => (
                     <SelectItem key={tenant.id} value={tenant.id}>
                       {tenant.name}
                     </SelectItem>

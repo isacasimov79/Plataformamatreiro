@@ -1,33 +1,35 @@
-import { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import { toast } from 'sonner';
-import { mockTenants } from '../lib/mockData';
+import { getTenants } from '../lib/supabaseApi';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus } from 'lucide-react';
-import { Switch } from './ui/switch';
+import { useState, useEffect } from 'react';
 
 export function NewTrainingDialog() {
-  const { impersonatedTenant } = useAuth();
+  const { user, impersonatedTenant } = useAuth();
   const [open, setOpen] = useState(false);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Carregar tenants
+  useEffect(() => {
+    if (open && !impersonatedTenant) {
+      loadTenants();
+    }
+  }, [open, impersonatedTenant]);
+
+  const loadTenants = async () => {
+    try {
+      setLoading(true);
+      const tenantsData = await getTenants();
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Error loading tenants:', error);
+      toast.error('Erro ao carregar clientes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -114,7 +116,7 @@ export function NewTrainingDialog() {
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
-                    {mockTenants.filter(t => t.status === 'active').map((tenant) => (
+                    {tenants.map((tenant) => (
                       <SelectItem key={tenant.id} value={tenant.id}>
                         {tenant.name}
                       </SelectItem>

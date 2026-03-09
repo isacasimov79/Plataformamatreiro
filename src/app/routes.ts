@@ -1,5 +1,4 @@
 import { createBrowserRouter } from 'react-router';
-import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -23,6 +22,7 @@ import { AuditLogs } from './pages/AuditLogs';
 import { AdvancedDashboard } from './pages/AdvancedDashboard';
 import { Settings } from './pages/Settings';
 import { Certificates } from './pages/Certificates';
+import { AuthBoundary } from './components/AuthBoundary';
 
 export const router = createBrowserRouter([
   {
@@ -31,7 +31,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    Component: ProtectedRoute,
+    Component: AuthBoundary,
     children: [
       {
         path: '/',

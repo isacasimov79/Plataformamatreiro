@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createTenant } from '../lib/supabaseApi';
 import {
   Dialog,
   DialogContent,
@@ -27,45 +28,66 @@ export function NewTenantDialog() {
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    domain: '',
+    document: '',
     adminName: '',
     adminEmail: '',
     phone: '',
     plan: 'professional',
     maxUsers: 100,
     notes: '',
-    active: true,
+    status: 'active' as 'active' | 'suspended' | 'inactive',
     m365Integration: false,
     googleWorkspace: false,
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.domain || !formData.adminEmail) {
+    if (!formData.name || !formData.document || !formData.adminEmail) {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
-    toast.success(`Cliente "${formData.name}" criado com sucesso!`, {
-      description: `Plano: ${formData.plan} • ${formData.maxUsers} usuários`,
-    });
+    try {
+      setLoading(true);
+      await createTenant({
+        name: formData.name,
+        document: formData.document,
+        status: formData.status,
+        parentId: null,
+      });
 
-    setFormData({
-      name: '',
-      domain: '',
-      adminName: '',
-      adminEmail: '',
-      phone: '',
-      plan: 'professional',
-      maxUsers: 100,
-      notes: '',
-      active: true,
-      m365Integration: false,
-      googleWorkspace: false,
-    });
+      toast.success(`Cliente "${formData.name}" criado com sucesso!`, {
+        description: `CNPJ: ${formData.document}`,
+      });
 
-    setOpen(false);
+      setFormData({
+        name: '',
+        document: '',
+        adminName: '',
+        adminEmail: '',
+        phone: '',
+        plan: 'professional',
+        maxUsers: 100,
+        notes: '',
+        status: 'active',
+        m365Integration: false,
+        googleWorkspace: false,
+      });
+
+      setOpen(false);
+      
+      // Recarregar a página para mostrar o novo tenant
+      window.location.reload();
+    } catch (error) {
+      console.error('Error creating tenant:', error);
+      toast.error('Erro ao criar cliente', {
+        description: 'Não foi possível criar o cliente. Tente novamente.',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -98,14 +120,14 @@ export function NewTenantDialog() {
               />
             </div>
 
-            {/* Domínio */}
+            {/* Documento */}
             <div>
-              <Label htmlFor="domain">Domínio *</Label>
+              <Label htmlFor="document">CNPJ *</Label>
               <Input
-                id="domain"
-                value={formData.domain}
-                onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
-                placeholder="exemplo.com.br"
+                id="document"
+                value={formData.document}
+                onChange={(e) => setFormData({ ...formData, document: e.target.value })}
+                placeholder="00.000.000/0000-00"
                 className="mt-1"
               />
             </div>
@@ -216,8 +238,11 @@ export function NewTenantDialog() {
                 </div>
                 <Switch
                   id="active"
-                  checked={formData.active}
-                  onCheckedChange={(checked) => setFormData({ ...formData, active: checked })}
+                  checked={formData.status === 'active'}
+                  onCheckedChange={(checked) => setFormData({ 
+                    ...formData, 
+                    status: checked ? 'active' : 'inactive' 
+                  })}
                 />
               </div>
             </div>
@@ -241,11 +266,16 @@ export function NewTenantDialog() {
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={loading}
             >
               Cancelar
             </Button>
-            <Button type="submit" className="bg-[#834a8b] hover:bg-[#9a5ba1]">
-              Criar Cliente
+            <Button 
+              type="submit" 
+              className="bg-[#834a8b] hover:bg-[#9a5ba1]"
+              disabled={loading}
+            >
+              {loading ? 'Criando...' : 'Criar Cliente'}
             </Button>
           </DialogFooter>
         </form>

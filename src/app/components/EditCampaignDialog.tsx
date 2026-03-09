@@ -1,65 +1,68 @@
-import { Badge } from './ui/badge';
-import { cn } from './ui/utils';
 import { useState, useEffect, useRef } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
-import { mockTemplates, mockTargetGroups, getTargetGroupsByTenant } from '../lib/mockData';
+import { getTemplates, getTargetGroups } from '../lib/supabaseApi';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar } from './ui/calendar';
 import { CalendarIcon, Users, Cloud, RefreshCw } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { Campaign } from '../lib/mockData';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Badge } from './ui/badge';
+import { cn } from './ui/utils';
 
 interface EditCampaignDialogProps {
   campaign: Campaign;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaignDialogProps) {
+export function EditCampaignDialog({ campaign, isOpen, onClose }: EditCampaignDialogProps) {
   const { impersonatedTenant } = useAuth();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
     name: campaign.name,
-    description: campaign.description || '',
     templateId: campaign.templateId,
     targetGroupIds: campaign.targetGroupIds,
-    scheduledDate: campaign.scheduledDate ? new Date(campaign.scheduledDate) : undefined,
-    type: campaign.type,
+    scheduledAt: campaign.scheduledAt ? new Date(campaign.scheduledAt) : undefined,
+    status: campaign.status,
   });
+  
+  // Estados para dados do banco
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [targetGroups, setTargetGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Atualizar formData quando campaign mudar
+  // Carregar dados do banco
   useEffect(() => {
-    setFormData({
-      name: campaign.name,
-      description: campaign.description || '',
-      templateId: campaign.templateId,
-      targetGroupIds: campaign.targetGroupIds,
-      scheduledDate: campaign.scheduledDate ? new Date(campaign.scheduledDate) : undefined,
-      type: campaign.type,
-    });
-  }, [campaign]);
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [templatesData, groupsData] = await Promise.all([
+        getTemplates(),
+        getTargetGroups(),
+      ]);
+      setTemplates(templatesData);
+      setTargetGroups(groupsData);
+    } catch (error) {
+      console.error('Error loading edit campaign dialog data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fechar calendário ao clicar fora
   useEffect(() => {
@@ -79,12 +82,12 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
   }, [calendarOpen]);
 
   const availableTemplates = impersonatedTenant
-    ? mockTemplates.filter(t => t.tenantId === null || t.tenantId === impersonatedTenant.id)
-    : mockTemplates;
+    ? templates.filter(t => t.tenantId === null || t.tenantId === impersonatedTenant.id)
+    : templates;
 
   const availableGroups = impersonatedTenant
-    ? getTargetGroupsByTenant(impersonatedTenant.id)
-    : mockTargetGroups;
+    ? targetGroups.filter(g => g.tenantId === impersonatedTenant.id)
+    : targetGroups;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,7 +106,7 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
       description: `${totalTargets} alvos selecionados`,
     });
 
-    onOpenChange(false);
+    onClose();
   };
 
   const toggleGroup = (groupId: string) => {
@@ -134,7 +137,7 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
   }, 0);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Campanha</DialogTitle>
@@ -181,8 +184,8 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
             <div>
               <Label htmlFor="type">Tipo de Campanha</Label>
               <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
               >
                 <SelectTrigger id="type" className="mt-1">
                   <SelectValue />
@@ -207,12 +210,12 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
                   onClick={() => setCalendarOpen(!calendarOpen)}
                   className={cn(
                     "w-full justify-start text-left font-normal",
-                    !formData.scheduledDate && "text-muted-foreground"
+                    !formData.scheduledAt && "text-muted-foreground"
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.scheduledDate ? (
-                    format(formData.scheduledDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                  {formData.scheduledAt ? (
+                    format(formData.scheduledAt, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
                   ) : (
                     <span>Selecione a data</span>
                   )}
@@ -223,9 +226,9 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
                 <div className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg" ref={calendarRef}>
                   <Calendar
                     mode="single"
-                    selected={formData.scheduledDate}
+                    selected={formData.scheduledAt}
                     onSelect={(date) => {
-                      setFormData((prev) => ({ ...prev, scheduledDate: date }));
+                      setFormData((prev) => ({ ...prev, scheduledAt: date }));
                       if (date) {
                         setCalendarOpen(false);
                       }
@@ -239,12 +242,12 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
                 </div>
               )}
             </div>
-            {formData.scheduledDate && (
+            {formData.scheduledAt && (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setFormData((prev) => ({ ...prev, scheduledDate: undefined }))}
+                onClick={() => setFormData((prev) => ({ ...prev, scheduledAt: undefined }))}
                 className="h-8 text-xs text-gray-500 hover:text-gray-700"
               >
                 Limpar data
@@ -311,24 +314,11 @@ export function EditCampaignDialog({ campaign, open, onOpenChange }: EditCampaig
             </div>
           </div>
 
-          {/* Descrição */}
-          <div>
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Descrição opcional da campanha..."
-              rows={3}
-              className="mt-1"
-            />
-          </div>
-
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => onClose()}
             >
               Cancelar
             </Button>

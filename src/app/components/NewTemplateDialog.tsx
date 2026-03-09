@@ -31,13 +31,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from './ui/popover';
+import { createTemplate } from '../lib/supabaseApi';
 
 interface NewTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onTemplateCreated?: () => void;
 }
 
-export function NewTemplateDialog({ open, onOpenChange }: NewTemplateDialogProps) {
+export function NewTemplateDialog({ open, onOpenChange, onTemplateCreated }: NewTemplateDialogProps) {
   const [formData, setFormData] = useState({
     name: '',
     subject: '',
@@ -52,8 +54,9 @@ export function NewTemplateDialog({ open, onOpenChange }: NewTemplateDialogProps
   const [landingPageAttachments, setLandingPageAttachments] = useState<AttachmentFile[]>([]);
   const [captureFields, setCaptureFields] = useState<string[]>(['nome', 'email']);
   const [customCaptureFields, setCustomCaptureFields] = useState<CaptureField[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name || !formData.subject || !formData.category || !formData.htmlContent) {
@@ -66,31 +69,65 @@ export function NewTemplateDialog({ open, onOpenChange }: NewTemplateDialogProps
       return;
     }
 
-    const details = [];
-    if (emailAttachments.length > 0) details.push(`${emailAttachments.length} anexo(s) no e-mail`);
-    if (formData.hasLandingPage) details.push(`Landing page com ${captureFields.length} campos`);
-    if (landingPageAttachments.length > 0) details.push(`${landingPageAttachments.length} anexo(s) na landing`);
+    setIsSubmitting(true);
 
-    toast.success('Template criado com sucesso!', {
-      description: `"${formData.name}" foi adicionado à biblioteca${details.length > 0 ? ' • ' + details.join(' • ') : ''}`,
-    });
+    try {
+      // Preparar dados para salvar no banco
+      const templateData = {
+        name: formData.name,
+        subject: formData.subject,
+        category: formData.category,
+        htmlContent: formData.htmlContent,
+        bodyHtml: formData.htmlContent, // Compatibilidade com backend
+        landingPageHtml: formData.hasLandingPage ? formData.landingPageHtml : null,
+        hasAttachment: formData.hasAttachment,
+        attachmentCount: emailAttachments.length,
+        landingAttachmentCount: landingPageAttachments.length,
+        captureFields: [...captureFields, ...customCaptureFields.map(f => f.key)],
+        tenantId: formData.isGlobal ? null : 'current-tenant', // Adaptar conforme contexto
+      };
 
-    // Reset form
-    setFormData({
-      name: '',
-      subject: '',
-      category: '',
-      htmlContent: '',
-      landingPageHtml: '',
-      isGlobal: false,
-      hasAttachment: false,
-      hasLandingPage: false,
-    });
-    setEmailAttachments([]);
-    setLandingPageAttachments([]);
-    setCaptureFields(['nome', 'email']);
-    setCustomCaptureFields([]);
-    onOpenChange(false);
+      await createTemplate(templateData);
+
+      const details = [];
+      if (emailAttachments.length > 0) details.push(`${emailAttachments.length} anexo(s) no e-mail`);
+      if (formData.hasLandingPage) details.push(`Landing page com ${captureFields.length} campos`);
+      if (landingPageAttachments.length > 0) details.push(`${landingPageAttachments.length} anexo(s) na landing`);
+
+      toast.success('Template criado com sucesso!', {
+        description: `"${formData.name}" foi adicionado à biblioteca${details.length > 0 ? ' • ' + details.join(' • ') : ''}`,
+      });
+
+      // Reset form
+      setFormData({
+        name: '',
+        subject: '',
+        category: '',
+        htmlContent: '',
+        landingPageHtml: '',
+        isGlobal: false,
+        hasAttachment: false,
+        hasLandingPage: false,
+      });
+      setEmailAttachments([]);
+      setLandingPageAttachments([]);
+      setCaptureFields(['nome', 'email']);
+      setCustomCaptureFields([]);
+      
+      // Notificar parent component
+      if (onTemplateCreated) {
+        onTemplateCreated();
+      }
+      
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error('Error creating template:', error);
+      toast.error('Erro ao criar template', {
+        description: error.message || 'Não foi possível salvar o template.',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -264,7 +301,7 @@ export function NewTemplateDialog({ open, onOpenChange }: NewTemplateDialogProps
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button type="submit" className="bg-[#834a8b] hover:bg-[#9a5ba1]">
+            <Button type="submit" className="bg-[#834a8b] hover:bg-[#9a5ba1]" disabled={isSubmitting}>
               <FileText className="w-4 h-4 mr-2" />
               Criar Template
             </Button>

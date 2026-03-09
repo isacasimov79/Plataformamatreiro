@@ -1,34 +1,9 @@
+import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
-import { LanguageSelector } from './LanguageSelector';
-import logoMatreiro from 'figma:asset/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
-import {
-  LayoutDashboard,
-  Building2,
-  Mail,
-  FileText,
-  BarChart3,
-  GraduationCap,
-  Users,
-  Target,
-  UserCog,
-  Shield,
-  Plug,
-  Bug,
-  LogOut,
-  ChevronRight,
-  Menu,
-  X,
-  Zap,
-  FolderTree,
-  Globe,
-  Bell,
-  FileText as FileTextIcon,
-  TrendingUp,
-  Settings as SettingsIcon,
-  Award,
-} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 import {
   Select,
   SelectContent,
@@ -36,30 +11,57 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-import { mockTenants } from '../lib/mockData';
-import { Badge } from './ui/badge';
-import { useState } from 'react';
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Building2,
+  Mail,
+  FileText,
+  Globe,
+  BarChart3,
+  GraduationCap,
+  Award,
+  Target,
+  FolderTree,
+  Zap,
+  UserCog,
+  Shield,
+  Plug,
+  Bell,
+  FileText as FileTextIcon,
+  Settings as SettingsIcon,
+  Bug,
+  LogOut,
+  Menu,
+  X,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
+import logoMatreiro from 'figma:asset/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
+import logoUnderProtection from '../../imports/Logo_Positiva_-_Vetor-01.svg';
+import { LanguageSelector } from './LanguageSelector';
+import { getTenants } from '../lib/supabaseApi';
 
 const navigation = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-  { name: 'Clientes', href: '/tenants', icon: Building2, requiresSuperAdmin: true },
-  { name: 'Campanhas', href: '/campaigns', icon: Mail },
-  { name: 'Templates', href: '/templates', icon: FileText },
-  { name: 'Landing Pages', href: '/landing-pages', icon: Globe },
-  { name: 'Relatórios', href: '/reports', icon: BarChart3 },
-  { name: 'Treinamentos', href: '/trainings', icon: GraduationCap },
-  { name: 'Certificados', href: '/certificates', icon: Award },
-  { name: 'E-mails Alvo', href: '/targets', icon: Target },
-  { name: 'Grupos de Alvos', href: '/target-groups', icon: FolderTree },
-  { name: 'Automações', href: '/automations', icon: Zap },
-  { name: 'Usuários do Sistema', href: '/system-users', icon: UserCog },
-  { name: 'Permissões', href: '/permissions', icon: Shield, requiresSuperAdmin: true },
-  { name: 'Integrações', href: '/integrations', icon: Plug },
-  { name: 'Notificações', href: '/notifications', icon: Bell },
-  { name: 'Logs de Auditoria', href: '/audit-logs', icon: FileTextIcon },
-  { name: 'Configurações', href: '/settings', icon: SettingsIcon },
-  { name: 'Modo Debug', href: '/debug', icon: Bug, requiresSuperAdmin: true },
+  { nameKey: 'nav.dashboard', href: '/', icon: LayoutDashboard },
+  { nameKey: 'nav.analytics', href: '/analytics', icon: TrendingUp },
+  { nameKey: 'nav.tenants', href: '/tenants', icon: Building2, requiresSuperAdmin: true },
+  { nameKey: 'nav.campaigns', href: '/campaigns', icon: Mail },
+  { nameKey: 'nav.templates', href: '/templates', icon: FileText },
+  { nameKey: 'nav.landingPages', href: '/landing-pages', icon: Globe },
+  { nameKey: 'nav.reports', href: '/reports', icon: BarChart3 },
+  { nameKey: 'nav.trainings', href: '/trainings', icon: GraduationCap },
+  { nameKey: 'nav.certificates', href: '/certificates', icon: Award },
+  { nameKey: 'nav.targets', href: '/targets', icon: Target },
+  { nameKey: 'nav.targetGroups', href: '/target-groups', icon: FolderTree },
+  { nameKey: 'nav.automations', href: '/automations', icon: Zap },
+  { nameKey: 'nav.systemUsers', href: '/system-users', icon: UserCog },
+  { nameKey: 'nav.permissions', href: '/permissions', icon: Shield, requiresSuperAdmin: true },
+  { nameKey: 'nav.integrations', href: '/integrations', icon: Plug },
+  { nameKey: 'nav.notifications', href: '/notifications', icon: Bell },
+  { nameKey: 'nav.auditLogs', href: '/audit-logs', icon: FileTextIcon },
+  { nameKey: 'nav.settings', href: '/settings', icon: SettingsIcon },
+  { nameKey: 'nav.debug', href: '/debug', icon: Bug, requiresSuperAdmin: true },
 ];
 
 export function Layout() {
@@ -67,6 +69,24 @@ export function Layout() {
   const navigate = useNavigate();
   const { user, impersonatedTenant, logout, impersonateTenant } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
+  const [tenants, setTenants] = useState<any[]>([]);
+
+  // Carregar tenants para o select de impersonação
+  useEffect(() => {
+    if (user?.isSuperadmin) {
+      loadTenants();
+    }
+  }, [user]);
+
+  const loadTenants = async () => {
+    try {
+      const tenantsData = await getTenants();
+      setTenants(tenantsData);
+    } catch (error) {
+      console.error('Error loading tenants:', error);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -135,7 +155,7 @@ export function Layout() {
           {user?.isSuperadmin && (
             <div>
               <label className="text-xs font-medium text-gray-300 mb-1 block">
-                Visualizar como:
+                {t('nav.viewingAs')}:
               </label>
               <Select
                 value={impersonatedTenant?.id || 'master'}
@@ -150,10 +170,10 @@ export function Layout() {
                   <SelectItem value="master" className="text-white hover:bg-[#3a3a5e]">
                     <div className="flex items-center">
                       <div className="w-2 h-2 rounded-full bg-[#834a8b] mr-2" />
-                      Visão Master
+                      {t('nav.viewAsMaster')}
                     </div>
                   </SelectItem>
-                  {mockTenants
+                  {tenants
                     .filter((t) => t.status === 'active')
                     .map((tenant) => (
                       <SelectItem key={tenant.id} value={tenant.id} className="text-white hover:bg-[#3a3a5e]">
@@ -172,7 +192,7 @@ export function Layout() {
             <div className="mt-2 p-2 bg-[#834a8b]/20 border border-[#834a8b]/30 rounded text-xs">
               <div className="flex items-center text-[#c18ac9]">
                 <ChevronRight className="w-3 h-3 mr-1" />
-                Visualizando: {impersonatedTenant.name}
+                {t('nav.viewingAs')}: {impersonatedTenant.name}
               </div>
             </div>
           )}
@@ -187,7 +207,7 @@ export function Layout() {
                   ? location.pathname === '/'
                   : location.pathname.startsWith(item.href);
               return (
-                <li key={item.name}>
+                <li key={item.nameKey}>
                   <Link
                     to={item.href}
                     onClick={closeMobileMenu}
@@ -198,7 +218,7 @@ export function Layout() {
                     }`}
                   >
                     <item.icon className="w-5 h-5 mr-3" />
-                    {item.name}
+                    {t(item.nameKey)}
                   </Link>
                 </li>
               );
@@ -214,14 +234,17 @@ export function Layout() {
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 mr-3" />
-            Sair
+            {t('nav.logout')}
           </Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
-        <LanguageSelector />
+      <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 relative">
+        {/* Language Selector - Fixed top right */}
+        <div className="absolute top-4 right-4 z-30">
+          <LanguageSelector />
+        </div>
         <Outlet />
       </main>
     </div>

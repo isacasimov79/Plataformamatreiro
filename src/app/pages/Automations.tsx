@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router';
 import {
@@ -65,7 +65,7 @@ import {
   Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { mockAutomations, mockTenants, mockTargetGroups, mockTemplates } from '../lib/mockData';
+import { getAutomations, getTenants, getTargetGroups, getTemplates } from '../lib/supabaseApi';
 
 export function Automations() {
   const { user, impersonatedTenant } = useAuth();
@@ -74,13 +74,46 @@ export function Automations() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedTrigger, setSelectedTrigger] = useState<string>('');
   const [selectedConditionType, setSelectedConditionType] = useState<string>('');
+  
+  // Estados para dados do banco
+  const [automations, setAutomations] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [targetGroups, setTargetGroups] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar dados do banco
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [automationsData, tenantsData, groupsData, templatesData] = await Promise.all([
+        getAutomations(),
+        getTenants(),
+        getTargetGroups(),
+        getTemplates(),
+      ]);
+      setAutomations(automationsData);
+      setTenants(tenantsData);
+      setTargetGroups(groupsData);
+      setTemplates(templatesData);
+    } catch (error) {
+      console.error('Error loading automations data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const isMasterView = !impersonatedTenant;
 
   // Filtrar automações baseado em impersonation
   const relevantAutomations = isMasterView
-    ? mockAutomations
-    : mockAutomations.filter((a) => a.tenantId === impersonatedTenant?.id);
+    ? automations
+    : automations.filter((a) => a.tenantId === impersonatedTenant?.id);
 
   // Filtrar automações com busca
   const filteredAutomations = relevantAutomations.filter(
@@ -289,7 +322,7 @@ export function Automations() {
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-orange-500" />
                         <span className="text-sm">
-                          {mockTemplates.find((t) => t.id === automation.campaignTemplateId)?.name ||
+                          {templates.find((t) => t.id === automation.campaignTemplateId)?.name ||
                             'Template não encontrado'}
                         </span>
                       </div>
@@ -305,7 +338,7 @@ export function Automations() {
                         <div className="flex items-center gap-2">
                           <Building className="w-4 h-4 text-gray-400" />
                           <span className="text-sm">
-                            {mockTenants.find((t) => t.id === automation.tenantId)?.name || 'N/A'}
+                            {tenants.find((t) => t.id === automation.tenantId)?.name || 'N/A'}
                           </span>
                         </div>
                       </TableCell>
@@ -425,7 +458,7 @@ export function Automations() {
                           <SelectValue placeholder="Selecione o cliente" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockTenants.map((tenant) => (
+                          {tenants.map((tenant) => (
                             <SelectItem key={tenant.id} value={tenant.id}>
                               {tenant.name}
                             </SelectItem>
@@ -534,7 +567,7 @@ export function Automations() {
                     <div>
                       <Label>Grupos (usuário DEVE estar em pelo menos um)</Label>
                       <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-                        {mockTargetGroups.slice(0, 8).map((group) => (
+                        {targetGroups.slice(0, 8).map((group) => (
                           <label
                             key={group.id}
                             className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
@@ -556,7 +589,7 @@ export function Automations() {
                     <div>
                       <Label>Grupos (usuário NÃO deve estar em nenhum destes)</Label>
                       <div className="mt-2 space-y-2 max-h-48 overflow-y-auto border rounded-lg p-3">
-                        {mockTargetGroups.slice(0, 8).map((group) => (
+                        {targetGroups.slice(0, 8).map((group) => (
                           <label
                             key={group.id}
                             className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer"
@@ -621,7 +654,7 @@ export function Automations() {
                         <SelectValue placeholder="Selecione o template" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockTemplates.map((template) => (
+                        {templates.map((template) => (
                           <SelectItem key={template.id} value={template.id}>
                             {template.name} - {template.subject}
                           </SelectItem>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   Card,
   CardContent,
@@ -53,11 +54,11 @@ const campaignTrendsData = [
 ];
 
 const userVulnerabilityData = [
-  { name: 'Muito Baixo', value: 15, color: '#10b981' },
-  { name: 'Baixo', value: 30, color: '#84cc16' },
-  { name: 'Médio', value: 35, color: '#f59e0b' },
-  { name: 'Alto', value: 15, color: '#ef4444' },
-  { name: 'Crítico', value: 5, color: '#991b1b' },
+  { id: 'vuln-1', name: 'Muito Baixo', value: 15, color: '#10b981' },
+  { id: 'vuln-2', name: 'Baixo', value: 30, color: '#84cc16' },
+  { id: 'vuln-3', name: 'Médio', value: 35, color: '#f59e0b' },
+  { id: 'vuln-4', name: 'Alto', value: 15, color: '#ef4444' },
+  { id: 'vuln-5', name: 'Crítico', value: 5, color: '#991b1b' },
 ];
 
 const departmentData = [
@@ -95,6 +96,7 @@ const topVulnerableUsers = [
 export function AdvancedDashboard() {
   const { user, impersonatedTenant } = useAuth();
   const [dateRange, setDateRange] = useState('30days');
+  const { t } = useTranslation();
 
   const handleExport = () => {
     toast.success('Relatório exportado!', {
@@ -220,16 +222,16 @@ export function AdvancedDashboard() {
               <AreaChart data={campaignTrendsData}>
                 <defs>
                   <linearGradient id="colorEnviados" x1="0" y1="0" x2="0" y2="1">
-                    <stop key="stop-env-1" offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                    <stop key="stop-env-2" offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorCliques" x1="0" y1="0" x2="0" y2="1">
-                    <stop key="stop-clq-1" offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop key="stop-clq-2" offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorCapturas" x1="0" y1="0" x2="0" y2="1">
-                    <stop key="stop-cap-1" offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop key="stop-cap-2" offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -244,6 +246,7 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorEnviados)"
                   name="E-mails Enviados"
+                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -252,6 +255,7 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorCliques)"
                   name="Cliques"
+                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -260,6 +264,7 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorCapturas)"
                   name="Capturas"
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -284,9 +289,10 @@ export function AdvancedDashboard() {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
+                  isAnimationActive={false}
                 >
-                  {userVulnerabilityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {userVulnerabilityData.map((entry) => (
+                    <Cell key={`cell-${entry.id}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -312,8 +318,8 @@ export function AdvancedDashboard() {
               <YAxis stroke="#6b7280" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" />
-              <Bar dataKey="treinamentos" fill="#10b981" name="Treinamentos %" />
+              <Bar dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" isAnimationActive={false} />
+              <Bar dataKey="treinamentos" fill="#10b981" name="Treinamentos %" isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -338,11 +344,11 @@ export function AdvancedDashboard() {
                 <YAxis stroke="#6b7280" />
                 <Tooltip />
                 <Legend />
-                <Line key="line-seg" type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" />
-                <Line key="line-ter" type="monotone" dataKey="ter" stroke="#10b981" name="Terça" />
-                <Line key="line-qua" type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" />
-                <Line key="line-qui" type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" />
-                <Line key="line-sex" type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" />
+                <Line type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" isAnimationActive={false} />
+                <Line type="monotone" dataKey="ter" stroke="#10b981" name="Terça" isAnimationActive={false} />
+                <Line type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" isAnimationActive={false} />
+                <Line type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" isAnimationActive={false} />
+                <Line type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

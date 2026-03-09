@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { getTemplates, deleteTemplate } from '../lib/supabaseApi';
 import {
   Card,
   CardContent,
@@ -59,6 +60,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
+import { NewTemplateDialog } from '../components/NewTemplateDialog';
 
 type TemplateType = 'email' | 'web';
 
@@ -178,9 +180,56 @@ export function Templates() {
   const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [newTemplateType, setNewTemplateType] = useState<TemplateType>('email');
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Carregar templates do banco
+  useEffect(() => {
+    loadTemplates();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setLoading(true);
+      const data = await getTemplates();
+      console.log('✅ Templates loaded:', data);
+      
+      // Verificar se data é um array válido
+      if (!Array.isArray(data)) {
+        console.warn('Templates data is not an array:', data);
+        setTemplates(mockTemplates);
+        return;
+      }
+      
+      // Mapear dados do banco para o formato esperado
+      const mappedTemplates = data.map((t: any) => ({
+        id: t.id || `temp-${Date.now()}`,
+        name: t.name || 'Sem nome',
+        type: 'email' as TemplateType, // Por enquanto todos são email
+        subject: t.subject || '',
+        category: t.category || 'Outros',
+        difficulty: 'medium' as const, // Default
+        usageCount: 0, // TODO: implementar contagem
+        lastUsed: t.createdAt || new Date().toISOString(),
+        content: t.bodyHtml || t.htmlContent || '',
+        htmlContent: t.landingPageHtml || undefined,
+      }));
+      
+      setTemplates(mappedTemplates);
+    } catch (error) {
+      console.error('Error loading templates:', error);
+      toast.error('Erro ao carregar templates', {
+        description: 'Não foi possível carregar os templates.',
+      });
+      // Em caso de erro, usar mock templates
+      setTemplates(mockTemplates);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar templates
-  const filteredTemplates = mockTemplates.filter((tpl) => {
+  const filteredTemplates = templates.filter((tpl) => {
     const matchesSearch =
       tpl.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tpl.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -260,10 +309,10 @@ export function Templates() {
   };
 
   const stats = {
-    total: mockTemplates.length,
-    email: mockTemplates.filter((t) => t.type === 'email').length,
-    web: mockTemplates.filter((t) => t.type === 'web').length,
-    mostUsed: mockTemplates.reduce((max, t) => (t.usageCount > max ? t.usageCount : max), 0),
+    total: templates.length,
+    email: templates.filter((t) => t.type === 'email').length,
+    web: templates.filter((t) => t.type === 'web').length,
+    mostUsed: templates.reduce((max, t) => (t.usageCount > max ? t.usageCount : max), 0),
   };
 
   return (
@@ -288,137 +337,13 @@ export function Templates() {
               <Code className="w-4 h-4 mr-2" />
               Editor HTML Avançado
             </Button>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Template
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                <form onSubmit={handleAddTemplate}>
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Template</DialogTitle>
-                    <DialogDescription>
-                      Crie um template de e-mail ou landing page web
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div>
-                      <Label>Tipo de Template</Label>
-                      <Select
-                        value={newTemplateType}
-                        onValueChange={(value) => setNewTemplateType(value as TemplateType)}
-                      >
-                        <SelectTrigger className="mt-2">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="email">
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4" />
-                              E-mail de Phishing
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="web">
-                            <div className="flex items-center gap-2">
-                              <Globe className="w-4 h-4" />
-                              Landing Page Web
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="name">Nome do Template</Label>
-                      <Input
-                        id="name"
-                        placeholder="Ex: Verificação de Conta"
-                        required
-                        className="mt-2"
-                      />
-                    </div>
-
-                    {newTemplateType === 'email' && (
-                      <div>
-                        <Label htmlFor="subject">Assunto do E-mail</Label>
-                        <Input
-                          id="subject"
-                          placeholder="Ex: Ação necessária: Verifique sua conta"
-                          required
-                          className="mt-2"
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <Label htmlFor="category">Categoria</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="category">
-                          <SelectValue placeholder="Selecione a categoria" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="financeiro">Financeiro</SelectItem>
-                          <SelectItem value="ti">TI / Tecnologia</SelectItem>
-                          <SelectItem value="rh">Recursos Humanos</SelectItem>
-                          <SelectItem value="vendas">Vendas</SelectItem>
-                          <SelectItem value="outros">Outros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="difficulty">Nível de Dificuldade</Label>
-                      <Select>
-                        <SelectTrigger className="mt-2" id="difficulty">
-                          <SelectValue placeholder="Selecione o nível" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="easy">Fácil (Alto engajamento)</SelectItem>
-                          <SelectItem value="medium">Médio (Moderado)</SelectItem>
-                          <SelectItem value="hard">Difícil (Sofisticado)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="content">
-                        {newTemplateType === 'email' ? 'Conteúdo do E-mail' : 'HTML da Landing Page'}
-                      </Label>
-                      <Textarea
-                        id="content"
-                        placeholder={
-                          newTemplateType === 'email'
-                            ? 'Digite o corpo do e-mail. Use [LINK] para inserir o link de tracking.'
-                            : 'Cole o código HTML da landing page'
-                        }
-                        rows={10}
-                        required
-                        className="mt-2 font-mono text-sm"
-                      />
-                    </div>
-
-                    {newTemplateType === 'web' && (
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-700">
-                          💡 <strong>Dica:</strong> Use variáveis como {'{{user.name}}'} e {'{{user.email}}'} para
-                          personalização automática
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                      Criar Template
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button 
+              className="bg-[#834a8b] hover:bg-[#6d3d75]"
+              onClick={() => setIsAddDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Template
+            </Button>
           </div>
         </div>
       </div>
@@ -754,6 +679,13 @@ export function Templates() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* New Template Dialog */}
+      <NewTemplateDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onTemplateCreated={loadTemplates}
+      />
 
       {/* HTML Editor Dialog */}
       <HtmlTemplateEditor
