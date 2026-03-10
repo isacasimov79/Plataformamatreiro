@@ -405,6 +405,84 @@ app.delete("/make-server-99a65fc7/targets/:id", async (c) => {
   }
 });
 
+// Deletar TODOS os targets de um tenant específico
+app.delete("/make-server-99a65fc7/targets/tenant/:tenantId", async (c) => {
+  try {
+    const tenantId = c.req.param("tenantId");
+    
+    console.log(`🔍 Buscando targets do tenant ${tenantId} para deletar...`);
+    
+    if (!tenantId) {
+      console.error('❌ Tenant ID não fornecido');
+      return c.json({ error: "Tenant ID é obrigatório" }, 400);
+    }
+    
+    // Buscar todos os targets
+    const allTargets = await kv.getByPrefix("target:");
+    
+    console.log(`📊 Total de registros encontrados com prefixo "target:": ${allTargets.length}`);
+    
+    // Filtrar apenas os targets (não target-groups) do tenant especificado
+    const targetsToDelete = allTargets.filter((t: any) => {
+      const isNotTargetGroup = !t.id?.startsWith('target-group');
+      const matchesTenant = t.tenantId === tenantId;
+      return isNotTargetGroup && matchesTenant;
+    });
+    
+    console.log(`🎯 Targets filtrados para deletar: ${targetsToDelete.length}`);
+    
+    // Verificar se há targets para deletar
+    if (targetsToDelete.length === 0) {
+      console.log(`ℹ️ Nenhum target encontrado para o tenant ${tenantId}`);
+      return c.json({ 
+        success: true, 
+        deletedCount: 0,
+        tenantId,
+        message: 'Nenhum target encontrado para deletar'
+      });
+    }
+    
+    // Preparar keys para deletar
+    const deleteKeys = targetsToDelete.map((t: any) => `target:${t.id}`);
+    
+    console.log(`🗑️ Deletando ${deleteKeys.length} targets em batches...`);
+    
+    // Deletar em batches de 50 para evitar timeout
+    const BATCH_SIZE = 50;
+    let deletedCount = 0;
+    
+    for (let i = 0; i < deleteKeys.length; i += BATCH_SIZE) {
+      const batch = deleteKeys.slice(i, i + BATCH_SIZE);
+      console.log(`  🔄 Deletando batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.length} targets`);
+      
+      try {
+        await kv.mdel(batch);
+        deletedCount += batch.length;
+        console.log(`  ✅ Batch deletado com sucesso`);
+      } catch (batchError) {
+        console.error(`  ❌ Erro ao deletar batch:`, batchError);
+        // Continue tentando outros batches mesmo se um falhar
+      }
+    }
+    
+    console.log(`✅ ${deletedCount} targets deletados com sucesso do tenant ${tenantId}`);
+    
+    return c.json({ 
+      success: true, 
+      deletedCount: deletedCount,
+      tenantId 
+    });
+  } catch (error) {
+    console.error("❌ Error deleting targets by tenant:", error);
+    console.error("Stack trace:", error instanceof Error ? error.stack : 'N/A');
+    return c.json({ 
+      error: "Failed to delete targets", 
+      details: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }, 500);
+  }
+});
+
 // =====================================================
 // TARGET GROUPS - CRUD
 // =====================================================
@@ -738,6 +816,13 @@ app.get("/make-server-99a65fc7/settings", async (c) => {
             serviceAccountJson: '',
             domain: '',
           },
+          azure: {
+            enabled: false,
+            tenantId: '',
+            clientId: '',
+            clientSecret: '',
+            autoSync: false,
+          },
         },
       };
       
@@ -968,6 +1053,645 @@ app.delete("/make-server-99a65fc7/certificates/:id", async (c) => {
 });
 
 // =====================================================
+// MICROSOFT AZURE / GRAPH API - Integração
+// =====================================================
+
+// Helper para obter token do Azure AD
+async function getAzureAccessToken(tenantId: string, clientId: string, clientSecret: string) {
+  try {
+    const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+    
+    console.log('🔑 Requesting Azure access token...', {
+      endpoint: tokenEndpoint,
+      clientId: clientId.substring(0, 8) + '...',
+      tenantId: tenantId.substring(0, 8) + '...',
+    });
+    
+    const params = new URLSearchParams();
+    params.append('client_id', clientId);
+    params.append('client_secret', clientSecret);
+    params.append('scope', 'https://graph.microsoft.com/.default');
+    params.append('grant_type', 'client_credentials');
+
+    const response = await fetch(tokenEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('❌ Azure token request failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData,
+      });
+      
+      // Parse error details if available
+      let errorMessage = `Azure AD authentication failed: ${response.statusText} (${response.status})`;
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error_description) {
+          // Extract readable error from Azure AD error description
+          const description = errorJson.error_description;
+          
+          // Common Azure AD errors with friendly messages
+          if (description.includes('AADSTS900023') || description.includes('neither a valid DNS name')) {
+            errorMessage = 'Tenant ID inválido. Verifique se o Directory (tenant) ID está correto no Portal Azure.';
+          } else if (description.includes('AADSTS700016') || description.includes('Application with identifier')) {
+            errorMessage = 'Application (Client) ID inválido. Verifique se o Client ID está correto.';
+          } else if (description.includes('AADSTS7000215') || description.includes('Invalid client secret')) {
+            errorMessage = 'Client Secret inválido. Verifique se você copiou o Value (não o Secret ID).';
+          } else if (description.includes('AADSTS50034') || description.includes('user account') || description.includes('does not exist')) {
+            errorMessage = 'Conta de usuário não encontrada no diretório.';
+          } else if (description.includes('AADSTS65001') || description.includes('consent')) {
+            errorMessage = 'Permissões não concedidas. Clique em "Grant admin consent" no Portal Azure.';
+          } else {
+            // Use the full error description for other errors
+            errorMessage = description.split('Trace ID:')[0].trim();
+          }
+        } else if (errorJson.error) {
+          errorMessage = `Azure AD error: ${errorJson.error}`;
+        }
+      } catch (parseError) {
+        // If parsing fails, use the raw error text if it's short enough
+        if (errorData.length < 200) {
+          errorMessage = `Azure AD authentication failed: ${errorData}`;
+        }
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    const data = await response.json();
+    console.log('✅ Azure access token obtained successfully');
+    return data.access_token;
+  } catch (error: any) {
+    console.error('❌ Error getting Azure access token:', error.message);
+    throw error;
+  }
+}
+
+// Testar conexão com Azure AD
+app.post("/make-server-99a65fc7/azure/test-connection", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret } = body;
+
+    if (!tenantId || !clientId || !clientSecret) {
+      console.error("❌ Missing Azure credentials");
+      return c.json({ 
+        success: false,
+        error: "Missing required credentials",
+        details: "Por favor, preencha todos os campos obrigatórios: Tenant ID, Client ID e Client Secret"
+      }, 400);
+    }
+
+    console.log("🔵 Testing Azure AD connection...");
+    
+    // Tentar obter token
+    const accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    
+    console.log("🔍 Fetching organization info from Microsoft Graph...");
+    
+    // Tentar buscar info do tenant
+    const response = await fetch('https://graph.microsoft.com/v1.0/organization', {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Failed to fetch organization info:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText,
+      });
+      throw new Error(`Failed to fetch organization info: ${response.statusText}`);
+    }
+
+    const orgData = await response.json();
+    
+    console.log("✅ Azure AD connection successful!");
+    
+    return c.json({
+      success: true,
+      message: "Conexão com Azure AD estabelecida com sucesso!",
+      organization: {
+        name: orgData.value[0]?.displayName || "N/A",
+        domain: orgData.value[0]?.verifiedDomains?.[0]?.name || "N/A",
+        tenantId: orgData.value[0]?.id || tenantId,
+      }
+    });
+  } catch (error: any) {
+    console.error("❌ Error testing Azure connection:", error);
+    
+    // The error message from getAzureAccessToken already contains user-friendly messages
+    // Just pass it through with appropriate categorization
+    let errorMessage = "Falha ao conectar com Azure AD";
+    let errorDetails = error.message;
+    
+    // Check if we already have a friendly error message from getAzureAccessToken
+    if (error.message.includes("Tenant ID inválido")) {
+      errorMessage = "Tenant ID Inválido";
+    } else if (error.message.includes("Client ID inválido")) {
+      errorMessage = "Client ID Inválido";
+    } else if (error.message.includes("Client Secret inválido")) {
+      errorMessage = "Client Secret Inválido";
+    } else if (error.message.includes("Permissões não concedidas")) {
+      errorMessage = "Permissões Necessárias";
+    } else if (error.message.includes("network") || error.message.includes("fetch failed")) {
+      errorMessage = "Erro de Conexão";
+      errorDetails = "Não foi possível conectar aos serviços do Azure. Verifique sua conexão de internet.";
+    }
+    
+    return c.json({ 
+      success: false,
+      error: errorMessage, 
+      details: errorDetails
+    }, 500);
+  }
+});
+
+// Buscar usuários do Azure AD
+app.post("/make-server-99a65fc7/azure/users", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret, maxResults = 100 } = body;
+
+    if (!tenantId || !clientId || !clientSecret) {
+      return c.json({ error: "Missing required credentials" }, 400);
+    }
+
+    console.log("🔵 Fetching users from Azure AD...");
+    
+    const accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    
+    // Buscar usuários via Graph API
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/users?$top=${maxResults}&$select=id,displayName,mail,userPrincipalName,jobTitle,department,officeLocation,accountEnabled`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch users: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    const users = data.value.map((user: any) => ({
+      id: user.id,
+      displayName: user.displayName,
+      email: user.mail || user.userPrincipalName,
+      jobTitle: user.jobTitle,
+      department: user.department,
+      officeLocation: user.officeLocation,
+      accountEnabled: user.accountEnabled,
+    }));
+
+    return c.json({
+      success: true,
+      users,
+      count: users.length,
+      hasMore: !!data['@odata.nextLink'],
+    });
+  } catch (error: any) {
+    console.error("❌ Error fetching Azure users:", error);
+    return c.json({ 
+      error: "Failed to fetch users from Azure AD", 
+      details: error.message 
+    }, 500);
+  }
+});
+
+// Buscar grupos do Azure AD
+app.post("/make-server-99a65fc7/azure/groups", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret, maxResults = 100 } = body;
+
+    if (!tenantId || !clientId || !clientSecret) {
+      return c.json({ error: "Missing required credentials" }, 400);
+    }
+
+    console.log("🔵 Fetching groups from Azure AD...");
+    
+    const accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    
+    // Buscar grupos via Graph API
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/groups?$top=${maxResults}&$select=id,displayName,description,mail,mailEnabled,securityEnabled`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch groups: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    const groups = data.value.map((group: any) => ({
+      id: group.id,
+      displayName: group.displayName,
+      description: group.description,
+      email: group.mail,
+      mailEnabled: group.mailEnabled,
+      securityEnabled: group.securityEnabled,
+    }));
+
+    return c.json({
+      success: true,
+      groups,
+      count: groups.length,
+      hasMore: !!data['@odata.nextLink'],
+    });
+  } catch (error: any) {
+    console.error("❌ Error fetching Azure groups:", error);
+    return c.json({ 
+      error: "Failed to fetch groups from Azure AD", 
+      details: error.message 
+    }, 500);
+  }
+});
+
+// Buscar membros de um grupo específico
+app.post("/make-server-99a65fc7/azure/group-members", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret, groupId } = body;
+
+    if (!tenantId || !clientId || !clientSecret || !groupId) {
+      return c.json({ error: "Missing required parameters" }, 400);
+    }
+
+    console.log(`🔵 Fetching members of group ${groupId} from Azure AD...`);
+    
+    const accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    
+    // Buscar membros do grupo via Graph API
+    const response = await fetch(
+      `https://graph.microsoft.com/v1.0/groups/${groupId}/members?$select=id,displayName,mail,userPrincipalName,jobTitle,department`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch group members: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    const members = data.value.map((member: any) => ({
+      id: member.id,
+      displayName: member.displayName,
+      email: member.mail || member.userPrincipalName,
+      jobTitle: member.jobTitle,
+      department: member.department,
+    }));
+
+    return c.json({
+      success: true,
+      members,
+      count: members.length,
+    });
+  } catch (error: any) {
+    console.error("❌ Error fetching Azure group members:", error);
+    return c.json({ 
+      error: "Failed to fetch group members from Azure AD", 
+      details: error.message 
+    }, 500);
+  }
+});
+
+// Sincronizar usuários do Azure AD para o banco
+app.post("/make-server-99a65fc7/azure/sync-users", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret, targetTenantId, allowedDomains } = body;
+
+    if (!tenantId || !clientId || !clientSecret || !targetTenantId) {
+      console.error("❌ Missing required parameters for Azure sync");
+      return c.json({ 
+        success: false,
+        error: "Parâmetros obrigatórios ausentes",
+        details: "Tenant ID, Client ID, Client Secret e Target Tenant ID são obrigatórios"
+      }, 400);
+    }
+
+    console.log("🔵 Syncing users from Azure AD to database...");
+    console.log(`   Target Tenant ID: ${targetTenantId}`);
+    console.log(`   Allowed Domains: ${allowedDomains?.join(', ') || 'ALL (no filter)'}`);
+    
+    // Get Azure access token
+    let accessToken;
+    try {
+      accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    } catch (authError: any) {
+      console.error("❌ Azure authentication failed during sync:", authError.message);
+      return c.json({ 
+        success: false,
+        error: "Falha na autenticação Azure AD",
+        details: authError.message
+      }, 401);
+    }
+    
+    // Buscar usuários via Graph API
+    console.log("📡 Fetching users from Microsoft Graph API...");
+    const response = await fetch(
+      'https://graph.microsoft.com/v1.0/users?$top=999&$select=id,displayName,mail,userPrincipalName,jobTitle,department,officeLocation,accountEnabled',
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Microsoft Graph API error:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return c.json({ 
+        success: false,
+        error: `Falha ao buscar usuários do Azure AD: ${response.statusText}`,
+        details: errorText
+      }, 500);
+    }
+
+    const data = await response.json();
+    
+    if (!data.value || !Array.isArray(data.value)) {
+      console.error("❌ Invalid response from Microsoft Graph API:", data);
+      return c.json({ 
+        success: false,
+        error: "Resposta inválida da API do Azure",
+        details: "Formato de resposta inesperado"
+      }, 500);
+    }
+    
+    console.log(`📊 Found ${data.value.length} users in Azure AD`);
+    
+    let syncedCount = 0;
+    let skippedCount = 0;
+    let filteredByDomain = 0;
+    const errors: string[] = [];
+    
+    // Função auxiliar para verificar se o email pertence aos domínios permitidos
+    const isAllowedDomain = (email: string): boolean => {
+      if (!allowedDomains || allowedDomains.length === 0) {
+        return true; // Se não há filtro de domínio, permite todos
+      }
+      
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      return allowedDomains.some((domain: string) => 
+        emailDomain === domain.toLowerCase().trim()
+      );
+    };
+    
+    // Process users in batches to avoid timeout
+    console.log(`⚙️ Processing users in batches...`);
+    const batchSize = 50;
+    const batches = [];
+    
+    for (let i = 0; i < data.value.length; i += batchSize) {
+      batches.push(data.value.slice(i, i + batchSize));
+    }
+    
+    console.log(`📦 Processing ${batches.length} batches of up to ${batchSize} users each`);
+    
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`   Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} users)...`);
+      
+      const batchPromises = batch.map(async (user: any) => {
+        try {
+          // Só sincronizar usuários ativos com email
+          const email = user.mail || user.userPrincipalName;
+          if (!user.accountEnabled || !email) {
+            return { skipped: true };
+          }
+          
+          // Filtrar por domínio permitido
+          if (!isAllowedDomain(email)) {
+            return { filteredByDomain: true };
+          }
+          
+          const targetId = `target-azure-${user.id}`;
+          
+          // Verificar se já existe
+          const existing = await kv.get(`target:${targetId}`);
+          
+          const targetData = {
+            id: targetId,
+            tenantId: targetTenantId,
+            email: email,
+            name: user.displayName,
+            department: user.department || null,
+            position: user.jobTitle || null,
+            group: null,
+            status: 'active',
+            source: 'azure-ad',
+            azureId: user.id,
+            officeLocation: user.officeLocation || null,
+            lastSyncAt: new Date().toISOString(),
+            createdAt: existing?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          
+          await kv.set(`target:${targetId}`, targetData);
+          return { synced: true };
+        } catch (userError: any) {
+          console.error(`❌ Error syncing user ${user.displayName}:`, userError);
+          return { error: `${user.displayName}: ${userError.message}` };
+        }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Count results
+      for (const result of batchResults) {
+        if (result.synced) syncedCount++;
+        else if (result.skipped) skippedCount++;
+        else if (result.filteredByDomain) filteredByDomain++;
+        else if (result.error) errors.push(result.error);
+      }
+      
+      console.log(`   ✅ Batch ${batchIndex + 1} complete: ${syncedCount} synced so far`);
+    }
+
+    console.log(`✅ Synced ${syncedCount} users from Azure AD (skipped ${skippedCount}, filtered ${filteredByDomain} by domain)`);
+    
+    return c.json({
+      success: true,
+      synced: syncedCount,
+      skipped: skippedCount,
+      filteredByDomain: filteredByDomain,
+      total: data.value.length,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `${syncedCount} usuários sincronizados com sucesso!`,
+    });
+  } catch (error: any) {
+    console.error("❌ Error syncing Azure users:", error);
+    console.error("❌ Error stack:", error.stack);
+    return c.json({ 
+      success: false,
+      error: "Falha ao sincronizar usuários do Azure AD",
+      details: error.message || "Erro desconhecido"
+    }, 500);
+  }
+});
+
+// Sincronizar grupos do Azure AD para o banco
+app.post("/make-server-99a65fc7/azure/sync-groups", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, clientId, clientSecret, targetTenantId, allowedDomains } = body;
+
+    if (!tenantId || !clientId || !clientSecret || !targetTenantId) {
+      return c.json({ error: "Missing required parameters" }, 400);
+    }
+
+    console.log("🔵 Syncing groups from Azure AD to database...");
+    console.log(`   Target Tenant ID: ${targetTenantId}`);
+    console.log(`   Allowed Domains: ${allowedDomains?.join(', ') || 'ALL (no filter)'}`);
+    
+    const accessToken = await getAzureAccessToken(tenantId, clientId, clientSecret);
+    
+    // Buscar grupos via Graph API
+    const response = await fetch(
+      'https://graph.microsoft.com/v1.0/groups?$top=999&$select=id,displayName,description,mail,mailEnabled,securityEnabled',
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch groups: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    console.log(`📊 Found ${data.value.length} groups in Azure AD`);
+    console.log(`⚙️ Processing groups in parallel batches...`);
+    
+    let syncedCount = 0;
+    const batchSize = 10; // Smaller batch for groups since each requires additional API call
+    const batches = [];
+    
+    for (let i = 0; i < data.value.length; i += batchSize) {
+      batches.push(data.value.slice(i, i + batchSize));
+    }
+    
+    console.log(`📦 Processing ${batches.length} batches of up to ${batchSize} groups each`);
+    
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`   Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} groups)...`);
+      
+      const batchPromises = batch.map(async (group: any) => {
+        try {
+          const groupId = `target-group-azure-${group.id}`;
+          
+          // Buscar membros do grupo
+          const membersResponse = await fetch(
+            `https://graph.microsoft.com/v1.0/groups/${group.id}/members?$select=id`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+              },
+            }
+          );
+          
+          let memberCount = 0;
+          const targetIds: string[] = [];
+          
+          if (membersResponse.ok) {
+            const membersData = await membersResponse.json();
+            memberCount = membersData.value.length;
+            
+            // Mapear IDs dos membros para IDs de targets
+            targetIds = membersData.value.map((member: any) => `target-azure-${member.id}`);
+          }
+          
+          const existing = await kv.get(`target-group:${groupId}`);
+          
+          const groupData = {
+            id: groupId,
+            tenantId: targetTenantId,
+            name: group.displayName,
+            description: group.description || '',
+            type: 'azure-ad',
+            source: 'azure-ad',
+            integrationProvider: 'microsoft365',
+            memberCount: memberCount,
+            targetIds: targetIds,
+            nestedGroupIds: [],
+            parentGroupId: null,
+            syncEnabled: true,
+            lastSyncAt: new Date().toISOString(),
+            azureId: group.id,
+            email: group.mail || null,
+            mailEnabled: group.mailEnabled,
+            securityEnabled: group.securityEnabled,
+            createdAt: existing?.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          
+          await kv.set(`target-group:${groupId}`, groupData);
+          return { synced: true };
+        } catch (groupError: any) {
+          console.error(`❌ Error syncing group ${group.displayName}:`, groupError);
+          return { error: groupError.message };
+        }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      
+      // Count successful syncs
+      for (const result of batchResults) {
+        if (result.synced) syncedCount++;
+      }
+      
+      console.log(`   ✅ Batch ${batchIndex + 1} complete: ${syncedCount} synced so far`);
+    }
+
+    console.log(`✅ Synced ${syncedCount} groups from Azure AD`);
+    
+    return c.json({
+      success: true,
+      synced: syncedCount,
+      total: data.value.length,
+      message: `${syncedCount} grupos sincronizados com sucesso!`,
+    });
+  } catch (error: any) {
+    console.error("❌ Error syncing Azure groups:", error);
+    return c.json({ 
+      error: "Failed to sync groups from Azure AD", 
+      details: error.message 
+    }, 500);
+  }
+});
+
+// =====================================================
 // SEED - Popular banco com dados de exemplo
 // =====================================================
 
@@ -1101,14 +1825,14 @@ app.post("/make-server-99a65fc7/seed", async (c) => {
       created.templates++;
     }
 
-    // 3. TARGETS (Alvos)
+    // 3. TARGETS (Alvos) - Apenas exemplos de clientes, sem emails da Under Protection
     const targets = [
-      { id: 'target-1', tenantId: 'tenant-acme-corp', firstName: 'Ana', lastName: 'Costa', email: 'ana.costa@acme.com', department: 'TI', position: 'Analista', phone: '+5511987654321', createdAt: new Date().toISOString() },
-      { id: 'target-2', tenantId: 'tenant-acme-corp', firstName: 'Bruno', lastName: 'Lima', email: 'bruno.lima@acme.com', department: 'Vendas', position: 'Gerente', phone: '+5511987654322', createdAt: new Date().toISOString() },
-      { id: 'target-3', tenantId: 'tenant-acme-corp', firstName: 'Carla', lastName: 'Mendes', email: 'carla.mendes@acme.com', department: 'RH', position: 'Coordenadora', phone: '+5511987654323', createdAt: new Date().toISOString() },
-      { id: 'target-4', tenantId: 'tenant-global-bank', firstName: 'Daniel', lastName: 'Rocha', email: 'daniel.rocha@globalbank.com.br', department: 'Compliance', position: 'Analista', phone: '+5511987654324', createdAt: new Date().toISOString() },
-      { id: 'target-5', tenantId: 'tenant-global-bank', firstName: 'Elena', lastName: 'Ferreira', email: 'elena.ferreira@globalbank.com.br', department: 'Operações', position: 'Supervisora', phone: '+5511987654325', createdAt: new Date().toISOString() },
-      { id: 'target-6', tenantId: 'tenant-health-plus', firstName: 'Felipe', lastName: 'Alves', email: 'felipe.alves@healthplus.com.br', department: 'TI', position: 'Técnico', phone: '+5511987654326', createdAt: new Date().toISOString() },
+      { id: 'target-1', tenantId: 'tenant-acme-corp', name: 'Ana Costa', email: 'ana.costa@acme.com', department: 'TI', position: 'Analista', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
+      { id: 'target-2', tenantId: 'tenant-acme-corp', name: 'Bruno Lima', email: 'bruno.lima@acme.com', department: 'Vendas', position: 'Gerente', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
+      { id: 'target-3', tenantId: 'tenant-acme-corp', name: 'Carla Mendes', email: 'carla.mendes@acme.com', department: 'RH', position: 'Coordenadora', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
+      { id: 'target-4', tenantId: 'tenant-global-bank', name: 'Daniel Rocha', email: 'daniel.rocha@globalbank.com.br', department: 'Compliance', position: 'Analista', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
+      { id: 'target-5', tenantId: 'tenant-global-bank', name: 'Elena Ferreira', email: 'elena.ferreira@globalbank.com.br', department: 'Operações', position: 'Supervisora', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
+      { id: 'target-6', tenantId: 'tenant-health-plus', name: 'Felipe Alves', email: 'felipe.alves@healthplus.com.br', department: 'TI', position: 'Técnico', status: 'active', source: 'manual', createdAt: new Date().toISOString() },
     ];
 
     for (const target of targets) {
@@ -1396,6 +2120,713 @@ app.post("/make-server-99a65fc7/seed", async (c) => {
       { error: "Failed to seed database", details: String(error) },
       500
     );
+  }
+});
+
+// =====================================================
+// ANALYTICS - Dashboard Avançado
+// =====================================================
+
+// Obter métricas de analytics
+app.get("/make-server-99a65fc7/analytics/metrics", async (c) => {
+  try {
+    const tenantId = c.req.query("tenantId");
+    const timeRange = c.req.query("timeRange") || "30d"; // 7d, 30d, 90d, 1y
+    
+    // Buscar todas as campanhas para calcular métricas
+    const campaigns = await kv.getByPrefix("campaign:");
+    const filteredCampaigns = tenantId 
+      ? campaigns.filter((camp: any) => camp.tenantId === tenantId)
+      : campaigns;
+    
+    // Buscar eventos de tracking
+    const events = await kv.getByPrefix("tracking-event:");
+    
+    // Calcular métricas agregadas
+    const totalSent = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.sent || 0), 0);
+    const totalOpened = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.opened || 0), 0);
+    const totalClicked = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.clicked || 0), 0);
+    const totalSubmitted = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.submitted || 0), 0);
+    
+    const openRate = totalSent > 0 ? (totalOpened / totalSent) * 100 : 0;
+    const clickRate = totalSent > 0 ? (totalClicked / totalSent) * 100 : 0;
+    const submitRate = totalSent > 0 ? (totalSubmitted / totalSent) * 100 : 0;
+    
+    return c.json({
+      overview: {
+        totalSent,
+        totalOpened,
+        totalClicked,
+        totalSubmitted,
+        openRate: openRate.toFixed(2),
+        clickRate: clickRate.toFixed(2),
+        submitRate: submitRate.toFixed(2),
+      },
+      campaigns: filteredCampaigns.length,
+      timeRange,
+    });
+  } catch (error) {
+    console.error("Error fetching analytics metrics:", error);
+    return c.json({ error: "Failed to fetch analytics metrics", details: String(error) }, 500);
+  }
+});
+
+// Obter dados de séries temporais para gráficos
+app.get("/make-server-99a65fc7/analytics/timeseries", async (c) => {
+  try {
+    const tenantId = c.req.query("tenantId");
+    const timeRange = c.req.query("timeRange") || "30d";
+    
+    // Buscar eventos de tracking
+    const events = await kv.getByPrefix("tracking-event:");
+    
+    // Agrupar por data
+    const timeSeriesData: any = {};
+    
+    events.forEach((event: any) => {
+      const date = new Date(event.timestamp).toISOString().split('T')[0];
+      if (!timeSeriesData[date]) {
+        timeSeriesData[date] = { date, opened: 0, clicked: 0, submitted: 0 };
+      }
+      
+      if (event.type === 'email_opened') timeSeriesData[date].opened++;
+      if (event.type === 'link_clicked') timeSeriesData[date].clicked++;
+      if (event.type === 'data_submitted') timeSeriesData[date].submitted++;
+    });
+    
+    const sortedData = Object.values(timeSeriesData).sort((a: any, b: any) => 
+      a.date.localeCompare(b.date)
+    );
+    
+    return c.json({ timeSeries: sortedData });
+  } catch (error) {
+    console.error("Error fetching timeseries data:", error);
+    return c.json({ error: "Failed to fetch timeseries data", details: String(error) }, 500);
+  }
+});
+
+// Obter métricas por departamento
+app.get("/make-server-99a65fc7/analytics/by-department", async (c) => {
+  try {
+    const tenantId = c.req.query("tenantId");
+    
+    const targets = await kv.getByPrefix("target:");
+    const events = await kv.getByPrefix("tracking-event:");
+    
+    // Agrupar por departamento
+    const deptMetrics: any = {};
+    
+    targets.forEach((target: any) => {
+      if (tenantId && target.tenantId !== tenantId) return;
+      
+      const dept = target.department || 'Sem Departamento';
+      if (!deptMetrics[dept]) {
+        deptMetrics[dept] = {
+          department: dept,
+          total: 0,
+          clicked: 0,
+          submitted: 0,
+          clickRate: 0,
+        };
+      }
+      
+      deptMetrics[dept].total++;
+      
+      // Contar eventos deste target
+      const targetEvents = events.filter((e: any) => e.targetEmail === target.email);
+      const clicks = targetEvents.filter((e: any) => e.type === 'link_clicked').length;
+      const submissions = targetEvents.filter((e: any) => e.type === 'data_submitted').length;
+      
+      deptMetrics[dept].clicked += clicks > 0 ? 1 : 0;
+      deptMetrics[dept].submitted += submissions > 0 ? 1 : 0;
+    });
+    
+    // Calcular taxas
+    Object.values(deptMetrics).forEach((dept: any) => {
+      dept.clickRate = dept.total > 0 ? ((dept.clicked / dept.total) * 100).toFixed(2) : 0;
+    });
+    
+    return c.json({ departments: Object.values(deptMetrics) });
+  } catch (error) {
+    console.error("Error fetching department metrics:", error);
+    return c.json({ error: "Failed to fetch department metrics", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// TEMPLATE LIBRARY - Galeria de Templates
+// =====================================================
+
+// Buscar templates por categoria
+app.get("/make-server-99a65fc7/template-library", async (c) => {
+  try {
+    const category = c.req.query("category");
+    const difficulty = c.req.query("difficulty");
+    const search = c.req.query("search");
+    
+    let templates = await kv.getByPrefix("template-lib:");
+    
+    // Filtros
+    if (category && category !== 'all') {
+      templates = templates.filter((t: any) => t.category === category);
+    }
+    
+    if (difficulty) {
+      templates = templates.filter((t: any) => t.difficulty === difficulty);
+    }
+    
+    if (search) {
+      const searchLower = search.toLowerCase();
+      templates = templates.filter((t: any) => 
+        t.name.toLowerCase().includes(searchLower) ||
+        t.description?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return c.json({ templates: templates || [] });
+  } catch (error) {
+    console.error("Error fetching template library:", error);
+    return c.json({ error: "Failed to fetch template library", details: String(error) }, 500);
+  }
+});
+
+// Clonar template da biblioteca para uso
+app.post("/make-server-99a65fc7/template-library/:id/clone", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    
+    const libraryTemplate = await kv.get(`template-lib:${id}`);
+    if (!libraryTemplate) {
+      return c.json({ error: "Template not found in library" }, 404);
+    }
+    
+    // Criar novo template baseado no da biblioteca
+    const newId = `template-${Date.now()}`;
+    const newTemplate = {
+      ...libraryTemplate,
+      id: newId,
+      tenantId: body.tenantId,
+      name: body.name || `${libraryTemplate.name} (Cópia)`,
+      createdAt: new Date().toISOString(),
+    };
+    
+    await kv.set(`template:${newId}`, newTemplate);
+    return c.json(newTemplate, 201);
+  } catch (error) {
+    console.error("Error cloning template:", error);
+    return c.json({ error: "Failed to clone template", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// CAMPAIGN SCHEDULING - Agendamento de Campanhas
+// =====================================================
+
+// Listar campanhas agendadas
+app.get("/make-server-99a65fc7/scheduled-campaigns", async (c) => {
+  try {
+    const campaigns = await kv.getByPrefix("campaign:");
+    
+    // Filtrar apenas campanhas agendadas
+    const scheduled = campaigns.filter((c: any) => 
+      c.status === 'scheduled' && c.scheduledAt
+    );
+    
+    // Ordenar por data de agendamento
+    scheduled.sort((a: any, b: any) => 
+      new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()
+    );
+    
+    return c.json({ campaigns: scheduled });
+  } catch (error) {
+    console.error("Error fetching scheduled campaigns:", error);
+    return c.json({ error: "Failed to fetch scheduled campaigns", details: String(error) }, 500);
+  }
+});
+
+// Criar agendamento recorrente
+app.post("/make-server-99a65fc7/schedule-recurring", async (c) => {
+  try {
+    const body = await c.req.json();
+    const id = `schedule-${Date.now()}`;
+    
+    const schedule = {
+      id,
+      tenantId: body.tenantId,
+      name: body.name,
+      templateId: body.templateId,
+      targetGroupIds: body.targetGroupIds,
+      recurrence: body.recurrence, // daily, weekly, monthly
+      startDate: body.startDate,
+      endDate: body.endDate || null,
+      time: body.time, // HH:mm
+      timezone: body.timezone || 'America/Sao_Paulo',
+      status: 'active',
+      lastExecuted: null,
+      nextExecution: body.startDate,
+      createdAt: new Date().toISOString(),
+    };
+    
+    await kv.set(`schedule:${id}`, schedule);
+    return c.json(schedule, 201);
+  } catch (error) {
+    console.error("Error creating recurring schedule:", error);
+    return c.json({ error: "Failed to create recurring schedule", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// GAMIFICATION - Sistema de Gamificação
+// =====================================================
+
+// Obter badges/conquistas do usuário
+app.get("/make-server-99a65fc7/gamification/badges/:userId", async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    
+    const userBadges = await kv.get(`user-badges:${userId}`) || {
+      userId,
+      badges: [],
+      points: 0,
+      level: 1,
+    };
+    
+    return c.json(userBadges);
+  } catch (error) {
+    console.error("Error fetching user badges:", error);
+    return c.json({ error: "Failed to fetch user badges", details: String(error) }, 500);
+  }
+});
+
+// Atribuir badge ao usuário
+app.post("/make-server-99a65fc7/gamification/award-badge", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, badgeId, reason } = body;
+    
+    let userBadges = await kv.get(`user-badges:${userId}`) || {
+      userId,
+      badges: [],
+      points: 0,
+      level: 1,
+    };
+    
+    // Verificar se já tem o badge
+    if (!userBadges.badges.find((b: any) => b.badgeId === badgeId)) {
+      const badge = {
+        badgeId,
+        awardedAt: new Date().toISOString(),
+        reason,
+      };
+      
+      userBadges.badges.push(badge);
+      userBadges.points += 100; // +100 pontos por badge
+      
+      // Calcular nível (a cada 500 pontos)
+      userBadges.level = Math.floor(userBadges.points / 500) + 1;
+      
+      await kv.set(`user-badges:${userId}`, userBadges);
+    }
+    
+    return c.json(userBadges);
+  } catch (error) {
+    console.error("Error awarding badge:", error);
+    return c.json({ error: "Failed to award badge", details: String(error) }, 500);
+  }
+});
+
+// Obter ranking por departamento
+app.get("/make-server-99a65fc7/gamification/rankings", async (c) => {
+  try {
+    const tenantId = c.req.query("tenantId");
+    const type = c.req.query("type") || "department"; // department, individual
+    
+    const targets = await kv.getByPrefix("target:");
+    const events = await kv.getByPrefix("tracking-event:");
+    
+    let rankings: any[] = [];
+    
+    if (type === "department") {
+      const deptScores: any = {};
+      
+      targets.forEach((target: any) => {
+        if (tenantId && target.tenantId !== tenantId) return;
+        
+        const dept = target.department || 'Sem Departamento';
+        if (!deptScores[dept]) {
+          deptScores[dept] = {
+            name: dept,
+            score: 0,
+            avoided: 0,
+            failed: 0,
+          };
+        }
+        
+        // Contar sucessos (não clicou) e falhas (clicou)
+        const targetEvents = events.filter((e: any) => e.targetEmail === target.email);
+        const clicked = targetEvents.some((e: any) => e.type === 'link_clicked');
+        
+        if (clicked) {
+          deptScores[dept].failed++;
+          deptScores[dept].score -= 10; // -10 por falha
+        } else {
+          deptScores[dept].avoided++;
+          deptScores[dept].score += 20; // +20 por evitar
+        }
+      });
+      
+      rankings = Object.values(deptScores).sort((a: any, b: any) => b.score - a.score);
+    }
+    
+    return c.json({ rankings });
+  } catch (error) {
+    console.error("Error fetching rankings:", error);
+    return c.json({ error: "Failed to fetch rankings", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// REPORTS - Relatórios Exportáveis
+// =====================================================
+
+// Gerar relatório executivo
+app.post("/make-server-99a65fc7/reports/generate", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { tenantId, campaignIds, dateRange, format } = body;
+    
+    const reportId = `report-${Date.now()}`;
+    
+    // Buscar dados
+    const campaigns = await kv.getByPrefix("campaign:");
+    const filteredCampaigns = campaigns.filter((c: any) => 
+      (!tenantId || c.tenantId === tenantId) &&
+      (!campaignIds || campaignIds.includes(c.id))
+    );
+    
+    // Calcular estatísticas
+    const totalSent = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.sent || 0), 0);
+    const totalClicked = filteredCampaigns.reduce((sum: number, c: any) => sum + (c.stats?.clicked || 0), 0);
+    
+    const report = {
+      id: reportId,
+      tenantId,
+      type: 'executive',
+      format: format || 'pdf',
+      dateRange,
+      summary: {
+        totalCampaigns: filteredCampaigns.length,
+        totalSent,
+        totalClicked,
+        clickRate: totalSent > 0 ? ((totalClicked / totalSent) * 100).toFixed(2) : 0,
+      },
+      campaigns: filteredCampaigns,
+      generatedAt: new Date().toISOString(),
+      downloadUrl: `/api/reports/${reportId}/download`,
+    };
+    
+    await kv.set(`report:${reportId}`, report);
+    
+    return c.json({ report });
+  } catch (error) {
+    console.error("Error generating report:", error);
+    return c.json({ error: "Failed to generate report", details: String(error) }, 500);
+  }
+});
+
+// Listar relatórios gerados
+app.get("/make-server-99a65fc7/reports", async (c) => {
+  try {
+    const tenantId = c.req.query("tenantId");
+    
+    let reports = await kv.getByPrefix("report:");
+    
+    if (tenantId) {
+      reports = reports.filter((r: any) => r.tenantId === tenantId);
+    }
+    
+    reports.sort((a: any, b: any) => 
+      new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime()
+    );
+    
+    return c.json({ reports });
+  } catch (error) {
+    console.error("Error fetching reports:", error);
+    return c.json({ error: "Failed to fetch reports", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// NOTIFICATIONS - Sistema de Notificações
+// =====================================================
+
+// Obter notificações do usuário
+app.get("/make-server-99a65fc7/notifications/:userId", async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    
+    const notifications = await kv.getByPrefix(`notification:${userId}:`);
+    
+    notifications.sort((a: any, b: any) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    return c.json({ notifications });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return c.json({ error: "Failed to fetch notifications", details: String(error) }, 500);
+  }
+});
+
+// Criar notificação
+app.post("/make-server-99a65fc7/notifications", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, type, title, message, data } = body;
+    
+    const id = `notification:${userId}:${Date.now()}`;
+    
+    const notification = {
+      id,
+      userId,
+      type, // info, success, warning, error, phishing_alert
+      title,
+      message,
+      data,
+      read: false,
+      createdAt: new Date().toISOString(),
+    };
+    
+    await kv.set(id, notification);
+    
+    return c.json(notification, 201);
+  } catch (error) {
+    console.error("Error creating notification:", error);
+    return c.json({ error: "Failed to create notification", details: String(error) }, 500);
+  }
+});
+
+// Marcar notificação como lida
+app.put("/make-server-99a65fc7/notifications/:id/read", async (c) => {
+  try {
+    const id = c.req.param("id");
+    
+    const notification = await kv.get(id);
+    if (!notification) {
+      return c.json({ error: "Notification not found" }, 404);
+    }
+    
+    notification.read = true;
+    notification.readAt = new Date().toISOString();
+    
+    await kv.set(id, notification);
+    
+    return c.json(notification);
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+    return c.json({ error: "Failed to mark notification as read", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// AI CONTENT GENERATOR - Gerador de Conteúdo com IA
+// =====================================================
+
+// Gerar template com IA (mock)
+app.post("/make-server-99a65fc7/ai/generate-template", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { category, difficulty, language, customInstructions } = body;
+    
+    // Mock de geração com IA
+    const templates = {
+      banking: {
+        basic: {
+          subject: "Ação Necessária: Confirme sua Conta",
+          body: "<p>Prezado cliente,</p><p>Detectamos atividade incomum em sua conta. Por favor, confirme suas informações clicando no link abaixo:</p><p><a href='{{.TrackingURL}}'>Confirmar Agora</a></p>",
+        },
+      },
+      hr: {
+        basic: {
+          subject: "Atualização: Política de Benefícios",
+          body: "<p>Olá {{.Nome}},</p><p>A área de RH atualizou a política de benefícios. Acesse o documento clicando abaixo:</p><p><a href='{{.TrackingURL}}'>Ver Documento</a></p>",
+        },
+      },
+    };
+    
+    const generated = templates[category as keyof typeof templates]?.[difficulty as 'basic'] || {
+      subject: `Template ${category} - ${difficulty}`,
+      body: `<p>Conteúdo gerado automaticamente para ${category}</p>`,
+    };
+    
+    return c.json({
+      success: true,
+      template: {
+        ...generated,
+        category,
+        difficulty,
+        language,
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Error generating template with AI:", error);
+    return c.json({ error: "Failed to generate template", details: String(error) }, 500);
+  }
+});
+
+// Analisar template com IA
+app.post("/make-server-99a65fc7/ai/analyze-template", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { subject, bodyHtml } = body;
+    
+    // Mock de análise com IA
+    const analysis = {
+      urgencyScore: Math.floor(Math.random() * 100),
+      trustScore: Math.floor(Math.random() * 100),
+      effectiveness: Math.floor(Math.random() * 100),
+      suggestions: [
+        "Adicione mais senso de urgência ao assunto",
+        "Inclua uma chamada para ação mais clara",
+        "Use personalização com variáveis dinâmicas",
+      ],
+      strengths: [
+        "Tom profissional adequado",
+        "Estrutura clara e objetiva",
+      ],
+      weaknesses: [
+        "Falta de elementos visuais",
+        "Assunto poderia ser mais persuasivo",
+      ],
+    };
+    
+    return c.json({ analysis });
+  } catch (error) {
+    console.error("Error analyzing template:", error);
+    return c.json({ error: "Failed to analyze template", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// AUDIT LOGS - Trilha de Auditoria
+// =====================================================
+
+// Criar log de auditoria
+app.post("/make-server-99a65fc7/audit-logs", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, userName, action, resource, resourceId, details, ipAddress } = body;
+    
+    const id = `audit-log:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const log = {
+      id,
+      userId,
+      userName,
+      action, // create, update, delete, view, export, login, logout
+      resource, // campaign, template, target, settings, etc
+      resourceId,
+      details,
+      ipAddress,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await kv.set(id, log);
+    
+    return c.json(log, 201);
+  } catch (error) {
+    console.error("Error creating audit log:", error);
+    return c.json({ error: "Failed to create audit log", details: String(error) }, 500);
+  }
+});
+
+// Buscar logs de auditoria
+app.get("/make-server-99a65fc7/audit-logs", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+    const action = c.req.query("action");
+    const resource = c.req.query("resource");
+    const startDate = c.req.query("startDate");
+    const endDate = c.req.query("endDate");
+    
+    let logs = await kv.getByPrefix("audit-log:");
+    
+    // Filtros
+    if (userId) {
+      logs = logs.filter((l: any) => l.userId === userId);
+    }
+    
+    if (action) {
+      logs = logs.filter((l: any) => l.action === action);
+    }
+    
+    if (resource) {
+      logs = logs.filter((l: any) => l.resource === resource);
+    }
+    
+    if (startDate) {
+      logs = logs.filter((l: any) => new Date(l.timestamp) >= new Date(startDate));
+    }
+    
+    if (endDate) {
+      logs = logs.filter((l: any) => new Date(l.timestamp) <= new Date(endDate));
+    }
+    
+    logs.sort((a: any, b: any) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    
+    return c.json({ logs });
+  } catch (error) {
+    console.error("Error fetching audit logs:", error);
+    return c.json({ error: "Failed to fetch audit logs", details: String(error) }, 500);
+  }
+});
+
+// =====================================================
+// TRACKING EVENTS - Eventos de Rastreamento
+// =====================================================
+
+// Criar evento de tracking
+app.post("/make-server-99a65fc7/tracking-events", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { campaignId, targetEmail, type, metadata } = body;
+    
+    const id = `tracking-event:${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const event = {
+      id,
+      campaignId,
+      targetEmail,
+      type, // email_sent, email_opened, link_clicked, data_submitted
+      metadata,
+      timestamp: new Date().toISOString(),
+    };
+    
+    await kv.set(id, event);
+    
+    // Atualizar estatísticas da campanha
+    const campaign = await kv.get(`campaign:${campaignId}`);
+    if (campaign) {
+      if (!campaign.stats) {
+        campaign.stats = { sent: 0, opened: 0, clicked: 0, submitted: 0 };
+      }
+      
+      if (type === 'email_sent') campaign.stats.sent++;
+      if (type === 'email_opened') campaign.stats.opened++;
+      if (type === 'link_clicked') campaign.stats.clicked++;
+      if (type === 'data_submitted') campaign.stats.submitted++;
+      
+      await kv.set(`campaign:${campaignId}`, campaign);
+    }
+    
+    return c.json(event, 201);
+  } catch (error) {
+    console.error("Error creating tracking event:", error);
+    return c.json({ error: "Failed to create tracking event", details: String(error) }, 500);
   }
 });
 

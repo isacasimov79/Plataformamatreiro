@@ -246,7 +246,6 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorEnviados)"
                   name="E-mails Enviados"
-                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -255,7 +254,6 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorCliques)"
                   name="Cliques"
-                  isAnimationActive={false}
                 />
                 <Area
                   type="monotone"
@@ -264,7 +262,6 @@ export function AdvancedDashboard() {
                   fillOpacity={1}
                   fill="url(#colorCapturas)"
                   name="Capturas"
-                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -289,10 +286,9 @@ export function AdvancedDashboard() {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
-                  isAnimationActive={false}
                 >
-                  {userVulnerabilityData.map((entry) => (
-                    <Cell key={`cell-${entry.id}`} fill={entry.color} />
+                  {userVulnerabilityData.map((entry, index) => (
+                    <Cell key={`cell-${entry.id}-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -318,8 +314,8 @@ export function AdvancedDashboard() {
               <YAxis stroke="#6b7280" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" isAnimationActive={false} />
-              <Bar dataKey="treinamentos" fill="#10b981" name="Treinamentos %" isAnimationActive={false} />
+              <Bar dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" />
+              <Bar dataKey="treinamentos" fill="#10b981" name="Treinamentos %" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -344,11 +340,11 @@ export function AdvancedDashboard() {
                 <YAxis stroke="#6b7280" />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" isAnimationActive={false} />
-                <Line type="monotone" dataKey="ter" stroke="#10b981" name="Terça" isAnimationActive={false} />
-                <Line type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" isAnimationActive={false} />
-                <Line type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" isAnimationActive={false} />
-                <Line type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" isAnimationActive={false} />
+                <Line type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" />
+                <Line type="monotone" dataKey="ter" stroke="#10b981" name="Terça" />
+                <Line type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" />
+                <Line type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" />
+                <Line type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

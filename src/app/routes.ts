@@ -23,6 +23,11 @@ import { AdvancedDashboard } from './pages/AdvancedDashboard';
 import { Settings } from './pages/Settings';
 import { Certificates } from './pages/Certificates';
 import { AuthBoundary } from './components/AuthBoundary';
+import { EnhancedAnalyticsPage } from './pages/EnhancedAnalyticsPage';
+import { TemplateLibraryPage } from './pages/TemplateLibraryPage';
+import { GamificationPage } from './pages/GamificationPage';
+import { AIGeneratorPage } from './pages/AIGeneratorPage';
+import { MockDataPage } from './pages/MockDataPage';
 
 export const router = createBrowserRouter([
   {
@@ -39,6 +44,11 @@ export const router = createBrowserRouter([
         children: [
           { index: true, Component: Dashboard },
           { path: 'analytics', Component: AdvancedDashboard },
+          { path: 'enhanced-analytics', Component: EnhancedAnalyticsPage },
+          { path: 'template-library', Component: TemplateLibraryPage },
+          { path: 'gamification', Component: GamificationPage },
+          { path: 'ai-generator', Component: AIGeneratorPage },
+          { path: 'mock-data', Component: MockDataPage },
           { path: 'tenants', Component: Tenants },
           { path: 'campaigns', Component: Campaigns },
           { path: 'templates', Component: Templates },

@@ -239,19 +239,25 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px] md:h-[350px] min-h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%" minHeight={300} debounce={50}>
-                <BarChart data={campaignData} width={500} height={300} key={`bar-chart-${campaignData.length}`}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
-                  <YAxis fontSize={12} />
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="Enviados" fill="#242545" isAnimationActive={false} />
-                  <Bar dataKey="Abertos" fill="#3b82f6" isAnimationActive={false} />
-                  <Bar dataKey="Clicados" fill="#f59e0b" isAnimationActive={false} />
-                  <Bar dataKey="Comprometidos" fill="#834a8b" isAnimationActive={false} />
-                </BarChart>
-              </ResponsiveContainer>
+              {!loading && campaignData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={campaignData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                    <YAxis fontSize={12} />
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Bar dataKey="Enviados" fill="#242545" />
+                    <Bar dataKey="Abertos" fill="#3b82f6" />
+                    <Bar dataKey="Clicados" fill="#f59e0b" />
+                    <Bar dataKey="Comprometidos" fill="#834a8b" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  {loading ? 'Carregando dados...' : 'Nenhum dado disponível'}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -265,29 +271,34 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[300px] md:h-[350px] min-h-[300px] w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%" minHeight={300} debounce={50}>
-                <PieChart width={400} height={300} key={`pie-chart-${pieData.length}`}>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(1)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    isAnimationActive={false}
-                  >
-                    {pieData.map((entry) => (
-                      <Cell key={`cell-${entry.id}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
+              {!loading && pieData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent }) =>
+                        `${name}: ${(percent * 100).toFixed(1)}%`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${entry.id}-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-gray-400">
+                  {loading ? 'Carregando dados...' : 'Nenhum dado disponível'}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

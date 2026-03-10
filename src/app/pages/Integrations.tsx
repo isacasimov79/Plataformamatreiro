@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plug, CheckCircle, XCircle, AlertCircle, RefreshCw, Settings, Key, Link as LinkIcon } from 'lucide-react';
+import { Plug, CheckCircle, XCircle, AlertCircle, RefreshCw, Settings as SettingsIcon, Key, Link as LinkIcon, Users } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
+import { Textarea } from '../components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
 import { toast } from 'sonner';
+import { 
+  getSettings, 
+  updateSettings,
+  azureTestConnection,
+  azureSyncUsers,
+  azureSyncGroups,
+} from '../lib/supabaseApi';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Integration {
   id: string;
@@ -23,117 +31,346 @@ interface Integration {
   config?: Record<string, any>;
 }
 
-const mockIntegrations: Integration[] = [
-  {
-    id: 'microsoft365',
-    name: 'Microsoft 365',
-    description: 'Sincronize usuários do Azure AD automaticamente',
-    icon: '🔷',
-    status: 'disconnected',
-    features: [
-      'Importação automática de usuários',
-      'Sincronização de grupos',
-      'Single Sign-On (SSO)',
-      'Atualização em tempo real'
-    ],
-  },
-  {
-    id: 'google',
-    name: 'Google Workspace',
-    description: 'Integração completa com Google Workspace',
-    icon: '🔴',
-    status: 'disconnected',
-    features: [
-      'Importação de usuários do Google',
-      'Sincronização de grupos',
-      'OAuth 2.0',
-      'Webhook automático'
-    ],
-  },
-  {
-    id: 'smtp',
-    name: 'Servidor SMTP',
-    description: 'Configure seu próprio servidor SMTP para envio',
-    icon: '📧',
-    status: 'disconnected',
-    features: [
-      'SMTP customizado',
-      'TLS/SSL',
-      'Autenticação',
-      'Controle de rate limiting'
-    ],
-  },
-  {
-    id: 'webhooks',
-    name: 'Webhooks',
-    description: 'Receba notificações em tempo real de eventos',
-    icon: '🔗',
-    status: 'disconnected',
-    features: [
-      'Eventos de campanha',
-      'Eventos de treinamento',
-      'Webhooks customizados',
-      'Retry automático'
-    ],
-  },
-];
-
 export default function Integrations() {
   const { t } = useTranslation();
-  const [integrations, setIntegrations] = useState<Integration[]>(mockIntegrations);
+  const { impersonatedTenant } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
   const [isConfigDialogOpen, setIsConfigDialogOpen] = useState(false);
+  
+  // Settings state - carregado do banco de dados
+  const [settings, setSettings] = useState<any>({
+    integrations: {
+      microsoft365: {
+        enabled: false,
+        tenantId: '',
+        clientId: '',
+        clientSecret: '',
+        autoSync: false,
+      },
+      googleWorkspace: {
+        enabled: false,
+        serviceAccountJson: '',
+        domain: '',
+      },
+      azure: {
+        enabled: false,
+        tenantId: '',
+        clientId: '',
+        clientSecret: '',
+        autoSync: false,
+      },
+    },
+    smtp: {
+      host: '',
+      port: 587,
+      user: '',
+      password: '',
+    },
+  });
 
-  const handleConnect = (integrationId: string) => {
-    const integration = integrations.find(i => i.id === integrationId);
-    if (!integration) return;
+  // Form state para o dialog
+  const [formData, setFormData] = useState<any>({});
 
-    // Simular conexão
-    toast.loading('Conectando...', { id: integrationId });
-    
-    setTimeout(() => {
-      setIntegrations(prev => prev.map(i => 
-        i.id === integrationId
-          ? { ...i, status: 'connected' as const, lastSync: new Date().toISOString() }
-          : i
-      ));
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const data = await getSettings();
+      console.log('✅ Settings loaded:', data);
+      if (data && data.settings) {
+        setSettings(data.settings);
+      }
+    } catch (error) {
+      console.error('❌ Error loading settings:', error);
+      toast.error('Erro ao carregar configurações', {
+        description: 'As configurações padrão serão usadas.',
+      });
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  // Gerar integrações baseadas nas settings reais do banco de dados
+  const getIntegrationsFromSettings = (): Integration[] => {
+    return [
+      {
+        id: 'azure',
+        name: 'Microsoft Azure AD',
+        description: 'Importar usuários e grupos via Microsoft Graph API',
+        icon: '☁️',
+        status: settings?.integrations?.azure?.enabled ? 'connected' : 'disconnected',
+        lastSync: settings?.integrations?.azure?.lastSyncAt,
+        features: [
+          'Importação de usuários do Azure AD',
+          'Sincronização de grupos',
+          'Microsoft Graph API',
+          'Atualização automática'
+        ],
+        config: settings?.integrations?.azure,
+      },
+      {
+        id: 'microsoft365',
+        name: 'Microsoft 365',
+        description: 'Sincronize usuários do Azure AD automaticamente',
+        icon: '🔷',
+        status: settings?.integrations?.microsoft365?.enabled ? 'connected' : 'disconnected',
+        lastSync: settings?.integrations?.microsoft365?.lastSyncAt,
+        features: [
+          'Importação automática de usuários',
+          'Sincronização de grupos',
+          'Single Sign-On (SSO)',
+          'Atualização em tempo real'
+        ],
+        config: settings?.integrations?.microsoft365,
+      },
+      {
+        id: 'google',
+        name: 'Google Workspace',
+        description: 'Integração completa com Google Workspace',
+        icon: '🔴',
+        status: settings?.integrations?.googleWorkspace?.enabled ? 'connected' : 'disconnected',
+        lastSync: settings?.integrations?.googleWorkspace?.lastSyncAt,
+        features: [
+          'Importação de usuários do Google',
+          'Sincronização de grupos',
+          'OAuth 2.0',
+          'Webhook automático'
+        ],
+        config: settings?.integrations?.googleWorkspace,
+      },
+      {
+        id: 'smtp',
+        name: 'Servidor SMTP',
+        description: 'Configure seu próprio servidor SMTP para envio',
+        icon: '📧',
+        status: settings?.smtp?.host ? 'connected' : 'disconnected',
+        features: [
+          'SMTP customizado',
+          'TLS/SSL',
+          'Autenticação',
+          'Controle de rate limiting'
+        ],
+        config: settings?.smtp,
+      },
+      {
+        id: 'webhooks',
+        name: 'Webhooks',
+        description: 'Receba notificações em tempo real de eventos',
+        icon: '🔗',
+        status: 'disconnected',
+        features: [
+          'Eventos de campanha',
+          'Eventos de treinamento',
+          'Webhooks customizados',
+          'Retry automático'
+        ],
+      },
+    ];
+  };
+
+  const integrations = getIntegrationsFromSettings();
+
+  const handleSaveAndConnect = async () => {
+    if (!selectedIntegration) return;
+
+    setIsLoading(true);
+    const integrationId = selectedIntegration.id;
+
+    try {
+      // Capturar dados do formulário
+      let updatedSettings = { ...settings };
+
+      if (integrationId === 'azure') {
+        const tenantId = (document.getElementById('azure-tenant-id') as HTMLInputElement)?.value || '';
+        const clientId = (document.getElementById('azure-client-id') as HTMLInputElement)?.value || '';
+        const clientSecret = (document.getElementById('azure-client-secret') as HTMLInputElement)?.value || '';
+        const autoSync = (document.getElementById('azure-auto-sync') as HTMLInputElement)?.checked || false;
+        const allowedDomains = (document.getElementById('azure-allowed-domains') as HTMLTextAreaElement)?.value.split('\n').map(d => d.trim()).filter(d => d);
+
+        updatedSettings.integrations.azure = {
+          ...updatedSettings.integrations.azure,
+          tenantId,
+          clientId,
+          clientSecret,
+          autoSync,
+          enabled: true,
+          allowedDomains,
+        };
+
+        // Testar conexão
+        const testResult = await azureTestConnection(tenantId, clientId, clientSecret);
+        if (!testResult.success) {
+          toast.error(testResult.error || 'Falha ao conectar com Azure', {
+            description: testResult.details || 'Verifique suas credenciais',
+          });
+          setIsLoading(false);
+          return;
+        }
+      } else if (integrationId === 'microsoft365') {
+        const tenantId = (document.getElementById('ms365-tenant-id') as HTMLInputElement)?.value || '';
+        const clientId = (document.getElementById('ms365-client-id') as HTMLInputElement)?.value || '';
+        const clientSecret = (document.getElementById('ms365-client-secret') as HTMLInputElement)?.value || '';
+        const autoSync = (document.getElementById('ms365-auto-sync') as HTMLInputElement)?.checked || false;
+
+        updatedSettings.integrations.microsoft365 = {
+          ...updatedSettings.integrations.microsoft365,
+          tenantId,
+          clientId,
+          clientSecret,
+          autoSync,
+          enabled: true,
+        };
+      } else if (integrationId === 'google') {
+        const clientId = (document.getElementById('google-client-id') as HTMLInputElement)?.value || '';
+        const clientSecret = (document.getElementById('google-client-secret') as HTMLInputElement)?.value || '';
+        const domain = (document.getElementById('google-domain') as HTMLInputElement)?.value || '';
+        const autoSync = (document.getElementById('google-auto-sync') as HTMLInputElement)?.checked || false;
+
+        updatedSettings.integrations.googleWorkspace = {
+          ...updatedSettings.integrations.googleWorkspace,
+          domain,
+          serviceAccountJson: `{"client_id": "${clientId}", "client_secret": "${clientSecret}"}`,
+          enabled: true,
+        };
+      } else if (integrationId === 'smtp') {
+        const host = (document.getElementById('smtp-host') as HTMLInputElement)?.value || '';
+        const port = parseInt((document.getElementById('smtp-port') as HTMLInputElement)?.value || '587');
+        const username = (document.getElementById('smtp-username') as HTMLInputElement)?.value || '';
+        const password = (document.getElementById('smtp-password') as HTMLInputElement)?.value || '';
+
+        updatedSettings.smtp = {
+          ...updatedSettings.smtp,
+          host,
+          port,
+          user: username,
+          password,
+        };
+      }
+
+      // Salvar no banco de dados
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+
+      toast.success(`${selectedIntegration.name} conectado com sucesso!`);
+      setIsConfigDialogOpen(false);
       
-      toast.success(`${integration.name} conectado com sucesso!`, { id: integrationId });
-    }, 1500);
+      // Recarregar settings para atualizar status
+      await loadSettings();
+    } catch (error: any) {
+      console.error('❌ Error saving integration:', error);
+      toast.error('Erro ao salvar integração', {
+        description: error.message || 'Tente novamente',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDisconnect = (integrationId: string) => {
+  const handleDisconnect = async (integrationId: string) => {
     const integration = integrations.find(i => i.id === integrationId);
     if (!integration) return;
 
-    setIntegrations(prev => prev.map(i => 
-      i.id === integrationId
-        ? { ...i, status: 'disconnected' as const, lastSync: undefined }
-        : i
-    ));
+    setIsLoading(true);
+    try {
+      let updatedSettings = { ...settings };
 
-    toast.success(`${integration.name} desconectado`);
+      if (integrationId === 'azure') {
+        updatedSettings.integrations.azure.enabled = false;
+      } else if (integrationId === 'microsoft365') {
+        updatedSettings.integrations.microsoft365.enabled = false;
+      } else if (integrationId === 'google') {
+        updatedSettings.integrations.googleWorkspace.enabled = false;
+      } else if (integrationId === 'smtp') {
+        updatedSettings.smtp = {
+          host: '',
+          port: 587,
+          user: '',
+          password: '',
+        };
+      }
+
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+
+      toast.success(`${integration.name} desconectado`);
+      
+      // Recarregar settings
+      await loadSettings();
+    } catch (error: any) {
+      console.error('❌ Error disconnecting integration:', error);
+      toast.error('Erro ao desconectar', {
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSync = (integrationId: string) => {
+  const handleSync = async (integrationId: string) => {
     const integration = integrations.find(i => i.id === integrationId);
     if (!integration) return;
 
+    setIsLoading(true);
     toast.loading('Sincronizando...', { id: `sync-${integrationId}` });
 
-    setTimeout(() => {
-      setIntegrations(prev => prev.map(i => 
-        i.id === integrationId
-          ? { ...i, lastSync: new Date().toISOString() }
-          : i
-      ));
-
-      toast.success('Sincronização concluída!', { id: `sync-${integrationId}` });
-    }, 2000);
+    try {
+      if (integrationId === 'azure' && integration.config) {
+        const { tenantId, clientId, clientSecret, allowedDomains } = integration.config;
+        const targetTenantId = impersonatedTenant?.id || 'default';
+        
+        console.log('🔄 Starting Azure sync from Integrations page...', {
+          hasTenantId: !!tenantId,
+          hasClientId: !!clientId,
+          hasClientSecret: !!clientSecret,
+          targetTenantId,
+          allowedDomains,
+        });
+        
+        const result = await azureSyncUsers(tenantId, clientId, clientSecret, targetTenantId, allowedDomains);
+        
+        console.log('📥 Azure sync result:', result);
+        
+        if (result.success) {
+          toast.success(`Sincronizados ${result.synced} usuários!`, { id: `sync-${integrationId}` });
+          
+          // Atualizar lastSyncAt
+          const updatedSettings = { ...settings };
+          updatedSettings.integrations.azure.lastSyncAt = new Date().toISOString();
+          await updateSettings(updatedSettings);
+          setSettings(updatedSettings);
+        } else {
+          const errorDetails = result.details || result.error || 'Erro desconhecido';
+          console.error('❌ Sync failed with structured error:', result);
+          toast.error('Erro ao sincronizar', { 
+            id: `sync-${integrationId}`,
+            description: errorDetails,
+          });
+        }
+      } else {
+        // Simulação para outras integrações
+        setTimeout(() => {
+          toast.success('Sincronização concluída!', { id: `sync-${integrationId}` });
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('❌ Error syncing:', error);
+      toast.error('Erro ao sincronizar', { 
+        id: `sync-${integrationId}`,
+        description: error.message || 'Erro desconhecido',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const openConfig = (integration: Integration) => {
     setSelectedIntegration(integration);
+    setFormData(integration.config || {});
     setIsConfigDialogOpen(true);
   };
 
@@ -169,6 +406,14 @@ export default function Integrations() {
     return date.toLocaleString('pt-BR');
   };
 
+  if (loadingSettings) {
+    return (
+      <div className="p-8 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 animate-spin text-[#834a8b]" />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
@@ -187,9 +432,9 @@ export default function Integrations() {
       {/* Alert */}
       <Alert>
         <AlertCircle className="w-4 h-4" />
-        <AlertTitle>Em Desenvolvimento</AlertTitle>
+        <AlertTitle>Integração com Banco de Dados Ativa</AlertTitle>
         <AlertDescription>
-          As integrações estão em fase de desenvolvimento. Algumas funcionalidades podem estar limitadas ou em modo de demonstração.
+          As configurações são salvas no banco de dados Supabase e sincronizadas em tempo real.
         </AlertDescription>
       </Alert>
 
@@ -244,23 +489,26 @@ export default function Integrations() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleSync(integration.id)}
+                      disabled={isLoading}
                       className="flex-1"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
+                      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                       Sincronizar
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openConfig(integration)}
+                      disabled={isLoading}
                     >
-                      <Settings className="w-4 h-4 mr-2" />
+                      <SettingsIcon className="w-4 h-4 mr-2" />
                       Config
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleDisconnect(integration.id)}
+                      disabled={isLoading}
                     >
                       Desconectar
                     </Button>
@@ -270,6 +518,7 @@ export default function Integrations() {
                     <Button
                       size="sm"
                       onClick={() => openConfig(integration)}
+                      disabled={isLoading}
                       className="flex-1 bg-[#834a8b] hover:bg-[#6d3d75]"
                     >
                       <LinkIcon className="w-4 h-4 mr-2" />
@@ -297,27 +546,82 @@ export default function Integrations() {
           </DialogHeader>
 
           <div className="space-y-6">
+            {selectedIntegration?.id === 'azure' && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="azure-tenant-id">Azure Tenant ID</Label>
+                  <Input
+                    id="azure-tenant-id"
+                    defaultValue={formData.tenantId || ''}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="azure-client-id">Application (Client) ID</Label>
+                  <Input
+                    id="azure-client-id"
+                    defaultValue={formData.clientId || ''}
+                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="azure-client-secret">Client Secret (Value)</Label>
+                  <Input
+                    id="azure-client-secret"
+                    type="password"
+                    defaultValue={formData.clientSecret || ''}
+                    placeholder="Digite o Client Secret"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="azure-allowed-domains">Domínios Permitidos (opcional)</Label>
+                  <Textarea
+                    id="azure-allowed-domains"
+                    defaultValue={formData.allowedDomains?.join('\n') || ''}
+                    placeholder="exemplo.com&#10;acme.com.br&#10;empresa.com.br"
+                    rows={4}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    🔒 Digite um domínio por linha. Apenas usuários desses domínios serão sincronizados. Deixe vazio para sincronizar todos.
+                  </p>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium">Sincronização Automática</p>
+                    <p className="text-xs text-muted-foreground">
+                      Sincronizar usuários a cada 24 horas
+                    </p>
+                  </div>
+                  <Switch id="azure-auto-sync" defaultChecked={formData.autoSync || false} />
+                </div>
+              </div>
+            )}
+
             {selectedIntegration?.id === 'microsoft365' && (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="tenant-id">Tenant ID</Label>
+                  <Label htmlFor="ms365-tenant-id">Tenant ID</Label>
                   <Input
-                    id="tenant-id"
+                    id="ms365-tenant-id"
+                    defaultValue={formData.tenantId || ''}
                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="client-id">Client ID</Label>
+                  <Label htmlFor="ms365-client-id">Client ID</Label>
                   <Input
-                    id="client-id"
+                    id="ms365-client-id"
+                    defaultValue={formData.clientId || ''}
                     placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="client-secret">Client Secret</Label>
+                  <Label htmlFor="ms365-client-secret">Client Secret</Label>
                   <Input
-                    id="client-secret"
+                    id="ms365-client-secret"
                     type="password"
+                    defaultValue={formData.clientSecret || ''}
                     placeholder="•••••••••••••••"
                   />
                 </div>
@@ -328,7 +632,7 @@ export default function Integrations() {
                       Sincronizar usuários a cada 24 horas
                     </p>
                   </div>
-                  <Switch />
+                  <Switch id="ms365-auto-sync" defaultChecked={formData.autoSync || false} />
                 </div>
               </div>
             )}
@@ -354,6 +658,7 @@ export default function Integrations() {
                   <Label htmlFor="google-domain">Domínio do Workspace</Label>
                   <Input
                     id="google-domain"
+                    defaultValue={formData.domain || ''}
                     placeholder="empresa.com.br"
                   />
                 </div>
@@ -364,7 +669,7 @@ export default function Integrations() {
                       Sincronizar usuários a cada 24 horas
                     </p>
                   </div>
-                  <Switch />
+                  <Switch id="google-auto-sync" />
                 </div>
               </div>
             )}
@@ -375,6 +680,7 @@ export default function Integrations() {
                   <Label htmlFor="smtp-host">Servidor SMTP</Label>
                   <Input
                     id="smtp-host"
+                    defaultValue={formData.host || ''}
                     placeholder="smtp.exemplo.com.br"
                   />
                 </div>
@@ -384,6 +690,7 @@ export default function Integrations() {
                     <Input
                       id="smtp-port"
                       type="number"
+                      defaultValue={formData.port || 587}
                       placeholder="587"
                     />
                   </div>
@@ -401,6 +708,7 @@ export default function Integrations() {
                   <Label htmlFor="smtp-username">Usuário</Label>
                   <Input
                     id="smtp-username"
+                    defaultValue={formData.user || ''}
                     placeholder="usuario@exemplo.com.br"
                   />
                 </div>
@@ -409,17 +717,9 @@ export default function Integrations() {
                   <Input
                     id="smtp-password"
                     type="password"
+                    defaultValue={formData.password || ''}
                     placeholder="•••••••••••••••"
                   />
-                </div>
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="text-sm font-medium">Usar para envio de campanhas</p>
-                    <p className="text-xs text-muted-foreground">
-                      Enviar e-mails de phishing através deste servidor
-                    </p>
-                  </div>
-                  <Switch />
                 </div>
               </div>
             )}
@@ -467,20 +767,26 @@ export default function Integrations() {
             <Button
               variant="outline"
               onClick={() => setIsConfigDialogOpen(false)}
+              disabled={isLoading}
             >
               Cancelar
             </Button>
             <Button
-              onClick={() => {
-                if (selectedIntegration) {
-                  handleConnect(selectedIntegration.id);
-                  setIsConfigDialogOpen(false);
-                }
-              }}
+              onClick={handleSaveAndConnect}
+              disabled={isLoading}
               className="bg-[#834a8b] hover:bg-[#6d3d75]"
             >
-              <Key className="w-4 h-4 mr-2" />
-              Salvar e Conectar
+              {isLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4 mr-2" />
+                  Salvar e Conectar
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -40,11 +40,17 @@ import {
 import logoMatreiro from 'figma:asset/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import logoUnderProtection from '../../imports/Logo_Positiva_-_Vetor-01.svg';
 import { LanguageSelector } from './LanguageSelector';
+import { ThemeToggle } from './ThemeToggle';
+import { NotificationCenter } from './NotificationCenter';
 import { getTenants } from '../lib/supabaseApi';
 
 const navigation = [
   { nameKey: 'nav.dashboard', href: '/', icon: LayoutDashboard },
   { nameKey: 'nav.analytics', href: '/analytics', icon: TrendingUp },
+  { nameKey: 'Analytics Avançado', href: '/enhanced-analytics', icon: BarChart3, badge: 'NEW' },
+  { nameKey: 'Biblioteca Templates', href: '/template-library', icon: FileText, badge: 'NEW' },
+  { nameKey: 'Gamificação', href: '/gamification', icon: Award, badge: 'NEW' },
+  { nameKey: 'Gerador IA', href: '/ai-generator', icon: Zap, badge: 'NEW' },
   { nameKey: 'nav.tenants', href: '/tenants', icon: Building2, requiresSuperAdmin: true },
   { nameKey: 'nav.campaigns', href: '/campaigns', icon: Mail },
   { nameKey: 'nav.templates', href: '/templates', icon: FileText },
@@ -61,6 +67,7 @@ const navigation = [
   { nameKey: 'nav.notifications', href: '/notifications', icon: Bell },
   { nameKey: 'nav.auditLogs', href: '/audit-logs', icon: FileTextIcon },
   { nameKey: 'nav.settings', href: '/settings', icon: SettingsIcon },
+  { nameKey: 'Mock Data', href: '/mock-data', icon: Bug, badge: 'DEV' },
   { nameKey: 'nav.debug', href: '/debug', icon: Bug, requiresSuperAdmin: true },
 ];
 
@@ -211,14 +218,21 @@ export function Layout() {
                   <Link
                     to={item.href}
                     onClick={closeMobileMenu}
-                    className={`flex items-center px-3 py-2 text-sm rounded-md transition-colors ${
+                    className={`flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors ${
                       isActive
                         ? 'bg-[#834a8b] text-white font-medium'
                         : 'text-gray-300 hover:bg-[#2d2d51] hover:text-white'
                     }`}
                   >
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {t(item.nameKey)}
+                    <div className="flex items-center">
+                      <item.icon className="w-5 h-5 mr-3" />
+                      {t(item.nameKey)}
+                    </div>
+                    {(item as any).badge && (
+                      <Badge className="text-[10px] px-1.5 py-0.5 bg-green-500 hover:bg-green-600 border-0">
+                        {(item as any).badge}
+                      </Badge>
+                    )}
                   </Link>
                 </li>
               );
@@ -241,8 +255,10 @@ export function Layout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 relative">
-        {/* Language Selector - Fixed top right */}
-        <div className="absolute top-4 right-4 z-30">
+        {/* Top Right Actions - Fixed position */}
+        <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+          <NotificationCenter />
+          <ThemeToggle />
           <LanguageSelector />
         </div>
         <Outlet />

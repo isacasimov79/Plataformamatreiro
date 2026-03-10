@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { getTenants, getTargets } from '../lib/supabaseApi';
+import { getTenants, getTargets, deleteAllTargetsByTenant } from '../lib/supabaseApi';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -29,6 +29,8 @@ import {
   FileText,
   Trash2,
   MoreHorizontal,
+  Cloud,
+  AlertTriangle,
 } from 'lucide-react';
 
 export function Targets() {
@@ -46,6 +48,8 @@ export function Targets() {
   const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [bulkEmails, setBulkEmails] = useState('');
+  const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   
   // Estados para dados do banco
   const [targets, setTargets] = useState<any[]>([]);
@@ -64,11 +68,41 @@ export function Targets() {
         getTargets(),
         getTenants(),
       ]);
-      setTargets(targetsData);
-      setTenants(tenantsData);
+      setTargets(targetsData || []);
+      setTenants(tenantsData || []);
     } catch (error) {
       console.error('Error loading targets data:', error);
-      toast.error('Erro ao carregar targets');
+      
+      // Usar dados mock quando o servidor não estiver disponível
+      console.warn('⚠️ Servidor não disponível. Usando dados mock para demonstração.');
+      
+      // Mock de tenants
+      const mockTenants = [
+        {
+          id: 'tenant-underprotection',
+          name: 'Under Protection',
+          document: '12.345.678/0001-90',
+          status: 'active',
+          parentId: null,
+        },
+        {
+          id: 'tenant-randon',
+          name: 'Randon Corp',
+          document: '98.765.432/0001-10',
+          status: 'active',
+          parentId: null,
+        },
+      ];
+      
+      // Mock de targets vazios (já que queremos limpar)
+      const mockTargets: any[] = [];
+      
+      setTargets(mockTargets);
+      setTenants(mockTenants);
+      
+      toast.warning('Modo Offline', {
+        description: 'Servidor não disponível. Usando dados de demonstração.',
+      });
     } finally {
       setLoading(false);
     }
@@ -80,13 +114,17 @@ export function Targets() {
     ? targets
     : targets.filter(t => t.tenantId === impersonatedTenant.id);
 
-  // Filtrar targets com busca
-  const filteredTargets = relevantTargets.filter(
-    (target) =>
+  // Filtrar targets com busca e filtro de origem
+  const filteredTargets = relevantTargets.filter((target) => {
+    const matchesSearch =
       target.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       target.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      target.department?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      target.department?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesSource = sourceFilter === 'all' || target.source === sourceFilter;
+    
+    return matchesSearch && matchesSource;
+  });
 
   const handleAddTarget = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -152,6 +190,55 @@ export function Targets() {
     });
   };
 
+  const handleCleanupTargets = async () => {
+    if (!impersonatedTenant) {
+      toast.error('Erro', {
+        description: 'Nenhum tenant selecionado',
+      });
+      return;
+    }
+
+    setIsCleaningUp(true);
+    try {
+      const result = await deleteAllTargetsByTenant(impersonatedTenant.id);
+      
+      // Remover targets do tenant localmente ao invés de recarregar tudo
+      setTargets(prevTargets => 
+        prevTargets.filter(t => t.tenantId !== impersonatedTenant.id)
+      );
+      
+      toast.success('Alvos removidos com sucesso!', {
+        description: `${result.deletedCount} alvos foram excluídos do tenant ${impersonatedTenant.name}`,
+      });
+      
+      setIsCleanupDialogOpen(false);
+    } catch (error: any) {
+      console.error('Erro ao limpar alvos:', error);
+      
+      // Se estiver em modo offline, simular a limpeza
+      if (error.message?.includes('conexão') || error.message?.includes('fetch')) {
+        console.warn('⚠️ Modo offline: simulando limpeza de dados');
+        
+        // Remover targets do tenant selecionado localmente
+        setTargets(prevTargets => 
+          prevTargets.filter(t => t.tenantId !== impersonatedTenant.id)
+        );
+        
+        toast.success('Dados limpos (Modo Offline)', {
+          description: 'Os alvos foram removidos localmente. Quando o servidor estiver disponível, será necessário fazer a limpeza definitiva.',
+        });
+        
+        setIsCleanupDialogOpen(false);
+      } else {
+        toast.error('Erro ao limpar alvos', {
+          description: error.message || 'Tente novamente',
+        });
+      }
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   const stats = {
     total: relevantTargets.length,
     active: relevantTargets.filter((t) => t.status === 'active').length,
@@ -183,6 +270,18 @@ export function Targets() {
               <Download className="w-4 h-4 mr-2" />
               Exportar
             </Button>
+            
+            {/* Botão de limpeza de dados (apenas para tenant selecionado) */}
+            {impersonatedTenant && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsCleanupDialogOpen(true)}
+                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Limpar Dados
+              </Button>
+            )}
             
             {/* Dropdown para adicionar alvos com múltiplas opções */}
             <DropdownMenu>
@@ -574,14 +673,27 @@ export function Targets() {
       {/* Search */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Buscar por nome, e-mail ou departamento..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                placeholder="Buscar por nome, e-mail ou departamento..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Filtrar por origem" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+                <SelectItem value="azure-ad">Azure AD</SelectItem>
+                <SelectItem value="import">Importação CSV</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -611,7 +723,17 @@ export function Targets() {
             <TableBody>
               {filteredTargets.map((target) => (
                 <TableRow key={target.id}>
-                  <TableCell className="font-medium">{target.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {target.name}
+                      {target.source === 'azure-ad' && (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                          <Cloud className="w-3 h-3 mr-1" />
+                          Azure AD
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-gray-400" />
@@ -697,6 +819,82 @@ export function Targets() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Dialog de Confirmação para Limpar Dados */}
+      <Dialog open={isCleanupDialogOpen} onOpenChange={setIsCleanupDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <DialogTitle>Limpar Todos os Alvos</DialogTitle>
+                <DialogDescription>
+                  Esta ação não pode ser desfeita
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="text-sm text-red-900 font-medium mb-2">
+                ⚠️ Você está prestes a deletar TODOS os alvos do tenant:
+              </p>
+              <p className="text-sm text-red-700 font-semibold">
+                {impersonatedTenant?.name}
+              </p>
+              <p className="text-sm text-red-600 mt-2">
+                Total de alvos que serão removidos: <strong>{relevantTargets.length}</strong>
+              </p>
+            </div>
+            
+            <p className="text-sm text-gray-600">
+              Isso irá remover permanentemente todos os e-mails alvo, incluindo:
+            </p>
+            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1 ml-2">
+              <li>Alvos importados do Azure AD</li>
+              <li>Alvos adicionados manualmente</li>
+              <li>Alvos importados via CSV/Excel</li>
+              <li>Todo o histórico associado</li>
+            </ul>
+            
+            <p className="text-sm font-medium text-gray-900">
+              Tem certeza de que deseja continuar?
+            </p>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsCleanupDialogOpen(false)}
+              disabled={isCleaningUp}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCleanupTargets}
+              disabled={isCleaningUp}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isCleaningUp ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Removendo...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Sim, Limpar Todos
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

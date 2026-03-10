@@ -39,9 +39,16 @@ import {
   Cloud,
   Server,
   Activity,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSettings, updateSettings } from '../lib/supabaseApi';
+import { 
+  getSettings, 
+  updateSettings, 
+  azureTestConnection,
+  azureSyncUsers,
+  azureSyncGroups,
+} from '../lib/supabaseApi';
 
 export function Settings() {
   const { user, impersonatedTenant } = useAuth();
@@ -90,6 +97,13 @@ export function Settings() {
         serviceAccountJson: '',
         domain: '',
       },
+      azure: {
+        enabled: false,
+        tenantId: '',
+        clientId: '',
+        clientSecret: '',
+        autoSync: false,
+      },
     },
   });
 
@@ -103,9 +117,58 @@ export function Settings() {
       const data = await getSettings();
       console.log('✅ Settings loaded:', data);
       if (data && data.settings) {
-        setSettings(data.settings);
-        setSyslogEnabled(data.settings.syslog?.auditLogsEnabled || false);
-        setPhishingSyslogEnabled(data.settings.syslog?.phishingEventsEnabled || false);
+        // Garantir que a estrutura completa existe
+        const loadedSettings = {
+          general: data.settings.general || {
+            organizationName: '',
+            domain: '',
+            description: '',
+            timezone: 'america-sao-paulo',
+            language: 'pt-br',
+            maintenanceMode: false,
+            autoArchiveCampaigns: true,
+          },
+          smtp: data.settings.smtp || {
+            host: '',
+            port: 587,
+            user: '',
+            password: '',
+            from: '',
+            encryption: 'tls',
+          },
+          syslog: data.settings.syslog || {
+            host: '',
+            port: 514,
+            protocol: 'udp',
+            facility: 'local0',
+            auditLogsEnabled: false,
+            phishingEventsEnabled: false,
+          },
+          integrations: {
+            microsoft365: data.settings.integrations?.microsoft365 || {
+              enabled: false,
+              tenantId: '',
+              clientId: '',
+              clientSecret: '',
+              autoSync: false,
+            },
+            googleWorkspace: data.settings.integrations?.googleWorkspace || {
+              enabled: false,
+              serviceAccountJson: '',
+              domain: '',
+            },
+            azure: data.settings.integrations?.azure || {
+              enabled: false,
+              tenantId: '',
+              clientId: '',
+              clientSecret: '',
+              autoSync: false,
+            },
+          },
+        };
+        setSettings(loadedSettings);
+        setSyslogEnabled(loadedSettings.syslog.auditLogsEnabled || false);
+        setPhishingSyslogEnabled(loadedSettings.syslog.phishingEventsEnabled || false);
       }
     } catch (error) {
       console.error('❌ Error loading settings:', error);
@@ -202,13 +265,42 @@ export function Settings() {
   const handleSyncUsers = async (provider: string) => {
     setIsLoading(true);
     try {
-      // Aqui você pode adicionar lógica real de sincronização no futuro
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      toast.success(`Sincronização ${provider} iniciada!`, {
-        description: '156 usuários foram sincronizados',
+      if (provider === 'Microsoft 365' && settings?.integrations?.microsoft365) {
+        const { tenantId, clientId, clientSecret, allowedDomains } = settings.integrations.microsoft365;
+        
+        if (!tenantId || !clientId || !clientSecret) {
+          toast.error('Credenciais incompletas', {
+            description: 'Configure todas as credenciais antes de sincronizar',
+          });
+          setIsLoading(false);
+          return;
+        }
+        
+        const targetTenantId = impersonatedTenant?.id || 'default';
+        const result = await azureSyncUsers(tenantId, clientId, clientSecret, targetTenantId, allowedDomains);
+        
+        if (result.success) {
+          const description = result.filteredByDomain > 0
+            ? `${result.synced} usuários sincronizados (${result.filteredByDomain} filtrados por domínio)`
+            : `${result.synced} usuários foram sincronizados`;
+          
+          toast.success(`Sincronização ${provider} concluída!`, {
+            description,
+          });
+        } else {
+          throw new Error(result.details || result.error || 'Falha ao sincronizar usuários');
+        }
+      } else {
+        // Placeholder para outras integrações
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        toast.success(`Sincronização ${provider} iniciada!`, {
+          description: '156 usuários foram sincronizados',
+        });
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao sincronizar ${provider}`, {
+        description: error.message || 'Tente novamente',
       });
-    } catch (error) {
-      toast.error(`Erro ao sincronizar ${provider}`);
     } finally {
       setIsLoading(false);
     }
@@ -268,16 +360,24 @@ export function Settings() {
     let updatedSettings = { ...settings };
     
     if (provider === 'microsoft365') {
+      // Parse allowed domains from textarea (one per line)
+      const allowedDomainsText = (formData.get('ms-allowed-domains') as string || '').trim();
+      const allowedDomains = allowedDomainsText
+        .split('\n')
+        .map(domain => domain.trim())
+        .filter(domain => domain.length > 0);
+      
       updatedSettings.integrations.microsoft365 = {
-        enabled: settings.integrations.microsoft365.enabled,
+        enabled: settings?.integrations?.microsoft365?.enabled || false,
         tenantId: formData.get('ms-tenant-id') as string,
         clientId: formData.get('ms-client-id') as string,
         clientSecret: formData.get('ms-client-secret') as string,
-        autoSync: settings.integrations.microsoft365.autoSync,
+        autoSync: settings?.integrations?.microsoft365?.autoSync || false,
+        allowedDomains: allowedDomains.length > 0 ? allowedDomains : undefined,
       };
     } else if (provider === 'googleWorkspace') {
       updatedSettings.integrations.googleWorkspace = {
-        enabled: settings.integrations.googleWorkspace.enabled,
+        enabled: settings?.integrations?.googleWorkspace?.enabled || false,
         serviceAccountJson: formData.get('google-service-account') as string,
         domain: formData.get('google-domain') as string,
       };
@@ -301,6 +401,12 @@ export function Settings() {
 
   const handleToggleIntegration = async (provider: 'microsoft365' | 'googleWorkspace') => {
     const updatedSettings = { ...settings };
+    if (!updatedSettings.integrations) {
+      updatedSettings.integrations = {};
+    }
+    if (!updatedSettings.integrations[provider]) {
+      updatedSettings.integrations[provider] = { enabled: false };
+    }
     updatedSettings.integrations[provider].enabled = !updatedSettings.integrations[provider].enabled;
     
     try {
@@ -322,6 +428,12 @@ export function Settings() {
 
   const handleToggleAutoSync = async (provider: 'microsoft365') => {
     const updatedSettings = { ...settings };
+    if (!updatedSettings.integrations) {
+      updatedSettings.integrations = {};
+    }
+    if (!updatedSettings.integrations[provider]) {
+      updatedSettings.integrations[provider] = { autoSync: false };
+    }
     updatedSettings.integrations[provider].autoSync = !updatedSettings.integrations[provider].autoSync;
     
     try {
@@ -363,6 +475,226 @@ export function Settings() {
     } catch (error: any) {
       console.error('Error toggling auto archive:', error);
       toast.error('Erro ao alterar auto-arquivamento');
+    }
+  };
+
+  const handleTestAzureConnection = async () => {
+    setIsLoading(true);
+    try {
+      const { tenantId, clientId, clientSecret } = settings?.integrations?.azure || {};
+      
+      if (!tenantId || !clientId || !clientSecret) {
+        toast.error('Preencha todas as credenciais do Azure');
+        setIsLoading(false);
+        return;
+      }
+
+      const result = await azureTestConnection(tenantId, clientId, clientSecret);
+      
+      if (result.success) {
+        toast.success('Conexão Azure estabelecida!', {
+          description: `Organização: ${result.organization?.name}`,
+        });
+      } else {
+        toast.error(result.error || 'Falha ao conectar com Azure', {
+          description: result.details,
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Error testing Azure connection:', error);
+      toast.error('Erro ao testar conexão', {
+        description: error.message || 'Verifique suas credenciais e tente novamente',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSyncAzureUsers = async () => {
+    setIsLoading(true);
+    try {
+      const { tenantId, clientId, clientSecret, allowedDomains } = settings?.integrations?.azure || {};
+      
+      console.log('🔄 Starting Azure user sync...', {
+        hasTenantId: !!tenantId,
+        hasClientId: !!clientId,
+        hasClientSecret: !!clientSecret,
+      });
+      
+      if (!tenantId || !clientId || !clientSecret) {
+        toast.error('Configure as credenciais do Azure primeiro');
+        setIsLoading(false);
+        return;
+      }
+
+      // Usar o tenant atual ou 'default' - você pode ajustar isso conforme sua lógica
+      const targetTenantId = impersonatedTenant?.id || 'default';
+      
+      console.log('📤 Calling azureSyncUsers API...', { targetTenantId, allowedDomains });
+      const result = await azureSyncUsers(tenantId, clientId, clientSecret, targetTenantId, allowedDomains);
+      
+      console.log('📥 Azure sync result:', result);
+      
+      if (result.success) {
+        toast.success('Usuários sincronizados!', {
+          description: `${result.synced} usuários importados do Azure AD`,
+        });
+      } else {
+        const errorDetails = result.details || result.error || 'Erro desconhecido';
+        console.error('❌ Sync failed with structured error:', result);
+        toast.error('Erro ao sincronizar usuários', {
+          description: errorDetails,
+        });
+      }
+    } catch (error: any) {
+      console.error('❌ Error syncing:', error);
+      toast.error('Erro ao sincronizar usuários', {
+        description: error.message || 'Erro desconhecido',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSyncAzureGroups = async () => {
+    setIsLoading(true);
+    try {
+      const { tenantId, clientId, clientSecret, allowedDomains } = settings?.integrations?.azure || {};
+      
+      if (!tenantId || !clientId || !clientSecret) {
+        toast.error('Configure as credenciais do Azure primeiro');
+        setIsLoading(false);
+        return;
+      }
+
+      const targetTenantId = impersonatedTenant?.id || 'default';
+      
+      const result = await azureSyncGroups(tenantId, clientId, clientSecret, targetTenantId, allowedDomains);
+      
+      if (result.success) {
+        toast.success('Grupos sincronizados!', {
+          description: `${result.synced} grupos importados do Azure AD`,
+        });
+      } else {
+        toast.error('Erro ao sincronizar grupos');
+      }
+    } catch (error: any) {
+      toast.error('Erro ao sincronizar grupos', {
+        description: error.message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleAzureIntegration = async () => {
+    const updatedSettings = { ...settings };
+    if (!updatedSettings.integrations) {
+      updatedSettings.integrations = {};
+    }
+    if (!updatedSettings.integrations.azure) {
+      updatedSettings.integrations.azure = { enabled: false };
+    }
+    updatedSettings.integrations.azure.enabled = !updatedSettings.integrations.azure.enabled;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success(
+        updatedSettings.integrations.azure.enabled 
+          ? 'Integração Azure ativada!' 
+          : 'Integração Azure desativada!'
+      );
+    } catch (error: any) {
+      console.error('Error toggling Azure integration:', error);
+      toast.error('Erro ao alterar integração Azure');
+    }
+  };
+
+  const handleToggleAzureAutoSync = async () => {
+    const updatedSettings = { ...settings };
+    if (!updatedSettings.integrations) {
+      updatedSettings.integrations = {};
+    }
+    if (!updatedSettings.integrations.azure) {
+      updatedSettings.integrations.azure = { autoSync: false };
+    }
+    updatedSettings.integrations.azure.autoSync = !updatedSettings.integrations.azure.autoSync;
+    
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success('Sincronização automática Azure atualizada!');
+    } catch (error: any) {
+      console.error('Error toggling Azure auto sync:', error);
+      toast.error('Erro ao alterar sincronização automática');
+    }
+  };
+
+  const handleSaveAzureIntegration = async (formData: FormData) => {
+    setIsLoading(true);
+    
+    const tenantId = (formData.get('azure-tenant-id') as string).trim();
+    const clientId = (formData.get('azure-client-id') as string).trim();
+    const clientSecret = (formData.get('azure-client-secret') as string).trim();
+    
+    // Validate UUID format for Tenant ID and Client ID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (tenantId && !uuidRegex.test(tenantId)) {
+      toast.error('Tenant ID inválido', {
+        description: 'O Tenant ID deve estar no formato UUID (ex: 12345678-1234-1234-1234-123456789abc)',
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    if (clientId && !uuidRegex.test(clientId)) {
+      toast.error('Client ID inválido', {
+        description: 'O Client ID deve estar no formato UUID (ex: 12345678-1234-1234-1234-123456789abc)',
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    if (clientSecret && clientSecret.length < 10) {
+      toast.error('Client Secret inválido', {
+        description: 'O Client Secret parece muito curto. Certifique-se de copiar o Value completo.',
+      });
+      setIsLoading(false);
+      return;
+    }
+    
+    // Parse allowed domains from textarea (one per line)
+    const allowedDomainsText = (formData.get('azure-allowed-domains') as string || '').trim();
+    const allowedDomains = allowedDomainsText
+      .split('\n')
+      .map(domain => domain.trim())
+      .filter(domain => domain.length > 0);
+    
+    const updatedSettings = { ...settings };
+    updatedSettings.integrations.azure = {
+      enabled: settings?.integrations?.azure?.enabled || false,
+      tenantId,
+      clientId,
+      clientSecret,
+      autoSync: settings?.integrations?.azure?.autoSync || false,
+      allowedDomains: allowedDomains.length > 0 ? allowedDomains : undefined,
+    };
+
+    try {
+      await updateSettings(updatedSettings);
+      setSettings(updatedSettings);
+      toast.success('Integração Azure salva!', {
+        description: 'As configurações do Azure foram atualizadas',
+      });
+    } catch (error: any) {
+      console.error('Error saving Azure integration settings:', error);
+      toast.error('Erro ao salvar', {
+        description: error.message || 'Não foi possível salvar as configurações do Azure.',
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -427,7 +759,7 @@ export function Settings() {
                     <Label htmlFor="org-name">Nome da Organização</Label>
                     <Input
                       id="org-name"
-                      defaultValue={settings.general.organizationName}
+                      defaultValue={settings.general.organizationName || ''}
                       className="mt-2"
                     />
                   </div>
@@ -435,7 +767,7 @@ export function Settings() {
                     <Label htmlFor="org-domain">Domínio Principal</Label>
                     <Input
                       id="org-domain"
-                      defaultValue={settings.general.domain}
+                      defaultValue={settings.general.domain || ''}
                       className="mt-2"
                     />
                   </div>
@@ -445,7 +777,7 @@ export function Settings() {
                   <Label htmlFor="org-description">Descrição</Label>
                   <Textarea
                     id="org-description"
-                    defaultValue={settings.general.description}
+                    defaultValue={settings.general.description || ''}
                     rows={3}
                     className="mt-2"
                   />
@@ -454,9 +786,9 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="timezone">Fuso Horário</Label>
-                    <input type="hidden" name="timezone" value={settings.general.timezone} id="timezone-hidden" />
+                    <input type="hidden" name="timezone" value={settings.general.timezone || ''} id="timezone-hidden" />
                     <Select
-                      defaultValue={settings.general.timezone}
+                      defaultValue={settings.general.timezone || 'america-sao-paulo'}
                       onValueChange={(value) => {
                         const input = document.getElementById('timezone-hidden') as HTMLInputElement;
                         if (input) input.value = value;
@@ -484,9 +816,9 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="language">Idioma Padrão</Label>
-                    <input type="hidden" name="language" value={settings.general.language} id="language-hidden" />
+                    <input type="hidden" name="language" value={settings.general.language || ''} id="language-hidden" />
                     <Select
-                      defaultValue={settings.general.language}
+                      defaultValue={settings.general.language || 'pt-br'}
                       onValueChange={(value) => {
                         const input = document.getElementById('language-hidden') as HTMLInputElement;
                         if (input) input.value = value;
@@ -576,7 +908,7 @@ export function Settings() {
                       id="smtp-host"
                       name="smtp-host"
                       placeholder="smtp.gmail.com"
-                      defaultValue={settings.smtp.host}
+                      defaultValue={settings.smtp.host || ''}
                       className="mt-2"
                     />
                   </div>
@@ -586,7 +918,7 @@ export function Settings() {
                       id="smtp-port"
                       name="smtp-port"
                       type="number"
-                      defaultValue={settings.smtp.port}
+                      defaultValue={settings.smtp.port || 587}
                       className="mt-2"
                     />
                   </div>
@@ -598,7 +930,7 @@ export function Settings() {
                     <Input
                       id="smtp-user"
                       name="smtp-user"
-                      defaultValue={settings.smtp.user}
+                      defaultValue={settings.smtp.user || ''}
                       className="mt-2"
                     />
                   </div>
@@ -608,7 +940,7 @@ export function Settings() {
                       id="smtp-password"
                       name="smtp-password"
                       type="password"
-                      defaultValue={settings.smtp.password}
+                      defaultValue={settings.smtp.password || ''}
                       className="mt-2"
                     />
                   </div>
@@ -619,16 +951,16 @@ export function Settings() {
                   <Input
                     id="smtp-from"
                     name="smtp-from"
-                    defaultValue={settings.smtp.from}
+                    defaultValue={settings.smtp.from || ''}
                     className="mt-2"
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="smtp-encryption">Tipo de Criptografia</Label>
-                  <input type="hidden" name="smtp-encryption" value={settings.smtp.encryption} id="smtp-encryption-hidden" />
+                  <input type="hidden" name="smtp-encryption" value={settings.smtp.encryption || ''} id="smtp-encryption-hidden" />
                   <Select
-                    defaultValue={settings.smtp.encryption}
+                    defaultValue={settings.smtp.encryption || 'tls'}
                     onValueChange={(value) => {
                       const input = document.getElementById('smtp-encryption-hidden') as HTMLInputElement;
                       if (input) input.value = value;
@@ -703,7 +1035,7 @@ export function Settings() {
                       id="syslog-host"
                       name="syslog-host"
                       placeholder="syslog.example.com"
-                      defaultValue={settings.syslog.host}
+                      defaultValue={settings.syslog.host || ''}
                       className="mt-2"
                     />
                   </div>
@@ -713,7 +1045,7 @@ export function Settings() {
                       id="syslog-port"
                       name="syslog-port"
                       type="number"
-                      defaultValue={settings.syslog.port}
+                      defaultValue={settings.syslog.port || 514}
                       className="mt-2"
                     />
                   </div>
@@ -722,9 +1054,9 @@ export function Settings() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="syslog-protocol">Protocolo</Label>
-                    <input type="hidden" name="syslog-protocol" value={settings.syslog.protocol} id="syslog-protocol-hidden" />
+                    <input type="hidden" name="syslog-protocol" value={settings.syslog.protocol || ''} id="syslog-protocol-hidden" />
                     <Select
-                      defaultValue={settings.syslog.protocol}
+                      defaultValue={settings.syslog.protocol || 'udp'}
                       onValueChange={(value) => {
                         const input = document.getElementById('syslog-protocol-hidden') as HTMLInputElement;
                         if (input) input.value = value;
@@ -745,9 +1077,9 @@ export function Settings() {
                   </div>
                   <div>
                     <Label htmlFor="syslog-facility">Facility</Label>
-                    <input type="hidden" name="syslog-facility" value={settings.syslog.facility} id="syslog-facility-hidden" />
+                    <input type="hidden" name="syslog-facility" value={settings.syslog.facility || ''} id="syslog-facility-hidden" />
                     <Select
-                      defaultValue={settings.syslog.facility}
+                      defaultValue={settings.syslog.facility || 'local0'}
                       onValueChange={(value) => {
                         const input = document.getElementById('syslog-facility-hidden') as HTMLInputElement;
                         if (input) input.value = value;
@@ -877,8 +1209,8 @@ export function Settings() {
                       Sincronize usuários automaticamente do Azure Active Directory
                     </CardDescription>
                   </div>
-                  <Badge className={settings.integrations.microsoft365.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
-                    {settings.integrations.microsoft365.enabled ? (
+                  <Badge className={settings?.integrations?.microsoft365?.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                    {settings?.integrations?.microsoft365?.enabled ? (
                       <>
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Conectado
@@ -901,7 +1233,7 @@ export function Settings() {
                       <Input
                         id="ms-tenant-id"
                         name="ms-tenant-id"
-                        defaultValue={settings.integrations.microsoft365.tenantId}
+                        defaultValue={settings?.integrations?.microsoft365?.tenantId || ''}
                         placeholder="abc123-def456-ghi789"
                         className="mt-2"
                       />
@@ -911,7 +1243,7 @@ export function Settings() {
                       <Input
                         id="ms-client-id"
                         name="ms-client-id"
-                        defaultValue={settings.integrations.microsoft365.clientId}
+                        defaultValue={settings?.integrations?.microsoft365?.clientId || ''}
                         placeholder="xyz789-uvw456-rst123"
                         className="mt-2"
                       />
@@ -924,10 +1256,26 @@ export function Settings() {
                       id="ms-client-secret"
                       name="ms-client-secret"
                       type="password"
-                      defaultValue={settings.integrations.microsoft365.clientSecret}
+                      defaultValue={settings?.integrations?.microsoft365?.clientSecret || ''}
                       placeholder="Digite o Client Secret"
                       className="mt-2"
                     />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ms-allowed-domains">Domínios Permitidos (filtro)</Label>
+                    <Textarea
+                      id="ms-allowed-domains"
+                      name="ms-allowed-domains"
+                      defaultValue={settings?.integrations?.microsoft365?.allowedDomains?.join('\n') || ''}
+                      placeholder="acme.com&#10;globalbank.com.br&#10;healthplus.com.br"
+                      className="mt-2 font-mono text-sm"
+                      rows={4}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      🔒 Digite um domínio por linha. Apenas usuários desses domínios serão sincronizados. 
+                      Deixe vazio para sincronizar todos os usuários.
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -938,7 +1286,7 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.integrations.microsoft365.enabled}
+                      checked={settings?.integrations?.microsoft365?.enabled || false}
                       onCheckedChange={() => handleToggleIntegration('microsoft365')}
                     />
                   </div>
@@ -951,7 +1299,7 @@ export function Settings() {
                       </p>
                     </div>
                     <Switch
-                      checked={settings.integrations.microsoft365.autoSync}
+                      checked={settings?.integrations?.microsoft365?.autoSync || false}
                       onCheckedChange={() => handleToggleAutoSync('microsoft365')}
                     />
                   </div>
@@ -961,10 +1309,209 @@ export function Settings() {
                       type="button"
                       variant="outline"
                       onClick={() => handleSyncUsers('Microsoft 365')}
-                      disabled={isLoading || !settings.integrations.microsoft365.enabled}
+                      disabled={isLoading || !settings?.integrations?.microsoft365?.enabled}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Sincronizar Agora
+                    </Button>
+                    <Button 
+                      type="submit"
+                      disabled={isLoading}
+                      className="bg-[#834a8b] hover:bg-[#6d3d75]"
+                    >
+                      {isLoading ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 mr-2" />
+                          Salvar
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Microsoft Azure - Integração Avançada */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cloud className="w-5 h-5 text-[#0078D4]" />
+                      Microsoft Azure Graph API
+                    </CardTitle>
+                    <CardDescription>
+                      Importar usuários, grupos e configurar SMTP via Microsoft Graph API
+                    </CardDescription>
+                  </div>
+                  <Badge className={settings?.integrations?.azure?.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
+                    {settings?.integrations?.azure?.enabled ? (
+                      <>
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Conectado
+                      </>
+                    ) : (
+                      'Não Conectado'
+                    )}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Help Section */}
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2 text-sm text-amber-900">
+                      <p className="font-semibold">Como configurar o Azure AD:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li>Acesse o <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portal Azure</a></li>
+                        <li>Vá em <strong>Azure Active Directory</strong> → <strong>App registrations</strong></li>
+                        <li>Clique em <strong>New registration</strong> e dê um nome ao app</li>
+                        <li>Copie o <strong>Application (client) ID</strong> e o <strong>Directory (tenant) ID</strong></li>
+                        <li>Vá em <strong>Certificates & secrets</strong> → <strong>New client secret</strong></li>
+                        <li>Copie o <strong>Value</strong> do secret (não o Secret ID!)</li>
+                        <li>Em <strong>API permissions</strong>, adicione as permissões necessárias (listadas abaixo)</li>
+                        <li>Clique em <strong>Grant admin consent</strong> para aprovar</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleSaveAzureIntegration(formData);
+                }} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="azure-tenant-id">Azure Tenant ID</Label>
+                      <Input
+                        id="azure-tenant-id"
+                        name="azure-tenant-id"
+                        defaultValue={settings?.integrations?.azure?.tenantId || ''}
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Também chamado de <strong>Directory ID</strong> (formato UUID)
+                      </p>
+                    </div>
+                    <div>
+                      <Label htmlFor="azure-client-id">Application (Client) ID</Label>
+                      <Input
+                        id="azure-client-id"
+                        name="azure-client-id"
+                        defaultValue={settings?.integrations?.azure?.clientId || ''}
+                        placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                        className="mt-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Encontrado na página <strong>Overview</strong> do app (formato UUID)
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="azure-client-secret">Client Secret (Value)</Label>
+                    <Input
+                      id="azure-client-secret"
+                      name="azure-client-secret"
+                      type="password"
+                      defaultValue={settings?.integrations?.azure?.clientSecret || ''}
+                      placeholder="Digite o Client Secret"
+                      className="mt-2"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      ⚠️ Use o <strong>Value</strong> (não o Secret ID). Expira após 24 meses.
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="azure-allowed-domains">Domínios Permitidos (filtro)</Label>
+                    <Textarea
+                      id="azure-allowed-domains"
+                      name="azure-allowed-domains"
+                      defaultValue={settings?.integrations?.azure?.allowedDomains?.join('\n') || ''}
+                      placeholder="acme.com&#10;globalbank.com.br&#10;healthplus.com.br"
+                      className="mt-2 font-mono text-sm"
+                      rows={4}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      🔒 Digite um domínio por linha. Apenas usuários desses domínios serão sincronizados. 
+                      Deixe vazio para sincronizar todos os usuários.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm font-medium text-blue-900 mb-2">
+                      📘 Permissões necessárias no Azure AD:
+                    </p>
+                    <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                      <li><code className="bg-blue-100 px-1 rounded">User.Read.All</code> - Ler usuários</li>
+                      <li><code className="bg-blue-100 px-1 rounded">Group.Read.All</code> - Ler grupos</li>
+                      <li><code className="bg-blue-100 px-1 rounded">GroupMember.Read.All</code> - Ler membros de grupos</li>
+                      <li><code className="bg-blue-100 px-1 rounded">Mail.Send</code> - Enviar emails via SMTP</li>
+                    </ul>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-xs text-gray-500">
+                        Ativar sincronização com Azure AD
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings?.integrations?.azure?.enabled || false}
+                      onCheckedChange={handleToggleAzureIntegration}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium">Sincronização Automática</p>
+                      <p className="text-xs text-gray-500">
+                        Sincronizar usuários e grupos diariamente às 06:00
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings?.integrations?.azure?.autoSync || false}
+                      onCheckedChange={handleToggleAzureAutoSync}
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleTestAzureConnection}
+                      disabled={isLoading || !settings?.integrations?.azure?.tenantId}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Testar Conexão
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSyncAzureUsers}
+                      disabled={isLoading || !settings?.integrations?.azure?.enabled}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Sincronizar Usuários
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSyncAzureGroups}
+                      disabled={isLoading || !settings?.integrations?.azure?.enabled}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Sincronizar Grupos
                     </Button>
                     <Button 
                       type="submit"
@@ -1025,7 +1572,7 @@ export function Settings() {
                       id="google-service-account"
                       name="google-service-account"
                       placeholder="Cole o conteúdo do arquivo JSON da Service Account"
-                      defaultValue={settings.integrations.googleWorkspace.serviceAccountJson}
+                      defaultValue={settings.integrations.googleWorkspace.serviceAccountJson || ''}
                       rows={6}
                       className="mt-2 font-mono text-xs"
                     />
@@ -1037,7 +1584,7 @@ export function Settings() {
                       id="google-domain"
                       name="google-domain"
                       placeholder="empresa.com.br"
-                      defaultValue={settings.integrations.googleWorkspace.domain}
+                      defaultValue={settings.integrations.googleWorkspace.domain || ''}
                       className="mt-2"
                     />
                   </div>

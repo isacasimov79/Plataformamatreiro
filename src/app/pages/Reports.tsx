@@ -385,36 +385,28 @@ export function Reports() {
                     <Tooltip />
                     <Legend />
                     <Line
-                      key="line-enviados"
                       type="monotone"
                       dataKey="enviados"
                       stroke="#3b82f6"
                       strokeWidth={2}
-                      isAnimationActive={false}
                     />
                     <Line
-                      key="line-abertos"
                       type="monotone"
                       dataKey="abertos"
                       stroke="#10b981"
                       strokeWidth={2}
-                      isAnimationActive={false}
                     />
                     <Line
-                      key="line-cliques"
                       type="monotone"
                       dataKey="cliques"
                       stroke="#f59e0b"
                       strokeWidth={2}
-                      isAnimationActive={false}
                     />
                     <Line
-                      key="line-comprometidos"
                       type="monotone"
                       dataKey="comprometidos"
                       stroke="#ef4444"
                       strokeWidth={2}
-                      isAnimationActive={false}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -468,8 +460,8 @@ export function Reports() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar key="bar-total" dataKey="total" fill="#3b82f6" name="Total de Colaboradores" isAnimationActive={false} />
-                  <Bar key="bar-comprometidos" dataKey="comprometidos" fill="#ef4444" name="Comprometidos" isAnimationActive={false} />
+                  <Bar dataKey="total" fill="#3b82f6" name="Total de Colaboradores" />
+                  <Bar dataKey="comprometidos" fill="#ef4444" name="Comprometidos" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

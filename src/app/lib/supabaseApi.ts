@@ -10,7 +10,8 @@ async function apiRequest<T>(
   body?: any
 ): Promise<T> {
   try {
-    console.log(`🔄 API Request: ${method} ${endpoint}`);
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`🔄 API Request: ${method} ${fullUrl}`, body ? { bodyKeys: Object.keys(body) } : '');
     
     const options: RequestInit = {
       method,
@@ -22,26 +23,109 @@ async function apiRequest<T>(
 
     if (body && method !== 'GET') {
       options.body = JSON.stringify(body);
+      console.log(`📤 Request body size: ${options.body.length} bytes`);
     }
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+    console.log(`🌐 Fetching: ${fullUrl}`);
+    const response = await fetch(fullUrl, options);
+    
+    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+    
+    // Special handling for Supabase Edge Function errors (status 546)
+    if (response.status === 546) {
+      console.error(`❌ Supabase Edge Function error detected (status 546)`);
+      console.error(`   This usually means the server function crashed or timed out.`);
+      console.error(`   Endpoint: ${endpoint}`);
+      
+      // Try to get error details from response
+      let errorText = '';
+      try {
+        errorText = await response.text();
+        console.error(`   Error response:`, errorText.substring(0, 500));
+      } catch (e) {
+        console.error(`   Could not read error response`);
+      }
+      
+      // Return structured error for Azure endpoints
+      if (method === 'POST' && endpoint.includes('/azure/')) {
+        return {
+          success: false,
+          error: 'Erro no Servidor',
+          details: 'O servidor Edge Function encontrou um erro interno. Verifique os logs do Supabase ou tente novamente.',
+          statusCode: 546
+        } as T;
+      }
+      
+      throw new Error('Servidor Edge Function encontrou um erro interno (status 546). Verifique os logs do Supabase.');
+    }
+    
+    // Special handling for non-standard status codes
+    if (response.status >= 500 && response.status !== 500 && response.status !== 502 && response.status !== 503 && response.status !== 546) {
+      console.warn(`⚠️ Unusual status code detected: ${response.status}`);
+    }
+    
+    // Try to parse JSON response - handle errors gracefully
+    let data: any = {};
+    const contentType = response.headers.get('content-type');
+    
+    try {
+      if (contentType?.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        console.warn(`⚠️ Non-JSON response (${contentType}):`, text.substring(0, 200));
+        data = { error: 'Resposta não-JSON do servidor', details: text.substring(0, 500) };
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse response:', parseError);
+      data = { error: 'Falha ao processar resposta do servidor', details: 'Resposta inválida' };
+    }
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+      // Se o backend retornou um JSON estruturado com erro, retornar ele
+      // ao invés de lançar exceção (para endpoints que retornam { success: false })
+      if (data.success === false || data.error) {
+        console.log(`⚠️ API returned structured error: ${method} ${endpoint}`, data);
+        return data as T;
+      }
+      
+      const errorMessage = data.error || data.details || `HTTP error! status: ${response.status}`;
       console.error(`❌ API Error on ${method} ${endpoint}:`, errorMessage);
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log(`✅ API Success: ${method} ${endpoint}`, data);
+    console.log(`✅ API Success: ${method} ${endpoint}`);
     return data;
   } catch (error: any) {
     console.error(`❌ API request error on ${method} ${endpoint}:`, error);
+    console.error(`❌ Error details:`, {
+      name: error.name,
+      message: error.message,
+      stack: error.stack?.substring(0, 300),
+      cause: error.cause
+    });
     
     // Verificar se é erro de rede
-    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-      throw new Error('Erro de conexão com o servidor. Verifique sua conexão com a internet.');
+    if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError') || error.name === 'TypeError') {
+      console.error(`❌ Network error detected. Full URL was: ${API_BASE_URL}${endpoint}`);
+      console.error(`❌ Attempting to reach: https://${projectId}.supabase.co`);
+      
+      // Retornar um erro estruturado para que o frontend possa lidar melhor
+      const networkError: any = {
+        success: false,
+        error: 'Erro de Conexão',
+        details: 'Não foi possível conectar ao servidor. Verifique se o Supabase Edge Functions está ativo.',
+        originalError: error.message,
+        endpoint: `${API_BASE_URL}${endpoint}`
+      };
+      
+      // Para métodos que esperam retorno estruturado, retornar o erro estruturado
+      // ao invés de lançar exceção
+      if (method === 'POST' && endpoint.includes('/azure/')) {
+        return networkError as T;
+      }
+      
+      throw new Error('Erro de conexão com o servidor. Verifique sua conexão com a internet e se o servidor Supabase está ativo.');
     }
     
     throw error;
@@ -142,6 +226,10 @@ export async function updateTarget(id: string, data: any) {
 
 export async function deleteTarget(id: string) {
   return apiRequest<any>(`/targets/${id}`, 'DELETE');
+}
+
+export async function deleteAllTargetsByTenant(tenantId: string) {
+  return apiRequest<{ success: boolean; deletedCount: number; tenantId: string }>(`/targets/tenant/${tenantId}`, 'DELETE');
 }
 
 // =====================================================
@@ -290,4 +378,63 @@ export async function seedDatabase() {
 
 export async function healthCheck() {
   return apiRequest<{ status: string }>('/health', 'GET');
+}
+
+// =====================================================
+// MICROSOFT AZURE / GRAPH API
+// =====================================================
+
+export async function azureTestConnection(tenantId: string, clientId: string, clientSecret: string) {
+  return apiRequest<any>('/azure/test-connection', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+  });
+}
+
+export async function azureGetUsers(tenantId: string, clientId: string, clientSecret: string, maxResults = 100) {
+  return apiRequest<any>('/azure/users', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+    maxResults,
+  });
+}
+
+export async function azureGetGroups(tenantId: string, clientId: string, clientSecret: string, maxResults = 100) {
+  return apiRequest<any>('/azure/groups', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+    maxResults,
+  });
+}
+
+export async function azureGetGroupMembers(tenantId: string, clientId: string, clientSecret: string, groupId: string) {
+  return apiRequest<any>('/azure/group-members', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+    groupId,
+  });
+}
+
+export async function azureSyncUsers(tenantId: string, clientId: string, clientSecret: string, targetTenantId: string, allowedDomains?: string[]) {
+  return apiRequest<any>('/azure/sync-users', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+    targetTenantId,
+    allowedDomains,
+  });
+}
+
+export async function azureSyncGroups(tenantId: string, clientId: string, clientSecret: string, targetTenantId: string, allowedDomains?: string[]) {
+  return apiRequest<any>('/azure/sync-groups', 'POST', {
+    tenantId,
+    clientId,
+    clientSecret,
+    targetTenantId,
+    allowedDomains,
+  });
 }
