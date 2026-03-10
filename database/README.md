@@ -1,621 +1,534 @@
-# 🗄️ Plataforma Matreiro - Database Documentation
+# 🗄️ Database - Plataforma Matreiro
 
-## Overview
-
-Este diretório contém todos os scripts e documentação relacionados ao banco de dados PostgreSQL da Plataforma Matreiro.
+Documentação completa do banco de dados PostgreSQL.
 
 ---
 
-## 📁 Estrutura de Arquivos
+## 📋 Índice
+
+- [Visão Geral](#visão-geral)
+- [Schema](#schema)
+- [Tabelas](#tabelas)
+- [Seed Data](#seed-data)
+- [Como Usar](#como-usar)
+- [Backup e Restore](#backup-e-restore)
+- [Migrações](#migrações)
+
+---
+
+## 🎯 Visão Geral
+
+O banco de dados da Plataforma Matreiro utiliza **PostgreSQL 15** com as seguintes características:
+
+- **Multi-Tenancy**: Todas as tabelas possuem `tenant_id` para isolamento de dados
+- **UUIDs**: IDs universalmente únicos ao invés de integers sequenciais
+- **Soft Deletes**: Campo `deleted_at` para exclusões lógicas
+- **Timestamps**: `created_at` e `updated_at` automáticos via triggers
+- **JSONB**: Campos flexíveis para metadata e configurações
+- **Índices**: Otimizados para queries comuns
+
+### Extensões Utilizadas
+
+```sql
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";    -- Geração de UUIDs
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";      -- Full-text search
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";     -- Criptografia
+```
+
+---
+
+## 📊 Schema
+
+### Diagrama ER (Simplificado)
 
 ```
-database/
-├── README.md          # Este arquivo
-├── schema.sql         # Schema completo do banco de dados
-├── seed.sql           # Dados iniciais (desenvolvimento/testes)
-├── migrations/        # Migrações do Django (geradas automaticamente)
-└── backups/          # Diretório para backups (criado automaticamente)
+tenants
+├── users
+├── azure_integrations
+├── campaigns
+│   ├── templates
+│   ├── landing_pages
+│   ├── targets
+│   └── results
+├── trainings
+│   └── training_completions
+└── audit_logs
 ```
 
----
+### Arquivos
 
-## 🏗️ Arquitetura do Banco de Dados
-
-### Tecnologia
-- **PostgreSQL 15+**
-- **Extensões**: uuid-ossp, pg_trgm, pgcrypto
-
-### Características
-- **Multi-tenancy**: Isolamento de dados por tenant
-- **Soft Delete**: Registros marcados como deletados mantêm histórico
-- **Audit Trail**: Logs completos de todas as ações
-- **JSONB**: Campos flexíveis para metadata
-- **Triggers**: Atualização automática de timestamps
-- **Views**: Estatísticas pré-calculadas
-- **Índices**: Otimizados para performance
+| Arquivo | Descrição |
+|---------|-----------|
+| `schema.sql` | Schema completo do banco de dados |
+| `seed.sql` | Dados iniciais para desenvolvimento |
+| `README.md` | Este arquivo |
 
 ---
 
-## 📊 Tabelas Principais
+## 🗂️ Tabelas
 
-### 1. **tenants** - Organizações/Clientes
-Armazena informações das organizações que usam a plataforma.
+### 1. tenants (Organizações)
 
-**Campos principais:**
-- `id` (UUID) - Identificador único
-- `name` - Nome da organização
-- `slug` - Identificador amigável (URL)
-- `subscription_tier` - Plano (basic, pro, enterprise)
-- `parent_tenant_id` - Para hierarquia (sub-clientes)
+Organizações/Clientes da plataforma (multi-tenancy).
 
-**Relações:**
-- Pai de: `users`, `campaigns`, `targets`, `azure_integrations`
+**Campos principais**:
+- `id` (UUID) - Primary key
+- `name` (VARCHAR) - Nome da organização
+- `slug` (VARCHAR) - URL-friendly identifier
+- `parent_tenant_id` (UUID) - Para hierarquia de sub-clientes
+- `subscription_tier` (VARCHAR) - basic, pro, enterprise
+- `max_users` (INTEGER) - Limite de usuários
+- `max_campaigns` (INTEGER) - Limite de campanhas
 
----
+**Exemplo**:
+```sql
+INSERT INTO tenants (name, slug, subscription_tier) 
+VALUES ('Acme Corp', 'acme-corp', 'enterprise');
+```
 
-### 2. **users** - Usuários do Sistema
-Usuários autenticados via Keycloak.
+### 2. users (Usuários)
 
-**Campos principais:**
-- `id` (UUID) - Identificador único
-- `tenant_id` - Organização do usuário
-- `keycloak_id` - ID no Keycloak
-- `email` - Email único
-- `role` - Papel (super_admin, tenant_admin, manager, analyst, user)
+Usuários do sistema com integração Keycloak.
 
-**Roles disponíveis:**
-- `super_admin` - Acesso total (Under Protection)
-- `tenant_admin` - Administrador do tenant
-- `manager` - Gerente de campanhas
-- `analyst` - Visualização e relatórios
-- `user` - Usuário básico
+**Campos principais**:
+- `id` (UUID) - Primary key
+- `tenant_id` (UUID) - Foreign key para tenants
+- `keycloak_id` (UUID) - ID do usuário no Keycloak
+- `email` (VARCHAR) - Email único
+- `role` (VARCHAR) - super_admin, tenant_admin, manager, analyst, user
+- `permissions` (JSONB) - Permissões customizadas
 
----
+**Roles**:
+- **super_admin**: Acesso total, multi-tenant
+- **tenant_admin**: Admin do tenant
+- **manager**: Gerencia campanhas
+- **analyst**: Visualiza relatórios
+- **user**: Usuário final (target de campanhas)
 
-### 3. **campaigns** - Campanhas de Phishing
+### 3. azure_integrations
+
+Configurações de integração com Microsoft Azure AD.
+
+**Campos principais**:
+- `azure_tenant_id` (VARCHAR) - Tenant ID do Azure
+- `azure_client_id` (VARCHAR) - Application ID
+- `azure_client_secret_encrypted` (TEXT) - Secret criptografado
+- `auto_sync` (BOOLEAN) - Sincronização automática
+- `allowed_domains` (TEXT[]) - Domínios permitidos
+- `sync_groups` (TEXT[]) - Grupos para sincronizar
+
+### 4. campaigns (Campanhas de Phishing)
+
 Campanhas de simulação de phishing.
 
-**Campos principais:**
-- `id` (UUID) - Identificador único
-- `tenant_id` - Organização dona
-- `name` - Nome da campanha
-- `status` - Status (draft, scheduled, running, paused, completed, cancelled)
-- `template_id` - Template de e-mail usado
-- `landing_page_id` - Landing page usada
+**Campos principais**:
+- `name` (VARCHAR) - Nome da campanha
+- `status` (VARCHAR) - draft, scheduled, running, paused, completed, cancelled
+- `template_id` (UUID) - Template de e-mail
+- `landing_page_id` (UUID) - Landing page
+- `total_targets` (INTEGER) - Total de alvos
+- `emails_sent` (INTEGER) - E-mails enviados
+- `emails_opened` (INTEGER) - E-mails abertos
+- `links_clicked` (INTEGER) - Links clicados
+- `data_submitted` (INTEGER) - Dados submetidos
 
-**Métricas calculadas:**
-- `total_targets` - Total de alvos
-- `emails_sent` - E-mails enviados
-- `emails_opened` - E-mails abertos
-- `links_clicked` - Links clicados
-- `data_submitted` - Dados submetidos
-- `open_rate` - Taxa de abertura (%)
-- `click_rate` - Taxa de clique (%)
-- `submission_rate` - Taxa de submissão (%)
+**Métricas calculadas**:
+- `open_rate` (DECIMAL) - Taxa de abertura %
+- `click_rate` (DECIMAL) - Taxa de clique %
+- `submission_rate` (DECIMAL) - Taxa de submissão %
 
----
+### 5. templates (Templates de E-mail)
 
-### 4. **templates** - Templates de E-mail
-Templates HTML/texto para os e-mails de phishing.
+Templates de e-mail para campanhas.
 
-**Campos principais:**
-- `subject` - Assunto do e-mail
-- `html_content` - Conteúdo HTML
-- `text_content` - Conteúdo texto puro
-- `variables` - Variáveis disponíveis ({{first_name}}, etc)
-- `is_public` - Se pode ser usado por outros tenants
+**Campos principais**:
+- `name` (VARCHAR) - Nome do template
+- `category` (VARCHAR) - phishing, spear_phishing, etc
+- `subject` (VARCHAR) - Assunto do e-mail
+- `html_content` (TEXT) - Conteúdo HTML
+- `text_content` (TEXT) - Conteúdo texto plano
+- `variables` (JSONB) - Variáveis disponíveis
 
-**Variáveis suportadas:**
+**Variáveis suportadas**:
 - `{{first_name}}` - Primeiro nome
 - `{{last_name}}` - Sobrenome
-- `{{email}}` - Email do alvo
-- `{{department}}` - Departamento
-- `{{tracking_link}}` - Link de tracking único
+- `{{email}}` - Email
+- `{{tracking_link}}` - Link de tracking
+- `{{random_number}}` - Número aleatório
+
+### 6. landing_pages
+
+Landing pages para captura de dados.
+
+**Campos principais**:
+- `name` (VARCHAR) - Nome da página
+- `slug` (VARCHAR) - URL slug
+- `html_content` (TEXT) - HTML da página
+- `page_type` (VARCHAR) - credential_harvest, malware_download, survey
+- `capture_credentials` (BOOLEAN) - Capturar credenciais
+- `redirect_url` (TEXT) - URL de redirecionamento
+
+### 7. targets (Alvos)
+
+Alvos das campanhas de phishing.
+
+**Campos principais**:
+- `email` (VARCHAR) - Email do alvo
+- `first_name`, `last_name` (VARCHAR) - Nome
+- `department` (VARCHAR) - Departamento
+- `position` (VARCHAR) - Cargo
+- `source` (VARCHAR) - manual, azure_ad, csv_import, api
+
+### 8. results (Resultados)
+
+Resultados e tracking das campanhas.
+
+**Campos principais**:
+- `campaign_id` (UUID) - Campanha
+- `target_id` (UUID) - Alvo
+- `email_sent`, `email_opened`, `link_clicked`, `data_submitted` (BOOLEAN)
+- `submitted_data` (JSONB) - Dados submetidos
+- `ip_address` (INET) - IP do alvo
+- `user_agent` (TEXT) - User agent
+- `location` (JSONB) - Geolocalização
+
+### 9. trainings
+
+Módulos de treinamento em segurança.
+
+**Campos principais**:
+- `title` (VARCHAR) - Título do treinamento
+- `content_type` (VARCHAR) - video, article, quiz, interactive
+- `duration_minutes` (INTEGER) - Duração estimada
+- `has_quiz` (BOOLEAN) - Possui quiz
+- `quiz_questions` (JSONB) - Questões do quiz
+- `passing_score` (INTEGER) - Pontuação mínima
+
+### 10. training_completions
+
+Conclusões e progresso de treinamentos.
+
+**Campos principais**:
+- `training_id` (UUID) - Treinamento
+- `user_id` (UUID) - Usuário
+- `status` (VARCHAR) - in_progress, completed, failed
+- `progress` (DECIMAL) - Progresso %
+- `quiz_score` (DECIMAL) - Pontuação no quiz
+- `certificate_url` (TEXT) - URL do certificado
+
+### 11. kv_store_99a65fc7
+
+Key-Value store integrado ao Supabase.
+
+**Campos principais**:
+- `key` (TEXT) - Chave única
+- `value` (JSONB) - Valor
+- `expires_at` (TIMESTAMP) - Expiração
+
+### 12. audit_logs
+
+Logs de auditoria de todas as ações.
+
+**Campos principais**:
+- `action` (VARCHAR) - Ação realizada
+- `resource_type` (VARCHAR) - Tipo de recurso
+- `resource_id` (UUID) - ID do recurso
+- `changes` (JSONB) - Mudanças (before/after)
+- `ip_address` (INET) - IP do usuário
 
 ---
 
-### 5. **landing_pages** - Landing Pages
-Páginas de destino para captura de dados.
+## 🌱 Seed Data
 
-**Campos principais:**
-- `slug` - URL única
-- `html_content` - HTML da página
-- `css_content` - CSS customizado
-- `js_content` - JavaScript customizado
-- `page_type` - Tipo (credential_harvest, malware_download, survey)
-- `capture_credentials` - Se captura credenciais
-- `redirect_url` - URL de redirecionamento pós-submissão
+O arquivo `seed.sql` contém dados iniciais para desenvolvimento:
 
----
+### Tenants (4 organizações + 1 sub-cliente)
+- **Under Protection** - Tenant principal (empresa)
+- **Acme Corporation** - Cliente exemplo (Pro)
+- **TechStart Brasil** - Cliente exemplo (Basic)
+- **Global Finance Inc** - Cliente exemplo (Enterprise)
+- **Acme Corp - Filial Rio** - Sub-cliente
 
-### 6. **targets** - Alvos das Campanhas
-Lista de pessoas alvo de uma campanha.
+### Users (7 usuários com diferentes roles)
+- **Super Admin** - admin@underprotection.com.br
+- **Tenant Admins** - Admins de cada tenant
+- **Manager** - Gerente de segurança
+- **Analyst** - Analista
+- **Regular Users** - Usuários finais
 
-**Campos principais:**
-- `email` - Email do alvo
-- `first_name`, `last_name` - Nome
-- `department`, `position` - Cargo
-- `source` - Origem (manual, azure_ad, csv_import, api)
-- `source_id` - ID na fonte original
+**Senha padrão (desenvolvimento)**: `Matreiro2024!`
 
-**Constraint:** Email único por campanha
+### Templates (3 templates prontos)
+1. **Microsoft 365 Password Reset** - Credential harvesting
+2. **Payroll Document** - Documento urgente de RH
+3. **Package Delivery** - Notificação de entrega
 
----
+### Landing Pages (3 páginas)
+1. **Microsoft 365 Login** - Login falso M365
+2. **Payroll Portal** - Portal de folha de pagamento
+3. **Package Tracking** - Rastreamento de encomenda
 
-### 7. **results** - Resultados das Campanhas
-Tracking detalhado de interações.
+### Campanhas (2 campanhas de exemplo)
+- **Q1 Security Awareness** - Campanha trimestral
+- **Executive Spear Phishing** - Teste focado
 
-**Campos de tracking:**
-- `email_sent`, `email_sent_at` - Email enviado
-- `email_opened`, `email_opened_at`, `open_count` - Aberturas
-- `link_clicked`, `link_clicked_at`, `click_count` - Cliques
-- `data_submitted`, `data_submitted_at`, `submitted_data` - Submissões
-
-**Informações do cliente:**
-- `ip_address` - IP do usuário
-- `user_agent` - User agent do browser
-- `browser`, `os`, `device` - Informações do dispositivo
-- `location` - Geolocalização (cidade, país, lat/lon)
+### Treinamentos (3 cursos)
+1. **Phishing Awareness 101** - Básico
+2. **Advanced Social Engineering** - Avançado
+3. **Security Best Practices** - Melhores práticas
 
 ---
 
-### 8. **trainings** - Módulos de Treinamento
-Conteúdo educacional sobre segurança.
+## 🚀 Como Usar
 
-**Tipos de conteúdo:**
-- `video` - Vídeos educativos
-- `article` - Artigos/textos
-- `quiz` - Questionários
-- `interactive` - Conteúdo interativo
+### 1. Inicializar Banco de Dados
 
-**Features:**
-- Quiz integrado com pontuação
-- Validação por IA (GPT-4)
-- Certificados automáticos
-- Tracking de progresso
-
----
-
-### 9. **azure_integrations** - Integração Azure AD
-Configurações de sincronização com Microsoft Azure AD.
-
-**Campos principais:**
-- `azure_tenant_id` - ID do tenant Azure
-- `azure_client_id` - ID da aplicação
-- `azure_client_secret_encrypted` - Secret criptografado
-- `auto_sync` - Sincronização automática
-- `sync_frequency` - Frequência (hourly, daily, weekly)
-- `allowed_domains` - Domínios permitidos
-- `sync_groups` - Grupos a sincronizar
-
----
-
-### 10. **kv_store_99a65fc7** - Key-Value Store
-Store flexível para configurações e cache.
-
-**Uso:**
-- Configurações dinâmicas
-- Cache de dados
-- Feature flags
-- Dados temporários
-
-**API:**
-```sql
--- Get
-SELECT value FROM kv_store_99a65fc7 WHERE key = 'my_key';
-
--- Set
-INSERT INTO kv_store_99a65fc7 (key, value, tenant_id) 
-VALUES ('my_key', '{"data": "value"}'::jsonb, 'tenant-uuid')
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
-
--- Delete
-DELETE FROM kv_store_99a65fc7 WHERE key = 'my_key';
+**Via Docker Compose (Automático)**:
+```bash
+# O schema.sql e seed.sql são executados automaticamente
+docker-compose up -d postgres
 ```
 
----
+**Manual**:
+```bash
+# Criar banco
+createdb -U matreiro_user matreiro_db
 
-### 11. **audit_logs** - Logs de Auditoria
-Registro de todas as ações no sistema.
+# Executar schema
+psql -U matreiro_user -d matreiro_db -f schema.sql
 
-**Ações rastreadas:**
-- `login`, `logout` - Autenticação
-- `create`, `update`, `delete` - CRUD
-- `start`, `pause`, `stop` - Controle de campanhas
-- `sync` - Sincronizações
-- `export`, `import` - Transferência de dados
+# Executar seed
+psql -U matreiro_user -d matreiro_db -f seed.sql
+```
 
-**Informações capturadas:**
-- Usuário que executou
-- Recurso afetado
-- Mudanças (before/after)
-- IP e User Agent
-- Timestamp
-
----
-
-## 🔧 Comandos Úteis
-
-### Conectar ao Banco de Dados
+### 2. Conectar ao Banco
 
 ```bash
 # Via Docker
 docker-compose exec postgres psql -U matreiro_user -d matreiro_db
 
-# Direto (se PostgreSQL estiver instalado localmente)
-psql -h localhost -p 5432 -U matreiro_user -d matreiro_db
+# Localmente
+psql -U matreiro_user -d matreiro_db
 ```
 
-### Importar Schema
+### 3. Queries Úteis
 
-```bash
-# Via Docker
-docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db < database/schema.sql
-
-# Direto
-psql -h localhost -p 5432 -U matreiro_user -d matreiro_db -f database/schema.sql
-```
-
-### Importar Dados Iniciais (Seed)
-
-```bash
-# Via Docker
-docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db < database/seed.sql
-
-# Direto
-psql -h localhost -p 5432 -U matreiro_user -d matreiro_db -f database/seed.sql
-```
-
-### Listar Tabelas
-
+**Listar todas as tabelas**:
 ```sql
--- No psql
 \dt
-
--- Ou via SQL
-SELECT tablename FROM pg_tables WHERE schemaname = 'public';
 ```
 
-### Descrever Tabela
-
+**Descrever tabela**:
 ```sql
--- No psql
-\d tenants
-
--- Ou via SQL
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'tenants';
+\d users
 ```
 
-### Ver Índices
-
-```sql
--- No psql
-\di
-
--- Ou via SQL
-SELECT indexname, tablename 
-FROM pg_indexes 
-WHERE schemaname = 'public';
-```
-
-### Contar Registros
-
+**Contar registros**:
 ```sql
 SELECT 
-    'tenants' AS table_name, COUNT(*) AS count FROM tenants
-UNION ALL
-SELECT 'users', COUNT(*) FROM users
-UNION ALL
-SELECT 'campaigns', COUNT(*) FROM campaigns
-UNION ALL
-SELECT 'targets', COUNT(*) FROM targets
-UNION ALL
-SELECT 'results', COUNT(*) FROM results;
+  (SELECT COUNT(*) FROM tenants) as tenants,
+  (SELECT COUNT(*) FROM users) as users,
+  (SELECT COUNT(*) FROM campaigns) as campaigns,
+  (SELECT COUNT(*) FROM templates) as templates;
+```
+
+**Ver estatísticas de campanha**:
+```sql
+SELECT * FROM campaign_stats;
+```
+
+**Buscar usuários por tenant**:
+```sql
+SELECT 
+  u.email,
+  u.role,
+  t.name as tenant_name
+FROM users u
+JOIN tenants t ON t.id = u.tenant_id
+WHERE t.slug = 'acme-corp';
 ```
 
 ---
 
-## 🔍 Queries Úteis
-
-### 1. Estatísticas de Campanha
-
-```sql
--- Usar a view pre-definida
-SELECT * FROM campaign_stats 
-WHERE tenant_id = 'your-tenant-id';
-
--- Ou query completa
-SELECT 
-    c.id,
-    c.name,
-    c.status,
-    COUNT(DISTINCT t.id) AS total_targets,
-    COUNT(DISTINCT CASE WHEN r.email_sent THEN r.id END) AS emails_sent,
-    COUNT(DISTINCT CASE WHEN r.email_opened THEN r.id END) AS emails_opened,
-    COUNT(DISTINCT CASE WHEN r.link_clicked THEN r.id END) AS links_clicked,
-    COUNT(DISTINCT CASE WHEN r.data_submitted THEN r.id END) AS data_submitted
-FROM campaigns c
-LEFT JOIN targets t ON t.campaign_id = c.id
-LEFT JOIN results r ON r.campaign_id = c.id
-WHERE c.tenant_id = 'your-tenant-id'
-GROUP BY c.id, c.name, c.status;
-```
-
-### 2. Top 10 Usuários Mais Vulneráveis
-
-```sql
-SELECT 
-    t.email,
-    t.first_name,
-    t.last_name,
-    COUNT(*) AS total_campaigns,
-    SUM(CASE WHEN r.email_opened THEN 1 ELSE 0 END) AS emails_opened,
-    SUM(CASE WHEN r.link_clicked THEN 1 ELSE 0 END) AS links_clicked,
-    SUM(CASE WHEN r.data_submitted THEN 1 ELSE 0 END) AS data_submitted
-FROM targets t
-JOIN results r ON r.target_id = t.id
-WHERE t.tenant_id = 'your-tenant-id'
-GROUP BY t.email, t.first_name, t.last_name
-HAVING SUM(CASE WHEN r.data_submitted THEN 1 ELSE 0 END) > 0
-ORDER BY data_submitted DESC, links_clicked DESC
-LIMIT 10;
-```
-
-### 3. Campanhas Ativas
-
-```sql
-SELECT 
-    id,
-    name,
-    status,
-    start_date,
-    end_date,
-    total_targets,
-    emails_sent,
-    open_rate,
-    click_rate
-FROM campaigns
-WHERE status IN ('running', 'scheduled')
-    AND tenant_id = 'your-tenant-id'
-ORDER BY start_date DESC;
-```
-
-### 4. Taxa de Conclusão de Treinamentos
-
-```sql
-SELECT 
-    t.title,
-    COUNT(tc.id) AS total_attempts,
-    COUNT(CASE WHEN tc.status = 'completed' THEN 1 END) AS completed,
-    ROUND(
-        (COUNT(CASE WHEN tc.status = 'completed' THEN 1 END)::DECIMAL / COUNT(tc.id)) * 100,
-        2
-    ) AS completion_rate,
-    AVG(tc.quiz_score) AS average_score
-FROM trainings t
-LEFT JOIN training_completions tc ON tc.training_id = t.id
-WHERE t.tenant_id = 'your-tenant-id' OR t.tenant_id IS NULL
-GROUP BY t.id, t.title;
-```
-
-### 5. Logs de Auditoria Recentes
-
-```sql
-SELECT 
-    al.created_at,
-    u.email AS user_email,
-    al.action,
-    al.resource_type,
-    al.description,
-    al.ip_address
-FROM audit_logs al
-LEFT JOIN users u ON u.id = al.user_id
-WHERE al.tenant_id = 'your-tenant-id'
-ORDER BY al.created_at DESC
-LIMIT 50;
-```
-
----
-
-## 🔐 Segurança
-
-### Encriptação
-
-1. **Secrets do Azure AD**: Armazenados criptografados na coluna `azure_client_secret_encrypted`
-2. **Passwords**: NUNCA armazenados no banco (gerenciados pelo Keycloak)
-3. **Dados Sensíveis**: Use `pgcrypto` para criptografar campos sensíveis
-
-### Exemplo de Criptografia:
-
-```sql
--- Criptografar
-INSERT INTO azure_integrations (azure_client_secret_encrypted) 
-VALUES (pgp_sym_encrypt('my-secret', 'encryption-key'));
-
--- Descriptografar
-SELECT pgp_sym_decrypt(azure_client_secret_encrypted::bytea, 'encryption-key') 
-FROM azure_integrations;
-```
-
-### Permissões
-
-```sql
--- Criar usuário read-only para analytics
-CREATE USER analytics_readonly WITH PASSWORD 'strong-password';
-
--- Dar permissão apenas de leitura
-GRANT CONNECT ON DATABASE matreiro_db TO analytics_readonly;
-GRANT USAGE ON SCHEMA public TO analytics_readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO analytics_readonly;
-
--- Revogar permissões de escrita
-REVOKE INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public FROM analytics_readonly;
-```
-
----
-
-## 🗑️ Manutenção
-
-### Limpeza de Dados Expirados
-
-```sql
--- Limpar KV store expirado
-SELECT cleanup_expired_kv();
-
--- Limpar logs antigos (mais de 90 dias)
-DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL '90 days';
-
--- Limpar campanhas deletadas (mais de 30 dias)
-DELETE FROM campaigns 
-WHERE deleted_at IS NOT NULL 
-    AND deleted_at < NOW() - INTERVAL '30 days';
-```
+## 💾 Backup e Restore
 
 ### Backup
 
+**Backup completo**:
 ```bash
-# Backup completo
-docker-compose exec -T postgres pg_dump -U matreiro_user -d matreiro_db > backup_$(date +%Y%m%d_%H%M%S).sql
+# Via Docker
+docker-compose exec postgres pg_dump -U matreiro_user matreiro_db > backup_$(date +%Y%m%d_%H%M%S).sql
 
-# Backup apenas schema
-docker-compose exec -T postgres pg_dump -U matreiro_user -d matreiro_db --schema-only > schema_backup.sql
+# Localmente
+pg_dump -U matreiro_user -d matreiro_db -F c -f backup.dump
+```
 
-# Backup apenas dados
-docker-compose exec -T postgres pg_dump -U matreiro_user -d matreiro_db --data-only > data_backup.sql
+**Backup de tabela específica**:
+```bash
+pg_dump -U matreiro_user -d matreiro_db -t users > users_backup.sql
+```
 
-# Backup de tabela específica
-docker-compose exec -T postgres pg_dump -U matreiro_user -d matreiro_db -t campaigns > campaigns_backup.sql
+**Backup apenas schema (sem dados)**:
+```bash
+pg_dump -U matreiro_user -d matreiro_db --schema-only > schema_backup.sql
 ```
 
 ### Restore
 
+**Restore completo**:
 ```bash
-# Restore completo
-docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db < backup_20260310_120000.sql
+# Via Docker
+docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db < backup.sql
 
-# Restore apenas dados (schema já existe)
-docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db --data-only < data_backup.sql
+# Localmente
+pg_restore -U matreiro_user -d matreiro_db backup.dump
 ```
+
+**Restore de tabela específica**:
+```bash
+psql -U matreiro_user -d matreiro_db < users_backup.sql
+```
+
+### Backup Automatizado
+
+**Script de backup diário**:
+```bash
+#!/bin/bash
+# /scripts/backup_db.sh
+
+BACKUP_DIR="/backups/postgres"
+DATE=$(date +%Y%m%d_%H%M%S)
+FILENAME="matreiro_backup_$DATE.sql"
+
+mkdir -p $BACKUP_DIR
+
+docker-compose exec -T postgres pg_dump -U matreiro_user matreiro_db > "$BACKUP_DIR/$FILENAME"
+
+# Comprimir
+gzip "$BACKUP_DIR/$FILENAME"
+
+# Manter apenas últimos 30 dias
+find $BACKUP_DIR -name "*.gz" -mtime +30 -delete
+
+echo "Backup concluído: $FILENAME.gz"
+```
+
+**Agendar via cron**:
+```bash
+# Editar crontab
+crontab -e
+
+# Executar todo dia às 2h da manhã
+0 2 * * * /path/to/scripts/backup_db.sh
+```
+
+---
+
+## 🔄 Migrações
+
+### Django Migrations
+
+**Criar migração**:
+```bash
+docker-compose exec django python manage.py makemigrations
+```
+
+**Aplicar migrações**:
+```bash
+docker-compose exec django python manage.py migrate
+```
+
+**Ver migrações aplicadas**:
+```bash
+docker-compose exec django python manage.py showmigrations
+```
+
+**Reverter migração**:
+```bash
+docker-compose exec django python manage.py migrate app_name migration_name
+```
+
+### SQL Migrations (Manual)
+
+Se precisar executar SQL diretamente:
+
+```sql
+-- Adicionar coluna
+ALTER TABLE campaigns ADD COLUMN new_field VARCHAR(255);
+
+-- Criar índice
+CREATE INDEX idx_campaigns_new_field ON campaigns(new_field);
+
+-- Atualizar dados
+UPDATE campaigns SET new_field = 'default_value';
+```
+
+---
+
+## 🔍 Manutenção
 
 ### Vacuum e Analyze
 
+**Executar periodicamente para otimizar performance**:
 ```sql
--- Vacuum todas as tabelas
-VACUUM FULL;
+-- Conectar ao banco
+docker-compose exec postgres psql -U matreiro_user -d matreiro_db
 
--- Analyze para atualizar estatísticas
-ANALYZE;
+-- Vacuum e Analyze
+VACUUM ANALYZE;
 
--- Vacuum e Analyze específico
-VACUUM FULL ANALYZE campaigns;
+-- Vacuum completo (mais lento, mas mais efetivo)
+VACUUM FULL ANALYZE;
 ```
 
----
-
-## 📈 Performance
-
-### Índices Principais
-
-Todos os índices estão definidos em `schema.sql`. Os mais importantes:
-
-- `idx_tenants_slug` - Busca por slug
-- `idx_users_email` - Busca por email
-- `idx_campaigns_status` - Filtro por status
-- `idx_results_campaign` - Join com campaign
-- `idx_audit_logs_created` - Ordenação por data
-
-### Monitoramento de Queries Lentas
+### Limpar KV Store Expirado
 
 ```sql
--- Habilitar logging de queries lentas
-ALTER DATABASE matreiro_db SET log_min_duration_statement = 1000; -- 1 segundo
-
--- Ver queries mais lentas
-SELECT 
-    query,
-    calls,
-    total_time,
-    mean_time,
-    max_time
-FROM pg_stat_statements
-ORDER BY mean_time DESC
-LIMIT 20;
+-- Função já criada no schema
+SELECT cleanup_expired_kv();
 ```
 
-### Tamanho das Tabelas
+### Verificar Tamanho do Banco
 
 ```sql
+-- Tamanho total
+SELECT pg_size_pretty(pg_database_size('matreiro_db'));
+
+-- Tamanho por tabela
 SELECT 
-    schemaname,
-    tablename,
-    pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+  schemaname,
+  tablename,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
 FROM pg_tables
 WHERE schemaname = 'public'
-ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 10;
 ```
 
----
-
-## 🐛 Troubleshooting
-
-### Problema: Erro de Conexão
-
-```bash
-# Verificar se PostgreSQL está rodando
-docker-compose ps postgres
-
-# Ver logs
-docker-compose logs postgres
-
-# Testar conexão
-docker-compose exec postgres pg_isready -U matreiro_user
-```
-
-### Problema: Permissões Negadas
+### Verificar Conexões Ativas
 
 ```sql
--- Dar todas as permissões ao usuário
-GRANT ALL PRIVILEGES ON DATABASE matreiro_db TO matreiro_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO matreiro_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO matreiro_user;
-```
-
-### Problema: Schema Não Aplicado
-
-```bash
-# Verificar se as tabelas existem
-docker-compose exec postgres psql -U matreiro_user -d matreiro_db -c "\dt"
-
-# Se não existirem, aplicar schema
-docker-compose exec -T postgres psql -U matreiro_user -d matreiro_db < database/schema.sql
+SELECT 
+  pid,
+  usename,
+  application_name,
+  client_addr,
+  state,
+  query
+FROM pg_stat_activity
+WHERE datname = 'matreiro_db';
 ```
 
 ---
 
-## 📚 Referências
+## ⚠️ Notas Importantes
 
-- **PostgreSQL Documentation**: https://www.postgresql.org/docs/15/
-- **Django Models**: https://docs.djangoproject.com/en/5.0/topics/db/models/
-- **SQL Style Guide**: https://www.sqlstyle.guide/
-
----
-
-## 🤝 Contribuindo
-
-Para adicionar novas tabelas ou modificar o schema:
-
-1. **NUNCA** edite o schema diretamente em produção
-2. Crie um arquivo de migração no Django: `python manage.py makemigrations`
-3. Revise a migração gerada
-4. Aplique em desenvolvimento: `python manage.py migrate`
-5. Teste completamente
-6. Documente as mudanças aqui
-7. Crie um PR para revisão
+1. **Não commite dados sensíveis**: O seed.sql contém dados de exemplo, não use em produção
+2. **Backup regular**: Configure backups automáticos
+3. **Monitoramento**: Monitore tamanho do banco e queries lentas
+4. **Índices**: Crie índices adicionais conforme necessário
+5. **Vacuum**: Execute VACUUM ANALYZE regularmente
 
 ---
 
-**Última atualização:** 10 de Março de 2026  
-**Versão do Schema:** 1.0.0  
-**Mantenedor:** Under Protection
+**🛡️ Plataforma Matreiro - Under Protection © 2024-2026**

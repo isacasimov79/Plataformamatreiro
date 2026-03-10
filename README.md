@@ -1,369 +1,594 @@
-# Plataforma Matreiro - SaaS de Security Awareness
+# 🛡️ Plataforma Matreiro
 
-## 🎯 Sobre o Projeto
+**SaaS Multi-Tenant para Simulação de Phishing e Conscientização em Segurança da Informação**
 
-A **Plataforma Matreiro** é um SaaS multi-tenant focado em simulação de phishing e conscientização em segurança da informação (Security Awareness Training). Desenvolvida para empresas que buscam treinar suas equipes contra ameaças cibernéticas.
+A Plataforma Matreiro é uma solução completa desenvolvida pela Under Protection para treinamento e conscientização de colaboradores através de campanhas simuladas de phishing, módulos educacionais e análise avançada de métricas de segurança.
 
 ---
 
-## 🚨 STATUS ATUAL
+## 📋 Índice
 
-✅ **APLICAÇÃO TOTALMENTE FUNCIONAL**
+- [Características Principais](#características-principais)
+- [Arquitetura do Sistema](#arquitetura-do-sistema)
+- [Tecnologias Utilizadas](#tecnologias-utilizadas)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação Rápida](#instalação-rápida)
+- [Documentação Completa](#documentação-completa)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [Licença](#licença)
 
-- ✅ Interface completa com 19 páginas funcionais
-- ✅ Sistema multi-idioma (PT-BR, EN, ES) com 200+ traduções
-- ✅ Auto-login em modo desenvolvimento (sem necessidade de configuração)
-- ✅ Dashboard interativo com gráficos e métricas
-- ✅ Documentação técnica completa (~13,100 linhas)
+---
 
-**📖 Leia:** [STATUS_ATUAL_PLATAFORMA.md](./STATUS_ATUAL_PLATAFORMA.md) para detalhes completos
+## 🎯 Características Principais
 
-**🔧 Problema Recente Resolvido:** [CORRECAO_CARREGAMENTO.md](./CORRECAO_CARREGAMENTO.md)
+### Multi-Tenancy Completo
+- **Hierarquia de Tenants**: Suporte a clientes e sub-clientes
+- **Isolamento de Dados**: Cada tenant possui dados completamente isolados
+- **RBAC Granular**: Sistema de permissões baseado em roles (SuperAdmin, Admin, Manager, Analyst, User)
+
+### Campanhas de Phishing
+- **Engine de Templates**: Sistema avançado de criação e personalização de e-mails
+- **Disparo Automatizado**: Agendamento e envio automático de campanhas
+- **Tracking em Tempo Real**: Monitoramento de aberturas, cliques e submissões
+- **Landing Pages Dinâmicas**: Sistema de páginas falsas integrado ao banco
+
+### Análise e Relatórios
+- **Dashboard Analítico**: Métricas em tempo real com gráficos interativos
+- **Relatórios Exportáveis**: Geração de relatórios em PDF/Excel
+- **Análise de Comportamento**: Identificação de usuários vulneráveis
+- **Compliance**: Relatórios específicos para auditorias (LGPD, ISO 27001)
+
+### Módulo de Treinamentos
+- **Cursos Interativos**: Sistema completo de e-learning
+- **Validação via IA**: Detecção de fraude em provas usando computer vision
+- **Certificados Digitais**: Emissão automática após conclusão
+- **Gamificação**: Sistema de pontos e rankings
+
+### Integrações Corporativas
+- **Azure Active Directory**: Importação automática de usuários e grupos
+- **Microsoft 365**: Integração com Exchange/Outlook
+- **Single Sign-On**: Autenticação via Keycloak (SAML/OIDC)
+- **Webhooks**: Notificações para sistemas externos
+
+### Segurança
+- **Impersonation Segura**: SuperAdmins podem visualizar como outros usuários
+- **Auditoria Completa**: Log de todas as ações sensíveis
+- **Criptografia**: Dados sensíveis criptografados em repouso
+- **Rate Limiting**: Proteção contra abusos de API
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (React)                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  Dashboard   │  │  Campaigns   │  │  Training    │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Targets    │  │   Reports    │  │   Settings   │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓ HTTPS/REST
+┌─────────────────────────────────────────────────────────────────┐
+│                    API GATEWAY (Supabase)                        │
+│                    Edge Functions (Hono)                         │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND (Django/Python)                       │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  Campaign    │  │   Training   │  │    Azure     │          │
+│  │   Engine     │  │   Module     │  │  Integration │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │   Email      │  │  Analytics   │  │     IAM      │          │
+│  │   Sender     │  │   Engine     │  │  (Keycloak)  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASES & CACHE                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
+│  │  PostgreSQL  │  │    Redis     │  │   Supabase   │          │
+│  │  (Principal) │  │   (Cache)    │  │   (Edge DB)  │          │
+│  └──────────────┘  └──────────────┘  └──────────────┘          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠️ Tecnologias Utilizadas
+
+### Frontend
+- **React 18** - Framework principal
+- **TypeScript** - Tipagem estática
+- **Tailwind CSS 4** - Estilização
+- **React Router** - Navegação
+- **Recharts** - Gráficos e visualizações
+- **Lucide React** - Ícones
+
+### Backend
+- **Django 4.2** - Framework web
+- **Django REST Framework** - APIs RESTful
+- **Celery** - Processamento assíncrono
+- **Python 3.11** - Linguagem principal
+
+### Banco de Dados
+- **PostgreSQL 15** - Banco principal
+- **Redis 7** - Cache e filas
+- **Supabase** - Edge database e storage
+
+### Infraestrutura
+- **Docker & Docker Compose** - Containerização
+- **Keycloak** - Identity & Access Management
+- **Nginx** - Proxy reverso
+- **Gunicorn** - WSGI server
+
+### Integrações
+- **Azure AD** - Microsoft Active Directory
+- **SendGrid/AWS SES** - Envio de e-mails
+- **OpenAI API** - Validação via IA
+
+---
+
+## ✅ Pré-requisitos
+
+Antes de começar, certifique-se de ter instalado:
+
+- **Docker** >= 20.10
+- **Docker Compose** >= 2.0
+- **Git** >= 2.30
+- **Node.js** >= 18 (para o frontend)
+- **Python** >= 3.11 (para desenvolvimento local)
+
+### Verificar Instalação
+
+```bash
+docker --version
+docker-compose --version
+git --version
+node --version
+python --version
+```
+
+---
+
+## 🚀 Instalação Rápida
+
+### 1. Clone o Repositório
+
+```bash
+git clone https://github.com/underprotection/plataforma-matreiro.git
+cd plataforma-matreiro
+```
+
+### 2. Configure as Variáveis de Ambiente
+
+```bash
+# Backend
+cp backend/.env.example backend/.env
+
+# Frontend
+cp .env.example .env
+```
+
+**Edite os arquivos `.env` com suas credenciais.**
+
+### 3. Suba os Containers Docker
+
+```bash
+# Subir todos os serviços
+docker-compose up -d
+
+# Verificar logs
+docker-compose logs -f
+```
+
+### 4. Execute as Migrações e Seed
+
+```bash
+# Entrar no container do Django
+docker-compose exec django bash
+
+# Executar migrações
+python manage.py migrate
+
+# Criar superusuário
+python manage.py createsuperuser
+
+# Importar dados iniciais
+python manage.py loaddata seed
+
+# Sair do container
+exit
+```
+
+### 5. Acesse a Aplicação
+
+- **Frontend**: http://localhost:3000
+- **Backend Admin**: http://localhost:8000/admin
+- **API Docs**: http://localhost:8000/api/docs
+- **Keycloak**: http://localhost:8080
 
 ---
 
 ## 📚 Documentação Completa
 
-### 🚀 Início Rápido
-- **[Quick Start Guide](./QUICK_START.md)** - Como começar em 5 minutos
-- **[Como Rodar](./COMO_RODAR.md)** - Instruções detalhadas de setup
+A documentação completa está organizada na pasta `/docs`:
 
-### 📖 Documentação Técnica Principal
-- **[Documentação Geral](/docs/README.md)** - Índice completo de toda documentação
-- **[API Documentation](/docs/API_DOCUMENTATION.md)** - Referência completa da API REST
-- **[Database Migration](/docs/DATABASE_MIGRATION.md)** - Schema PostgreSQL e migrações
-- **[Django Documentation](/docs/DJANGO_DOCUMENTATION.md)** - Backend Django detalhado
-- **[Quick Reference](/docs/QUICK_REFERENCE.md)** - ⚡ Comandos e snippets úteis
+| Documento | Descrição |
+|-----------|-----------|
+| [QUICKSTART.md](/QUICKSTART.md) | Guia de início rápido (5 minutos) |
+| [SETUP.md](/docs/SETUP.md) | Instalação detalhada passo a passo |
+| [ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Arquitetura e decisões técnicas |
+| [DATABASE.md](/docs/DATABASE.md) | Estrutura e modelo do banco de dados |
+| [API.md](/docs/API.md) | Documentação completa das APIs |
+| [DEPLOYMENT.md](/docs/DEPLOYMENT.md) | Guia de deploy em produção |
+| [TROUBLESHOOTING.md](/docs/TROUBLESHOOTING.md) | Resolução de problemas comuns |
 
-### 📝 Gestão e Atualização
-- **[Changelog](/docs/CHANGELOG.md)** - Histórico de versões e mudanças
-- **[Documentation Update Guide](/docs/DOCUMENTATION_UPDATE_GUIDE.md)** - Como manter docs atualizados
-- **[Scripts README](/scripts/README.md)** - Scripts de automação e verificação
+### Backend
 
-### 🔐 Autenticação
-- **[Authentication Guide](./AUTHENTICATION.md)** - Implementação de autenticação
-- **[Keycloak Setup](./KEYCLOAK_SETUP.md)** - Configuração do Keycloak
+Documentação específica do backend Django:
 
-### 📋 Outros Documentos
-- **[Implementação Completa](./IMPLEMENTACAO_COMPLETA.md)**
-- **[Troubleshooting](./TROUBLESHOOTING.md)**
-- **[Sistema de Banco de Dados](./SISTEMA_BANCO_DE_DADOS.md)**
+```bash
+cd backend
+cat README.md
+```
+
+### Database
+
+Scripts e estrutura do banco de dados:
+
+```bash
+cd database
+cat README.md
+```
 
 ---
 
-## 🚀 Quick Start
+## 🔐 Variáveis de Ambiente
 
-```bash
-# 1. Instalar dependências
-pnpm install
+### Backend (`/backend/.env`)
 
-# 2. Configurar variáveis de ambiente
-cp .env.example .env
+```env
+# Django
+DEBUG=True
+SECRET_KEY=your-secret-key-here
+ALLOWED_HOSTS=localhost,127.0.0.1
 
-# 3. Iniciar serviços Docker (PostgreSQL, Redis)
-docker-compose up -d
+# Database
+DB_ENGINE=django.db.backends.postgresql
+DB_NAME=matreiro_db
+DB_USER=matreiro_user
+DB_PASSWORD=matreiro_password
+DB_HOST=postgres
+DB_PORT=5432
 
-# 4. Rodar aplicação
-pnpm dev
+# Redis
+REDIS_URL=redis://redis:6379/0
+
+# Keycloak
+KEYCLOAK_URL=http://keycloak:8080
+KEYCLOAK_REALM=matreiro
+KEYCLOAK_CLIENT_ID=matreiro-backend
+KEYCLOAK_CLIENT_SECRET=your-client-secret
+
+# Azure AD
+AZURE_CLIENT_ID=your-azure-client-id
+AZURE_CLIENT_SECRET=your-azure-client-secret
+AZURE_TENANT_ID=your-azure-tenant-id
+
+# Email
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.sendgrid.net
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=apikey
+EMAIL_HOST_PASSWORD=your-sendgrid-api-key
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
+
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+
+# Security
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+CSRF_TRUSTED_ORIGINS=http://localhost:3000
 ```
 
-**Acesse**: http://localhost:5173
+### Frontend (`/.env`)
 
-📚 **Documentação Completa**: [QUICK_START.md](./QUICK_START.md)
+```env
+# Supabase
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-## 🔐 Autenticação com Keycloak
+# Keycloak
+VITE_KEYCLOAK_URL=http://localhost:8080
+VITE_KEYCLOAK_REALM=matreiro
+VITE_KEYCLOAK_CLIENT_ID=matreiro-frontend
 
-✅ **Autenticação SSO totalmente implementada!**
+# API
+VITE_API_BASE_URL=http://localhost:8000/api
 
-- **URL**: https://iam.upn.com.br
-- **Realm**: underprotection
-- **Client**: Matreiro
-- **Protocolo**: OpenID Connect (OIDC) + PKCE
+# Azure AD (Frontend)
+VITE_AZURE_CLIENT_ID=your-azure-client-id
+VITE_AZURE_TENANT_ID=your-azure-tenant-id
+```
 
-### Login
-1. Clique em "Entrar com Keycloak"
-2. Faça login no Keycloak IAM
-3. Sistema autentica automaticamente via SSO
-
-### Documentação
-- 📘 [Guia de Autenticação](./AUTHENTICATION.md) - Implementação completa
-- ⚙️ [Setup do Keycloak](./KEYCLOAK_SETUP.md) - Configuração passo a passo
-
-## ✨ Funcionalidades Principais
-
-### 🏢 Multi-tenancy e Gestão de Clientes
-- ✅ Hierarquia completa: Master → Cliente → Sub-cliente
-- ✅ Impersonation (Superadmin pode visualizar como qualquer cliente)
-- ✅ Gestão de tenants com status (Ativo, Suspenso, Inativo)
-- ✅ RBAC granular (superadmin, admin, user)
-
-### 🔐 Autenticação e Segurança
-- ✅ **Keycloak SSO** - Single Sign-On corporativo
-- ✅ **OAuth 2.0 + OIDC** - Protocolos modernos
-- ✅ **PKCE** - Proteção contra interceptação
-- ✅ **Refresh automático** - Tokens renovados automaticamente
-- ✅ **JWT** - Tokens seguros para API
-
-### 📧 Engine de Phishing Simulado
-- ✅ **Campanhas**: Criação e gestão de campanhas de phishing
-- ✅ **Templates**: Biblioteca de templates de e-mail (globais e customizados)
-- ✅ **Tracking**: Rastreamento de aberturas, cliques e dados submetidos
-- ✅ **Agendamento**: Campanhas padrão e automação de boas-vindas
-
-### 👥 Gestão de Usuários
-- ✅ **Microsoft 365** - Integração com Azure AD
-- ✅ **Google Workspace** - Integração com Directory API
-- ✅ Sincronização automática de colaboradores
-- ✅ Importação manual individual
-- ✅ Upload de CSV/Excel (importação em lote)
-- ✅ Exportação de dados em CSV
-
-### 📊 Analytics e Relatórios
-- ✅ Dashboards com métricas em tempo real
-- ✅ Taxa de abertura, cliques e comprometimento
-- ✅ Análise por departamento
-- ✅ Identificação de usuários mais vulneráveis
-- ✅ Gráficos interativos (Recharts)
-
-### 🎓 Módulo de Treinamentos com IA
-- ✅ Upload de vídeos e apresentações
-- ✅ Geração automática de provas via IA
-- ✅ Correção automática de questões abertas
-- ✅ **Detecção de Fraude**: Sistema de IA para identificar uso de ChatGPT nas respostas
-
-### 🐛 Modo Debug
-- ✅ Logs de entrega SMTP (bounces, falhas de autenticação)
-- ✅ Logs de autenticação (Keycloak)
-- ✅ Logs de sistema (todos os serviços)
-- ✅ Exportação de logs (JSON e CSV)
-- ✅ Auditoria completa de operações
-
-## 🛠️ Stack Tecnológico
-
-### Frontend
-- **React 18.3** - Biblioteca principal
-- **TypeScript** - Tipagem estática
-- **React Router 7** - Roteamento (Data Mode)
-- **Tailwind CSS 4** - Estilização
-- **Keycloak JS** - Autenticação SSO
-- **Axios** - Cliente HTTP com interceptors
-- **Radix UI** - Componentes acessíveis
-- **Lucide React** - Ícones
-- **Recharts** - Gráficos e visualizações
-
-### Backend
-- **Django 5** - Framework Python
-- **Django REST Framework** - API REST
-- **PostgreSQL** - Banco de dados relacional
-- **Redis** - Cache e filas de mensageria
-- **Celery** - Tarefas assíncronas
-- **Keycloak** - Autenticação e IAM
-
-### DevOps
-- **Docker** - Containerização
-- **Docker Compose** - Orquestração de serviços
-- **Vite** - Build tool
+---
 
 ## 📁 Estrutura do Projeto
 
 ```
-matreiro-platform/
-├── src/app/
-│   ├── components/
-│   │   ├── ui/                    # Componentes de UI
-│   │   ├── AddUserDialog.tsx      # Dialog adicionar usuários
-│   │   ├── ConfigureIntegrationDialog.tsx  # Config integrações
-│   │   └── Layout.tsx             # Layout com sidebar
-│   ├── contexts/
-│   │   └── AuthContext.tsx        # Context Keycloak + Auth
-│   ├── lib/
-│   │   ├── keycloak.ts           # Configuração Keycloak
-│   │   ├── api.ts                # Cliente HTTP + interceptors
-│   │   ├── apiExamples.ts        # Exemplos de uso da API
-│   │   └── mockData.ts           # Dados mock
-│   ├── pages/
-│   │   ├── Login.tsx             # Login com Keycloak SSO
-│   │   ├── Dashboard.tsx         # Dashboard principal
-│   │   ├── Tenants.tsx           # Gestão de clientes
-│   │   ├── Users.tsx             # Gestão de usuários
-│   │   ├── Campaigns.tsx         # Campanhas de phishing
-│   │   ├── Templates.tsx         # Templates de e-mail
-│   │   ├── Trainings.tsx         # Treinamentos
-│   │   ├── Reports.tsx           # Relatórios
-│   │   └── Debug.tsx             # Modo debug
-│   └── App.tsx
-├── backend/
-│   ├── core/                     # App principal
-│   ├── tenants/                  # Multi-tenancy
-│   ├── campaigns/                # Campanhas
-│   ├── templates/                # Templates
-│   ├── trainings/                # Treinamentos
-│   └── matreiro/                 # Settings Django
-├── docker-compose.yml            # Serviços Docker
-├── .env.example                  # Template de variáveis
-├── AUTHENTICATION.md             # Guia de autenticação
-├── KEYCLOAK_SETUP.md            # Setup Keycloak
-└── QUICK_START.md               # Guia rápido
+plataforma-matreiro/
+├── backend/                    # Backend Django
+│   ├── matreiro/              # Projeto principal
+│   │   ├── settings.py        # Configurações
+│   │   ├── urls.py            # URLs principais
+│   │   └── asgi.py            # ASGI config
+│   ├── api/                   # App principal da API
+│   │   ├── models.py          # Modelos do banco
+│   │   ├── views.py           # Views/Controllers
+│   │   ├── serializers.py     # Serializers DRF
+│   │   ├── urls.py            # URLs da API
+│   │   └── admin.py           # Django Admin
+│   ├── campaigns/             # Módulo de Campanhas
+│   ├── training/              # Módulo de Treinamentos
+│   ├── integrations/          # Integrações (Azure, etc)
+│   ├── Dockerfile             # Dockerfile do Django
+│   ├── requirements.txt       # Dependências Python
+│   └── README.md              # Docs do backend
+│
+├── src/                       # Frontend React
+│   ├── app/                   # Componentes principais
+│   │   ├── App.tsx           # Componente raiz
+│   │   ├── routes.ts         # Configuração de rotas
+│   │   └── components/       # Componentes reutilizáveis
+│   ├── pages/                # Páginas da aplicação
+���   │   ├── Dashboard.tsx
+│   │   ├── Campaigns.tsx
+│   │   ├── Targets.tsx
+│   │   └── ...
+│   └── styles/               # Estilos globais
+│
+├── database/                  # Scripts de banco de dados
+│   ├── schema.sql            # Schema completo
+│   ├── seed.sql              # Dados iniciais
+│   └── README.md             # Documentação do DB
+│
+├── docs/                      # Documentação completa
+│   ├── SETUP.md              # Guia de instalação
+│   ├── ARCHITECTURE.md       # Arquitetura
+│   ├── DATABASE.md           # Modelo de dados
+│   ├── API.md                # Documentação da API
+│   ├── DEPLOYMENT.md         # Deploy
+│   └── TROUBLESHOOTING.md    # Troubleshooting
+│
+├── supabase/                  # Supabase Edge Functions
+│   └── functions/
+│       └── server/           # Edge Function principal
+│
+├── docker-compose.yml         # Orquestração Docker
+├── .env.example              # Exemplo de variáveis
+├── package.json              # Dependências Node
+└── README.md                 # Este arquivo
 ```
-
-## 🔑 Autenticação
-
-### Fluxo Completo
-```
-1. Usuário clica "Entrar com Keycloak"
-2. Redirect para iam.upn.com.br
-3. Login no Keycloak
-4. Callback com código de autorização
-5. Frontend troca código por tokens (JWT)
-6. Token armazenado e usado em todas requisições
-7. Refresh automático a cada 60s
-```
-
-### Uso em Componentes
-```tsx
-import { useAuth } from '../contexts/AuthContext';
-
-function MyComponent() {
-  const { user, isAuthenticated, keycloakToken } = useAuth();
-
-  // user.role: 'superadmin' | 'admin' | 'user'
-  // keycloakToken: Token JWT para API
-}
-```
-
-### Requisições API
-```tsx
-import { tenantsAPI } from '../lib/apiExamples';
-
-// Token é adicionado automaticamente no header
-const tenants = await tenantsAPI.getAll();
-```
-
-## 🎨 Design System
-
-### Identidade Visual Under Protection
-- **Cores primárias**: 
-  - Azul Navy: `#242545`
-  - Uva/Roxo: `#834a8b`
-  - Grafite: `#4a4a4a`
-- **Fonte**: Montserrat
-- **Logos**: Matreiro + Under Protection
-
-### Componentes UI
-- Design system moderno com Radix UI
-- Totalmente acessível (WCAG 2.1)
-- Tema consistente com Tailwind CSS 4
-
-## 📊 Métricas e KPIs
-
-### Principais Indicadores
-- **Taxa de Abertura**: % de e-mails abertos
-- **Taxa de Cliques**: % de links clicados
-- **Taxa de Comprometimento**: % de usuários que submeteram dados (CRÍTICO)
-
-### Análises Disponíveis
-- Evolução temporal das métricas
-- Análise por departamento
-- Usuários mais vulneráveis
-- Distribuição de risco
-
-## 🔗 Integrações
-
-### Microsoft 365 / Azure AD
-- Sincronização automática de usuários
-- Importação de estrutura organizacional
-- Suporte a múltiplos tenants Azure
-
-### Google Workspace
-- Integração via Directory API
-- Sincronização de usuários e grupos
-- OAuth 2.0 flow
-
-### Keycloak IAM
-- SSO corporativo
-- RBAC granular
-- Federação de identidades
-
-## 🐛 Debug e Monitoramento
-
-### Logs Disponíveis
-- **SMTP**: Entregas, bounces, falhas
-- **Autenticação**: Login, logout, refresh
-- **Sistema**: Erros, warnings, info
-- **Audit**: Todas as operações críticas
-
-### Exportação
-- Formato JSON (estruturado)
-- Formato CSV (análise em Excel)
-
-## 📚 Documentação
-
-- 📖 [README.md](./README.md) - Este arquivo
-- 🚀 [QUICK_START.md](./QUICK_START.md) - Início rápido
-- 🔐 [AUTHENTICATION.md](./AUTHENTICATION.md) - Guia de autenticação
-- ⚙️ [KEYCLOAK_SETUP.md](./KEYCLOAK_SETUP.md) - Setup Keycloak
-- 💻 [API Examples](./src/app/lib/apiExamples.ts) - Uso da API
-
-## 🎯 Roadmap
-
-### ✅ Fase 1 - Frontend (COMPLETO)
-- [x] Interface completa em React
-- [x] Autenticação com Keycloak
-- [x] Gestão de tenants
-- [x] Gestão de usuários (manual + CSV + integrações)
-- [x] Campanhas de phishing
-- [x] Templates de email
-- [x] Treinamentos
-- [x] Modo debug com logs
-
-### 🔄 Fase 2 - Backend (EM ANDAMENTO)
-- [x] Estrutura Django completa
-- [x] Modelos de dados
-- [ ] Autenticação JWT com Keycloak
-- [ ] APIs REST completas
-- [ ] Integração real Azure AD/Google
-
-### ⏳ Fase 3 - Engine de Phishing
-- [ ] SMTP real com tracking
-- [ ] Landing pages dinâmicas
-- [ ] Analytics em tempo real
-- [ ] Webhooks para tracking
-
-### ⏳ Fase 4 - IA e Automação
-- [ ] Integração OpenAI/Gemini
-- [ ] Geração automática de provas
-- [ ] Correção automática
-- [ ] Detecção de fraude em provas
-
-### ⏳ Fase 5 - Deploy
-- [ ] Ambiente de staging
-- [ ] Ambiente de produção
-- [ ] CI/CD pipeline
-- [ ] Monitoramento e alertas
-
-## 🤝 Contribuindo
-
-Este é um projeto proprietário da Under Protection. Para contribuir:
-
-1. Clone o repositório
-2. Crie uma branch: `git checkout -b feature/nova-feature`
-3. Commit: `git commit -m 'Add nova feature'`
-4. Push: `git push origin feature/nova-feature`
-5. Abra um Pull Request
-
-## 📞 Suporte e Contato
-
-- **Desenvolvido por**: Under Protection Network
-- **Keycloak IAM**: https://iam.upn.com.br
-- **Email**: igor@underprotection.com.br
-
-## 📄 Licença
-
-Projeto proprietário - Under Protection Ltda.
-Todos os direitos reservados.
 
 ---
 
-**Desenvolvido com ❤️ pela Under Protection Network**
+## 🎨 Design System
 
-🔐 **Autenticação SSO pronta para produção!**
+### Cores Oficiais Under Protection
+
+```css
+/* Cores Principais */
+--navy: #242545;       /* Azul navy - Cor primária */
+--purple: #834a8b;     /* Uva/Roxo - Cor secundária */
+--graphite: #4a4a4a;   /* Grafite - Cor neutra */
+
+/* Cores de Sistema */
+--success: #10b981;    /* Verde - Sucesso */
+--warning: #f59e0b;    /* Laranja - Aviso */
+--error: #ef4444;      /* Vermelho - Erro */
+--info: #3b82f6;       /* Azul - Informação */
+```
+
+### Tipografia
+
+- **Fonte Principal**: Montserrat
+- **Pesos**: 300 (Light), 400 (Regular), 500 (Medium), 600 (SemiBold), 700 (Bold)
+
+---
+
+## 🌍 Multi-idioma
+
+A plataforma suporta 3 idiomas:
+
+- 🇧🇷 **Português (BR)** - Idioma padrão
+- 🇺🇸 **Inglês (EN)** - English
+- 🇪🇸 **Espanhol (ES)** - Español
+
+Todos os textos são traduzidos através do sistema i18n implementado no frontend.
+
+---
+
+## 🧪 Testes
+
+### Backend
+
+```bash
+# Executar todos os testes
+docker-compose exec django python manage.py test
+
+# Executar com coverage
+docker-compose exec django coverage run --source='.' manage.py test
+docker-compose exec django coverage report
+```
+
+### Frontend
+
+```bash
+# Executar testes
+npm test
+
+# Coverage
+npm run test:coverage
+```
+
+---
+
+## 📦 Build para Produção
+
+### Backend
+
+```bash
+docker build -t matreiro-backend:latest ./backend
+```
+
+### Frontend
+
+```bash
+npm run build
+```
+
+---
+
+## 🤝 Contribuindo
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+---
+
+## 📝 Comandos Úteis
+
+### Docker
+
+```bash
+# Subir todos os serviços
+docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
+
+# Parar todos os serviços
+docker-compose down
+
+# Rebuild dos containers
+docker-compose up -d --build
+
+# Limpar volumes (CUIDADO: apaga dados!)
+docker-compose down -v
+```
+
+### Django
+
+```bash
+# Entrar no container
+docker-compose exec django bash
+
+# Migrações
+python manage.py makemigrations
+python manage.py migrate
+
+# Criar superusuário
+python manage.py createsuperuser
+
+# Shell interativo
+python manage.py shell
+
+# Coletar arquivos estáticos
+python manage.py collectstatic
+```
+
+### Database
+
+```bash
+# Backup do banco
+docker-compose exec postgres pg_dump -U matreiro_user matreiro_db > backup.sql
+
+# Restaurar backup
+docker-compose exec -T postgres psql -U matreiro_user matreiro_db < backup.sql
+
+# Acessar PostgreSQL
+docker-compose exec postgres psql -U matreiro_user -d matreiro_db
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Problema: Containers não sobem
+
+```bash
+# Verificar logs
+docker-compose logs
+
+# Limpar e rebuild
+docker-compose down -v
+docker-compose up -d --build
+```
+
+### Problema: Erro de conexão com o banco
+
+```bash
+# Verificar se o PostgreSQL está rodando
+docker-compose ps
+
+# Verificar logs do PostgreSQL
+docker-compose logs postgres
+
+# Reiniciar o serviço
+docker-compose restart postgres
+```
+
+### Problema: Erro de permissão
+
+```bash
+# Ajustar permissões
+sudo chown -R $USER:$USER .
+```
+
+Para mais problemas comuns, consulte [TROUBLESHOOTING.md](/docs/TROUBLESHOOTING.md).
+
+---
+
+## 📄 Licença
+
+Este projeto é propriedade da **Under Protection** e está sob licença proprietária.  
+Todos os direitos reservados © 2024-2026 Under Protection.
+
+---
+
+## 👥 Equipe
+
+Desenvolvido com ❤️ pela equipe Under Protection:
+
+- **Backend**: Django + Python
+- **Frontend**: React + TypeScript
+- **DevOps**: Docker + AWS
+- **Security**: Pentesting & IAM
+
+---
+
+## 📞 Suporte
+
+Para suporte técnico:
+
+- 📧 Email: suporte@underprotection.com.br
+- 🌐 Website: https://underprotection.com.br
+- 📚 Docs: https://docs.underprotection.com.br
+
+---
+
+**🛡️ Proteja sua empresa com a Plataforma Matreiro**

@@ -1,114 +1,285 @@
 version: '3.9'
 
 services:
+  # ==============================================
   # PostgreSQL Database
+  # ==============================================
   postgres:
-    image: postgres:16-alpine
-    container_name: matreiro-postgres
+    image: postgres:15-alpine
+    container_name: matreiro_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: matreiro_db
-      POSTGRES_USER: matreiro_user
-      POSTGRES_PASSWORD: matreiro_password_dev
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${DB_NAME:-matreiro_db}
+      POSTGRES_USER: ${DB_USER:-matreiro_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-matreiro_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
+      TZ: America/Sao_Paulo
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./backend/init-db:/docker-entrypoint-initdb.d
-    networks:
-      - matreiro-network
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    ports:
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U matreiro_user -d matreiro_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - matreiro_network
 
-  # Redis Cache
+  # ==============================================
+  # Redis Cache & Queue
+  # ==============================================
   redis:
     image: redis:7-alpine
-    container_name: matreiro-redis
+    container_name: matreiro_redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_password}
     volumes:
       - redis_data:/data
-    networks:
-      - matreiro-network
+    ports:
+      - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - matreiro_network
 
+  # ==============================================
   # Django Backend
-  backend:
+  # ==============================================
+  django:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: matreiro-backend
+      args:
+        PYTHON_VERSION: 3.11
+    container_name: matreiro_django
     restart: unless-stopped
     command: >
-      sh -c "python manage.py wait_for_db &&
-             python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             python manage.py create_superuser &&
-             python manage.py runserver 0.0.0.0:8000"
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --no-input &&
+             gunicorn matreiro.wsgi:application 
+             --bind 0.0.0.0:8000 
+             --workers 4 
+             --threads 2 
+             --timeout 120 
+             --log-level info 
+             --access-logfile - 
+             --error-logfile -"
+    env_file:
+      - ./backend/.env
     environment:
-      - DEBUG=True
-      - SECRET_KEY=dev-secret-key-change-in-production
-      - DATABASE_URL=postgresql://matreiro_user:matreiro_password_dev@postgres:5432/matreiro_db
-      - REDIS_URL=redis://redis:6379/0
-      - ALLOWED_HOSTS=localhost,127.0.0.1,backend
-      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
-    ports:
-      - "8000:8000"
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=matreiro.settings
     volumes:
       - ./backend:/app
-      - backend_static:/app/staticfiles
-      - backend_media:/app/media
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - django_logs:/var/log/matreiro
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - matreiro-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 40s
+    networks:
+      - matreiro_network
 
-  # React Frontend
-  frontend:
+  # ==============================================
+  # Celery Worker (Processar tarefas assíncronas)
+  # ==============================================
+  celery:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: matreiro-frontend
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: matreiro_celery
+    restart: unless-stopped
+    command: celery -A matreiro worker -l info --concurrency=4
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=matreiro.settings
+    volumes:
+      - ./backend:/app
+      - media_volume:/app/media
+      - celery_logs:/var/log/celery
+    depends_on:
+      - postgres
+      - redis
+      - django
+    networks:
+      - matreiro_network
+
+  # ==============================================
+  # Celery Beat (Agendador de tarefas)
+  # ==============================================
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: matreiro_celery_beat
+    restart: unless-stopped
+    command: celery -A matreiro beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=matreiro.settings
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - django
+    networks:
+      - matreiro_network
+
+  # ==============================================
+  # Celery Flower (Monitor web)
+  # ==============================================
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: matreiro_flower
+    restart: unless-stopped
+    command: celery -A matreiro flower --port=5555
+    env_file:
+      - ./backend/.env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DJANGO_SETTINGS_MODULE=matreiro.settings
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery
+    networks:
+      - matreiro_network
+
+  # ==============================================
+  # Keycloak (Identity & Access Management)
+  # ==============================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0
+    container_name: matreiro_keycloak
+    restart: unless-stopped
+    command: start-dev
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak_db
+      KC_DB_USERNAME: ${DB_USER:-matreiro_user}
+      KC_DB_PASSWORD: ${DB_PASSWORD:-matreiro_password}
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_LOG_LEVEL: info
+      KC_METRICS_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USERNAME:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - matreiro_network
+
+  # ==============================================
+  # Nginx (Reverse Proxy)
+  # ==============================================
+  nginx:
+    image: nginx:alpine
+    container_name: matreiro_nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_volume:/app/staticfiles:ro
+      - media_volume:/app/media:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - django
+    networks:
+      - matreiro_network
+
+  # ==============================================
+  # Redis Commander (Redis Web UI) - Opcional
+  # ==============================================
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: matreiro_redis_commander
     restart: unless-stopped
     environment:
-      - VITE_API_URL=http://localhost:8000/api
-      - VITE_APP_NAME=Matreiro
+      - REDIS_HOSTS=local:redis:6379:0:${REDIS_PASSWORD:-redis_password}
     ports:
-      - "3000:3000"
-    volumes:
-      - ./src:/app/src
-      - ./public:/app/public
-      - /app/node_modules
+      - "8081:8081"
     depends_on:
-      - backend
+      - redis
     networks:
-      - matreiro-network
-    stdin_open: true
-    tty: true
+      - matreiro_network
+    profiles:
+      - dev
 
+  # ==============================================
+  # PgAdmin (PostgreSQL Web UI) - Opcional
+  # ==============================================
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: matreiro_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@matreiro.com.br}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - matreiro_network
+    profiles:
+      - dev
+
+# ==============================================
+# Volumes
+# ==============================================
 volumes:
   postgres_data:
+    driver: local
   redis_data:
-  backend_static:
-  backend_media:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+  django_logs:
+    driver: local
+  celery_logs:
+    driver: local
+  pgadmin_data:
+    driver: local
 
+# ==============================================
+# Networks
+# ==============================================
 networks:
-  matreiro-network:
+  matreiro_network:
     driver: bridge
