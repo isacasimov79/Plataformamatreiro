@@ -148,227 +148,247 @@ export function Dashboard() {
         { id: 'pie-empty-data', name: 'Sem dados', value: 1, color: '#e5e7eb' }
       ];
 
+  const COLORS = ['#10b981', '#834a8b'];
+
   return (
-    <div className="p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">{t('dashboard.title')}</h1>
-        <p className="text-gray-500 mt-1 text-sm md:text-base">
-          {isMasterView
-            ? t('dashboard.overview')
-            : `${t('dashboard.client')}: ${impersonatedTenant?.name}`}
-        </p>
-      </div>
-
-      {/* Database Seeder - Mostrar apenas se necessário */}
-      <div className="mb-6">
-        <DatabaseSeeder />
-      </div>
-
-      {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              {t('dashboard.activeCampaigns')}
-            </CardTitle>
-            <Mail className="w-4 h-4 text-[#834a8b]" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold text-[#242545]">{activeCampaigns}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {totalCampaigns} {t('dashboard.totalCampaigns')}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30">
+      <div className="p-4 md:p-8 max-w-[1600px] mx-auto">
+        {/* Header com gradiente */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-[#242545] to-[#834a8b] rounded-2xl p-6 md:p-8 shadow-xl">
+            <h1 className="text-2xl md:text-4xl font-bold text-white mb-2">
+              {t('dashboard.title')}
+            </h1>
+            <p className="text-purple-100 text-sm md:text-base">
+              {isMasterView
+                ? t('dashboard.overview')
+                : `${t('dashboard.client')}: ${impersonatedTenant?.name}`}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              {t('dashboard.emailsSent')}
-            </CardTitle>
-            <Send className="w-4 h-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold text-[#242545]">
-              {totalSent.toLocaleString()}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{t('dashboard.last30Days')}</p>
-          </CardContent>
-        </Card>
+        {/* Database Seeder - Mostrar apenas se necessário */}
+        <div className="mb-6">
+          <DatabaseSeeder />
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              {t('dashboard.clickRate')}
-            </CardTitle>
-            <MousePointer className="w-4 h-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold text-[#242545]">{clickRate}%</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {totalClicked.toLocaleString()} {t('dashboard.clicks')}
-            </p>
-          </CardContent>
-        </Card>
+        {/* Cards de Estatísticas com gradientes */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
+          {/* Card 1 - Campanhas Ativas */}
+          <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-purple-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-700">
+                {t('dashboard.activeCampaigns')}
+              </CardTitle>
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Mail className="w-5 h-5 text-[#834a8b]" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#242545] to-[#834a8b] bg-clip-text text-transparent">
+                {activeCampaigns}
+              </div>
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                {totalCampaigns} {t('dashboard.totalCampaigns')}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">
-              {t('dashboard.compromiseRate')}
-            </CardTitle>
-            <AlertTriangle className="w-4 h-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl md:text-3xl font-bold text-red-600">{compromiseRate}%</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {totalSubmitted.toLocaleString()} {t('dashboard.compromises')}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Card 2 - Emails Enviados */}
+          <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-blue-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-700">
+                {t('dashboard.emailsSent')}
+              </CardTitle>
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Send className="w-5 h-5 text-blue-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl md:text-4xl font-bold text-blue-600">
+                {totalSent.toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-600 mt-2 font-medium">{t('dashboard.last30Days')}</p>
+            </CardContent>
+          </Card>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Desempenho de Campanhas</CardTitle>
-            <CardDescription>
-              Comparação das 5 campanhas mais recentes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] md:h-[350px] min-h-[300px] w-full">
-              {!loading && campaignData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={campaignData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
-                    <YAxis fontSize={12} />
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                    <Bar dataKey="Enviados" fill="#242545" />
-                    <Bar dataKey="Abertos" fill="#3b82f6" />
-                    <Bar dataKey="Clicados" fill="#f59e0b" />
-                    <Bar dataKey="Comprometidos" fill="#834a8b" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  {loading ? 'Carregando dados...' : 'Nenhum dado disponível'}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Card 3 - Taxa de Cliques */}
+          <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-orange-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-700">
+                {t('dashboard.clickRate')}
+              </CardTitle>
+              <div className="p-2 bg-orange-100 rounded-lg">
+                <MousePointer className="w-5 h-5 text-orange-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl md:text-4xl font-bold text-orange-600">{clickRate}%</div>
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                {totalClicked.toLocaleString()} {t('dashboard.clicks')}
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Taxa de Comprometimento</CardTitle>
-            <CardDescription>
-              Distribuição de usuários comprometidos vs não comprometidos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] md:h-[350px] min-h-[300px] w-full flex items-center justify-center">
-              {!loading && pieData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(1)}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${entry.id}-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-gray-400">
-                  {loading ? 'Carregando dados...' : 'Nenhum dado disponível'}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Card 4 - Taxa de Comprometimento */}
+          <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-white to-red-50/50">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-semibold text-gray-700">
+                {t('dashboard.compromiseRate')}
+              </CardTitle>
+              <div className="p-2 bg-red-100 rounded-lg">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl md:text-4xl font-bold text-red-600">{compromiseRate}%</div>
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                {totalSubmitted.toLocaleString()} {t('dashboard.compromises')}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Campanhas Recentes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Campanhas Recentes</CardTitle>
-          <CardDescription>Status das últimas campanhas executadas</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {relevantCampaigns.length > 0 ? (
-            <div className="space-y-4">
-              {relevantCampaigns.slice(0, 5).map((campaign) => {
-                const stats = campaign.stats || { sent: 0, opened: 0, clicked: 0, submitted: 0 };
-                return (
-                  <div
-                    key={campaign.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <Mail className="w-8 h-8 text-blue-500" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900">{campaign.name}</h4>
-                        <p className="text-sm text-gray-500">
-                          {stats.sent} enviados • {stats.submitted} comprometidos
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      {campaign.status === 'completed' && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Concluída
-                        </Badge>
-                      )}
-                      {campaign.status === 'running' && (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Em execução
-                        </Badge>
-                      )}
-                      {campaign.status === 'scheduled' && (
-                        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                          <Clock className="w-3 h-3 mr-1" />
-                          Agendada
-                        </Badge>
-                      )}
-                      {campaign.status === 'draft' && (
-                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                          Rascunho
-                        </Badge>
-                      )}
-                    </div>
+        {/* Gráficos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Desempenho de Campanhas</CardTitle>
+              <CardDescription>
+                Comparação das 5 campanhas mais recentes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] md:h-[350px] min-h-[300px] w-full">
+                {!loading && campaignData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                    <BarChart data={campaignData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
+                      <YAxis fontSize={12} />
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Bar key="bar-enviados" dataKey="Enviados" fill="#242545" />
+                      <Bar key="bar-abertos" dataKey="Abertos" fill="#10b981" />
+                      <Bar key="bar-clicados" dataKey="Clicados" fill="#f59e0b" />
+                      <Bar key="bar-comprometidos" dataKey="Comprometidos" fill="#834a8b" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    {loading ? 'Carregando...' : 'Sem dados disponíveis'}
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p className="text-sm">Nenhuma campanha criada ainda.</p>
-              <p className="text-xs mt-1">Use o botão "Popular Banco" acima para criar dados de exemplo.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Taxa de Comprometimento</CardTitle>
+              <CardDescription>
+                Distribuição de usuários comprometidos vs não comprometidos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px] md:h-[350px] min-h-[300px] w-full flex items-center justify-center">
+                {!loading && pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%" minHeight={300}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="text-gray-400">
+                    {loading ? 'Carregando...' : 'Sem dados disponíveis'}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Campanhas Recentes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Campanhas Recentes</CardTitle>
+            <CardDescription>Status das últimas campanhas executadas</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {relevantCampaigns.length > 0 ? (
+              <div className="space-y-4">
+                {relevantCampaigns.slice(0, 5).map((campaign) => {
+                  const stats = campaign.stats || { sent: 0, opened: 0, clicked: 0, submitted: 0 };
+                  return (
+                    <div
+                      key={campaign.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <Mail className="w-8 h-8 text-blue-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">{campaign.name}</h4>
+                          <p className="text-sm text-gray-500">
+                            {stats.sent} enviados • {stats.submitted} comprometidos
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {campaign.status === 'completed' && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Concluída
+                          </Badge>
+                        )}
+                        {campaign.status === 'running' && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Em execução
+                          </Badge>
+                        )}
+                        {campaign.status === 'scheduled' && (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Agendada
+                          </Badge>
+                        )}
+                        {campaign.status === 'draft' && (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+                            Rascunho
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-sm">Nenhuma campanha criada ainda.</p>
+                <p className="text-xs mt-1">Use o botão "Popular Banco" acima para criar dados de exemplo.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

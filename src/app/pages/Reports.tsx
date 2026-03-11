@@ -377,7 +377,7 @@ export function Reports() {
                 <CardDescription>Últimos 3 meses</CardDescription>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={300} minHeight={300}>
                   <LineChart data={timelineData} id="timeline-chart">
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
@@ -453,7 +453,7 @@ export function Reports() {
               <CardDescription>Taxa de comprometimento por área</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={400} minHeight={400}>
                 <BarChart data={departmentData} id="dept-chart">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />

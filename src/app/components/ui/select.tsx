@@ -10,10 +10,37 @@ import {
 
 import { cn } from "./utils";
 
+// Helper to filter out Figma-specific props
+const filterFigmaProps = (props: Record<string, any>) => {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => !key.startsWith('_fg'))
+  );
+};
+
+// Create clean icon components that filter Figma props
+const CleanChevronDownIcon = React.forwardRef<SVGSVGElement, React.ComponentProps<typeof ChevronDownIcon>>((props, ref) => {
+  const cleanProps = filterFigmaProps(props);
+  return <ChevronDownIcon ref={ref} {...cleanProps} />;
+});
+CleanChevronDownIcon.displayName = "CleanChevronDownIcon";
+
+const CleanChevronUpIcon = React.forwardRef<SVGSVGElement, React.ComponentProps<typeof ChevronUpIcon>>((props, ref) => {
+  const cleanProps = filterFigmaProps(props);
+  return <ChevronUpIcon ref={ref} {...cleanProps} />;
+});
+CleanChevronUpIcon.displayName = "CleanChevronUpIcon";
+
+const CleanCheckIcon = React.forwardRef<SVGSVGElement, React.ComponentProps<typeof CheckIcon>>((props, ref) => {
+  const cleanProps = filterFigmaProps(props);
+  return <CheckIcon ref={ref} {...cleanProps} />;
+});
+CleanCheckIcon.displayName = "CleanCheckIcon";
+
 function Select({
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+  const cleanProps = filterFigmaProps(props);
+  return <SelectPrimitive.Root data-slot="select" {...cleanProps} />;
 }
 
 function SelectGroup({
@@ -36,6 +63,9 @@ function SelectTrigger({
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: "sm" | "default";
 }) {
+  // Filter out Figma-specific props that shouldn't be passed to DOM elements
+  const cleanProps = filterFigmaProps(props);
+
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
@@ -44,11 +74,11 @@ function SelectTrigger({
         "border-input data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 flex w-full items-center justify-between gap-2 rounded-md border bg-input-background px-3 py-2 text-sm whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-9 data-[size=sm]:h-8 *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
-      {...props}
+      {...cleanProps}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
+        <CleanChevronDownIcon className="size-4 opacity-50" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
@@ -118,7 +148,7 @@ function SelectItem({
     >
       <span className="absolute right-2 flex size-3.5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="size-4" />
+          <CleanCheckIcon className="size-4" />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -152,7 +182,7 @@ function SelectScrollUpButton({
       )}
       {...props}
     >
-      <ChevronUpIcon className="size-4" />
+      <CleanChevronUpIcon className="size-4" />
     </SelectPrimitive.ScrollUpButton>
   );
 }
@@ -170,7 +200,7 @@ function SelectScrollDownButton({
       )}
       {...props}
     >
-      <ChevronDownIcon className="size-4" />
+      <CleanChevronDownIcon className="size-4" />
     </SelectPrimitive.ScrollDownButton>
   );
 }

@@ -240,28 +240,31 @@ export function AdvancedDashboard() {
                 <Tooltip />
                 <Legend />
                 <Area
+                  key="area-enviados"
                   type="monotone"
                   dataKey="enviados"
                   stroke="#3b82f6"
-                  fillOpacity={1}
+                  strokeWidth={2}
                   fill="url(#colorEnviados)"
                   name="E-mails Enviados"
                 />
                 <Area
+                  key="area-cliques"
                   type="monotone"
                   dataKey="cliques"
                   stroke="#f59e0b"
-                  fillOpacity={1}
+                  strokeWidth={2}
                   fill="url(#colorCliques)"
                   name="Cliques"
                 />
                 <Area
+                  key="area-capturas"
                   type="monotone"
                   dataKey="capturas"
                   stroke="#ef4444"
-                  fillOpacity={1}
+                  strokeWidth={2}
                   fill="url(#colorCapturas)"
-                  name="Capturas"
+                  name="Capturas de Dados"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -314,8 +317,8 @@ export function AdvancedDashboard() {
               <YAxis stroke="#6b7280" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" />
-              <Bar dataKey="treinamentos" fill="#10b981" name="Treinamentos %" />
+              <Bar key="bar-vulnerabilidade" dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" />
+              <Bar key="bar-treinamentos" dataKey="treinamentos" fill="#10b981" name="Treinamentos %" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -340,11 +343,11 @@ export function AdvancedDashboard() {
                 <YAxis stroke="#6b7280" />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" />
-                <Line type="monotone" dataKey="ter" stroke="#10b981" name="Terça" />
-                <Line type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" />
-                <Line type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" />
-                <Line type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" />
+                <Line key="line-seg" type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" />
+                <Line key="line-ter" type="monotone" dataKey="ter" stroke="#10b981" name="Terça" />
+                <Line key="line-qua" type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" />
+                <Line key="line-qui" type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" />
+                <Line key="line-sex" type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>

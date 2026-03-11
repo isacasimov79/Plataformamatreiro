@@ -105,18 +105,18 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-gray-50 via-white to-purple-50/20">
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-[#242545] border-b border-[#3a3a5e] flex items-center justify-between px-4 z-50">
-        <div className="bg-gradient-to-br from-pink-50 to-purple-50 px-3 py-2 rounded-lg flex items-center gap-3">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-[#242545] to-[#834a8b] border-b border-[#3a3a5e] flex items-center justify-between px-4 z-50 shadow-lg">
+        <div className="bg-white px-3 py-2 rounded-lg flex items-center gap-3 shadow-md">
           <img src={logoMatreiro} alt="Matreiro" className="h-7" />
-          <span className="text-2xl font-bold text-[#242545]">Matreiro</span>
+          <span className="text-xl font-bold text-[#242545]">Matreiro</span>
         </div>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="text-white hover:bg-[#2d2d51]"
+          className="text-white hover:bg-white/20"
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </Button>
@@ -130,17 +130,17 @@ export function Layout() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar com gradiente */}
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-40
-          w-64 bg-[#242545] border-r border-[#3a3a5e] flex flex-col
+          w-64 bg-gradient-to-b from-[#242545] via-[#2d2d51] to-[#242545] border-r border-[#3a3a5e] flex flex-col shadow-xl
           transform transition-transform duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center justify-center px-6 border-b border-[#3a3a5e] bg-gradient-to-br from-pink-50 to-purple-50">
+        <div className="h-16 flex items-center justify-center px-6 border-b border-[#3a3a5e] bg-white shadow-sm">
           <div className="flex items-center gap-3">
             <img src={logoMatreiro} alt="Matreiro" className="h-8" />
             <span className="text-2xl font-bold text-[#242545]">Matreiro</span>

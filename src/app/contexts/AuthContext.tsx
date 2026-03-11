@@ -70,6 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   roles.includes('admin') ? 'admin' : 'user',
             tenantId: tokenParsed?.tenant_id,
             avatar: tokenParsed?.picture,
+            isSuperadmin: roles.includes('superadmin'),
+            roles: roles,
           };
 
           setUser(keycloakUser);
@@ -137,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } finally {
         setIsLoading(false);
         setContextReady(true);
-        console.log('🔑 AuthProvider - Inicialização completa. User:', !!user || !!localStorage.getItem('matreiro_user'));
+        console.log('🔑 AuthProvider - Inicialização completa');
       }
     };
 

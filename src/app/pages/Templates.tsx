@@ -316,386 +316,386 @@ export function Templates() {
   };
 
   return (
-    <div className="p-4 md:p-8">
-      {/* Header */}
-      <div className="mb-6 md:mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              Templates
-            </h1>
-            <p className="text-gray-500 mt-1 text-sm md:text-base">
+    <div className="page-container">
+      <div className="page-wrapper">
+        {/* Header com gradiente */}
+        <div className="page-header">
+          <div className="page-header-gradient">
+            <h1 className="page-title">Templates</h1>
+            <p className="page-subtitle">
               Gerencie templates de e-mail e landing pages de phishing
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
-              onClick={() => setIsHtmlEditorOpen(true)}
-            >
-              <Code className="w-4 h-4 mr-2" />
-              Editor HTML Avançado
-            </Button>
-            <Button 
-              className="bg-[#834a8b] hover:bg-[#6d3d75]"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Novo Template
-            </Button>
-          </div>
         </div>
-      </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-[#242545]">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              E-mails
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.email}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
-              <Globe className="w-4 h-4" />
-              Web
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.web}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Mais Usado</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.mostUsed}x</div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Ações principais */}
+        <div className="flex justify-end gap-2 mb-6">
+          <Button
+            variant="outline"
+            className="border-[#834a8b] text-[#834a8b] hover:bg-[#834a8b] hover:text-white"
+            onClick={() => setIsHtmlEditorOpen(true)}
+          >
+            <Code className="w-4 h-4 mr-2" />
+            Editor HTML Avançado
+          </Button>
+          <Button 
+            className="bg-[#834a8b] hover:bg-[#6d3d75]"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Template
+          </Button>
+        </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
-                placeholder="Buscar templates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select
-              value={selectedType}
-              onValueChange={(value) => setSelectedType(value as typeof selectedType)}
-            >
-              <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="Tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="email">E-mails</SelectItem>
-                <SelectItem value="web">Landing Pages</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="stat-card stat-card-purple">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600">Total</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="stat-value-gradient">{stats.total}</div>
+            </CardContent>
+          </Card>
+          <Card className="stat-card stat-card-blue">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                E-mails
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.email}</div>
+            </CardContent>
+          </Card>
+          <Card className="stat-card stat-card-purple">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Web
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-600">{stats.web}</div>
+            </CardContent>
+          </Card>
+          <Card className="stat-card stat-card-green">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm text-gray-600">Mais Usado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.mostUsed}x</div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Templates Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lista de Templates</CardTitle>
-          <CardDescription>
-            {filteredTemplates.length} templates encontrados
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Dificuldade</TableHead>
-                <TableHead>Uso</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTemplates.map((template) => (
-                <TableRow key={template.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <div>{template.name}</div>
-                      {template.type === 'email' && template.subject && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Assunto: {template.subject}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {template.type === 'email' ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                        <Mail className="w-3 h-3 mr-1" />
-                        E-mail
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                        <Globe className="w-3 h-3 mr-1" />
-                        Web
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{template.category}</Badge>
-                  </TableCell>
-                  <TableCell>{getDifficultyBadge(template.difficulty)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{template.usageCount}x</span>
-                      <span className="text-xs text-gray-500">usado</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedTemplate(template);
-                            setIsViewDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          Visualizar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setSelectedTemplate(template);
-                            setIsEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleClone(template.id)}>
-                          <Copy className="w-4 h-4 mr-2" />
-                          Clonar
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => handleDelete(template.id)}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Remover
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* View Dialog */}
-      {selectedTemplate && (
-        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedTemplate.type === 'email' ? (
-                  <Mail className="w-5 h-5" />
-                ) : (
-                  <Globe className="w-5 h-5" />
-                )}
-                {selectedTemplate.name}
-              </DialogTitle>
-              <DialogDescription>
-                Visualização do template • {selectedTemplate.usageCount} usos
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label className="text-xs text-gray-500">Tipo</Label>
-                  <p className="font-medium capitalize">{selectedTemplate.type}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Categoria</Label>
-                  <p className="font-medium">{selectedTemplate.category}</p>
-                </div>
-                <div>
-                  <Label className="text-xs text-gray-500">Dificuldade</Label>
-                  <div className="mt-1">{getDifficultyBadge(selectedTemplate.difficulty)}</div>
-                </div>
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Input
+                  placeholder="Buscar templates..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-
-              {selectedTemplate.type === 'email' && selectedTemplate.subject && (
-                <div>
-                  <Label className="text-xs text-gray-500">Assunto</Label>
-                  <p className="font-medium mt-1">{selectedTemplate.subject}</p>
-                </div>
-              )}
-
-              <div>
-                <Label className="text-xs text-gray-500 mb-2 block">Conteúdo</Label>
-                {selectedTemplate.type === 'email' ? (
-                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap">
-                    {selectedTemplate.content}
-                  </div>
-                ) : (
-                  <Tabs defaultValue="preview">
-                    <TabsList>
-                      <TabsTrigger value="preview">Preview</TabsTrigger>
-                      <TabsTrigger value="code">Código HTML</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="preview">
-                      <div
-                        className="p-4 bg-white border border-gray-200 rounded-lg"
-                        dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlContent || '' }}
-                      />
-                    </TabsContent>
-                    <TabsContent value="code">
-                      <pre className="p-4 bg-gray-900 text-green-400 rounded-lg overflow-x-auto text-xs">
-                        {selectedTemplate.htmlContent}
-                      </pre>
-                    </TabsContent>
-                  </Tabs>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
-                Fechar
-              </Button>
-              <Button
-                onClick={() => {
-                  setIsViewDialogOpen(false);
-                  setIsEditDialogOpen(true);
-                }}
-                className="bg-[#834a8b] hover:bg-[#6d3d75]"
+              <Select
+                value={selectedType}
+                onValueChange={(value) => setSelectedType(value as typeof selectedType)}
               >
-                Editar Template
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+                <SelectTrigger className="w-full md:w-[200px]">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="email">E-mails</SelectItem>
+                  <SelectItem value="web">Landing Pages</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Edit Dialog */}
-      {selectedTemplate && (
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <form onSubmit={handleEditTemplate}>
+        {/* Templates Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Lista de Templates</CardTitle>
+            <CardDescription>
+              {filteredTemplates.length} templates encontrados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Dificuldade</TableHead>
+                  <TableHead>Uso</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredTemplates.map((template) => (
+                  <TableRow key={template.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <div>{template.name}</div>
+                        {template.type === 'email' && template.subject && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Assunto: {template.subject}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {template.type === 'email' ? (
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          <Mail className="w-3 h-3 mr-1" />
+                          E-mail
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700">
+                          <Globe className="w-3 h-3 mr-1" />
+                          Web
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{template.category}</Badge>
+                    </TableCell>
+                    <TableCell>{getDifficultyBadge(template.difficulty)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{template.usageCount}x</span>
+                        <span className="text-xs text-gray-500">usado</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedTemplate(template);
+                              setIsViewDialogOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedTemplate(template);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleClone(template.id)}>
+                            <Copy className="w-4 h-4 mr-2" />
+                            Clonar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleDelete(template.id)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Remover
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* View Dialog */}
+        {selectedTemplate && (
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Editar Template</DialogTitle>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedTemplate.type === 'email' ? (
+                    <Mail className="w-5 h-5" />
+                  ) : (
+                    <Globe className="w-5 h-5" />
+                  )}
+                  {selectedTemplate.name}
+                </DialogTitle>
                 <DialogDescription>
-                  Faça alterações no template selecionado
+                  Visualização do template • {selectedTemplate.usageCount} usos
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <Label htmlFor="edit-name">Nome do Template</Label>
-                  <Input
-                    id="edit-name"
-                    defaultValue={selectedTemplate.name}
-                    required
-                    className="mt-2"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs text-gray-500">Tipo</Label>
+                    <p className="font-medium capitalize">{selectedTemplate.type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Categoria</Label>
+                    <p className="font-medium">{selectedTemplate.category}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Dificuldade</Label>
+                    <div className="mt-1">{getDifficultyBadge(selectedTemplate.difficulty)}</div>
+                  </div>
                 </div>
 
-                {selectedTemplate.type === 'email' && (
+                {selectedTemplate.type === 'email' && selectedTemplate.subject && (
                   <div>
-                    <Label htmlFor="edit-subject">Assunto do E-mail</Label>
+                    <Label className="text-xs text-gray-500">Assunto</Label>
+                    <p className="font-medium mt-1">{selectedTemplate.subject}</p>
+                  </div>
+                )}
+
+                <div>
+                  <Label className="text-xs text-gray-500 mb-2 block">Conteúdo</Label>
+                  {selectedTemplate.type === 'email' ? (
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap">
+                      {selectedTemplate.content}
+                    </div>
+                  ) : (
+                    <Tabs defaultValue="preview">
+                      <TabsList>
+                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                        <TabsTrigger value="code">Código HTML</TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="preview">
+                        <div
+                          className="p-4 bg-white border border-gray-200 rounded-lg"
+                          dangerouslySetInnerHTML={{ __html: selectedTemplate.htmlContent || '' }}
+                        />
+                      </TabsContent>
+                      <TabsContent value="code">
+                        <pre className="p-4 bg-gray-900 text-green-400 rounded-lg overflow-x-auto text-xs">
+                          {selectedTemplate.htmlContent}
+                        </pre>
+                      </TabsContent>
+                    </Tabs>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                  Fechar
+                </Button>
+                <Button
+                  onClick={() => {
+                    setIsViewDialogOpen(false);
+                    setIsEditDialogOpen(true);
+                  }}
+                  className="bg-[#834a8b] hover:bg-[#6d3d75]"
+                >
+                  Editar Template
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Edit Dialog */}
+        {selectedTemplate && (
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <form onSubmit={handleEditTemplate}>
+                <DialogHeader>
+                  <DialogTitle>Editar Template</DialogTitle>
+                  <DialogDescription>
+                    Faça alterações no template selecionado
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label htmlFor="edit-name">Nome do Template</Label>
                     <Input
-                      id="edit-subject"
-                      defaultValue={selectedTemplate.subject}
+                      id="edit-name"
+                      defaultValue={selectedTemplate.name}
                       required
                       className="mt-2"
                     />
                   </div>
-                )}
 
-                <div>
-                  <Label htmlFor="edit-content">Conteúdo</Label>
-                  <Textarea
-                    id="edit-content"
-                    defaultValue={
-                      selectedTemplate.type === 'email'
-                        ? selectedTemplate.content
-                        : selectedTemplate.htmlContent
-                    }
-                    rows={12}
-                    required
-                    className="mt-2 font-mono text-sm"
-                  />
+                  {selectedTemplate.type === 'email' && (
+                    <div>
+                      <Label htmlFor="edit-subject">Assunto do E-mail</Label>
+                      <Input
+                        id="edit-subject"
+                        defaultValue={selectedTemplate.subject}
+                        required
+                        className="mt-2"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label htmlFor="edit-content">Conteúdo</Label>
+                    <Textarea
+                      id="edit-content"
+                      defaultValue={
+                        selectedTemplate.type === 'email'
+                          ? selectedTemplate.content
+                          : selectedTemplate.htmlContent
+                      }
+                      rows={12}
+                      required
+                      className="mt-2 font-mono text-sm"
+                    />
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setIsEditDialogOpen(false);
-                    setSelectedTemplate(null);
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                  Salvar Alterações
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-      )}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditDialogOpen(false);
+                      setSelectedTemplate(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
+                    Salvar Alterações
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
 
-      {/* New Template Dialog */}
-      <NewTemplateDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onTemplateCreated={loadTemplates}
-      />
+        {/* New Template Dialog */}
+        <NewTemplateDialog
+          open={isAddDialogOpen}
+          onOpenChange={setIsAddDialogOpen}
+          onTemplateCreated={loadTemplates}
+        />
 
-      {/* HTML Editor Dialog */}
-      <HtmlTemplateEditor
-        isOpen={isHtmlEditorOpen}
-        onClose={() => setIsHtmlEditorOpen(false)}
-        onSave={handleSaveHtmlTemplate}
-        title="Editor de Template HTML"
-        description="Crie templates HTML avançados com suporte a imagens e JavaScript"
-        templateType="email"
-      />
+        {/* HTML Editor Dialog */}
+        <HtmlTemplateEditor
+          isOpen={isHtmlEditorOpen}
+          onClose={() => setIsHtmlEditorOpen(false)}
+          onSave={handleSaveHtmlTemplate}
+          title="Editor de Template HTML"
+          description="Crie templates HTML avançados com suporte a imagens e JavaScript"
+          templateType="email"
+        />
+      </div>
     </div>
   );
 }

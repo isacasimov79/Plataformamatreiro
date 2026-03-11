@@ -194,7 +194,7 @@ export function AnalyticsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={350}>
+          <ResponsiveContainer width="100%" height={350} minHeight={350}>
             <LineChart data={timeSeries}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -210,6 +210,7 @@ export function AnalyticsDashboard() {
               />
               <Legend />
               <Line 
+                key="line-opened"
                 type="monotone" 
                 dataKey="opened" 
                 stroke="#242545" 
@@ -217,6 +218,7 @@ export function AnalyticsDashboard() {
                 strokeWidth={2}
               />
               <Line 
+                key="line-clicked"
                 type="monotone" 
                 dataKey="clicked" 
                 stroke="#834a8b" 
@@ -224,6 +226,7 @@ export function AnalyticsDashboard() {
                 strokeWidth={2}
               />
               <Line 
+                key="line-submitted"
                 type="monotone" 
                 dataKey="submitted" 
                 stroke="#4a4a4a" 
@@ -245,7 +248,7 @@ export function AnalyticsDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} minHeight={300}>
               <BarChart data={departments}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -257,8 +260,8 @@ export function AnalyticsDashboard() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="clicked" fill="#834a8b" name="Clicaram" />
-                <Bar dataKey="total" fill="#242545" name="Total" />
+                <Bar key="bar-clicked" dataKey="clicked" fill="#834a8b" name="Clicaram" />
+                <Bar key="bar-total" dataKey="total" fill="#242545" name="Total" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -272,7 +275,7 @@ export function AnalyticsDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={300} minHeight={300}>
               <PieChart>
                 <Pie
                   data={[

@@ -19,4 +19,40 @@ export default defineConfig({
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
+  
+  // Otimizações para evitar erros de import dinâmico
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router',
+      'recharts',
+      'lucide-react',
+      'i18next',
+      'react-i18next',
+      'sonner',
+    ],
+    exclude: [],
+  },
+  
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
+  
+  server: {
+    fs: {
+      strict: false,
+    },
+    hmr: {
+      overlay: true,
+    },
+  },
 })
