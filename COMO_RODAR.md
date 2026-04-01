@@ -386,3 +386,154 @@ Se conseguir:
 ---
 
 *Última atualização: 08/03/2026*
+
+---
+
+## ⚠️ APRENDIZADOS DE REBUILD (04/2026)
+
+_Seções adicionadas após o rebuild de UX ter destruído o frontend em produção._
+
+### 1. Arquitetura Real do Frontend
+
+O frontend é servido pelo **Nginx a partir do-host** (`/var/www/matreiro`), NÃO do volume Docker. O container `matreiro_nginx` faz bind mount desse diretório.
+
+```
+npm run build  →  /root/.openclaw/workspace/Plataformamatreirosaas/dist/
+                                    ↓ cp
+                            /var/www/matreiro/    ← nginx lê daqui
+```
+
+**Se você rebuildar sem copiar, o site continua servindo o build antigo.**
+
+### 2. O Problema dos Imports "figma:asset"
+
+O projeto usa um plugin Figma (`@figma/my-make-file`) que gera imports assim:
+```tsx
+import logoMatreiro from 'figma:asset/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
+```
+
+Esses imports **não existem no filesystem** e quebram o Rollup em produção. Para rebuildar:
+
+```bash
+# Substituir TODOS os imports figma:asset por uma string vazia ANTES do build
+find src -type f -name "*.tsx" -exec sed -i "s|import logoMatreiro from [^;]*;|const logoMatreiro = '';|g" {} +
+npm run build
+```
+
+⚠️ **Isso significa que os logos NÃO aparecem após rebuildar localmente.** 
+Para restaurar os logos, é preciso reverter o sed e usar o plugin Figma no ambiente original.
+
+### 3. Ordem Correta de Rebuild (Sem Destruir)
+
+```bash
+# 1. Build local
+cd /root/.openclaw/workspace/Plataformamatreirosaas
+npm run build
+
+# 2. Copiar para o diretório do Nginx (NO HOST, não no container)
+cp -r dist/* /var/www/matreiro/
+
+# 3. Reiniciar SOMENTE o Nginx e Django (NÃO usar docker-compose up -d completo)
+docker restart matreiro_nginx matreiro_django
+
+# 4. Verificar que está no ar
+curl -s http://10.35.0.39/ | grep "index-"
+```
+
+**⚠️ NÃO USE `docker-compose up -d` durante o trabalho!** 
+O compose tenta recriar todos os containers e entra em loop de dependências com postgres/redis.
+
+### 4. Containers Estão Rodando Manualmente
+
+Os containers do deploy atual foram subir manualmente (`docker run`), não via `docker-compose`. O compose tem issues com "container is marked for removal" e "dependency failed to start".
+
+Se precisar restartar:
+```bash
+docker restart matreiro_nginx matreiro_postgres matreiro_redis matreiro_django
+```
+
+Se algum não subir, suba manualmente:
+```bash
+# Redis e Postgres primeiro
+docker start matreiro_redis matreiro_postgres
+
+# Depois Django
+docker run -d --network plataformamatreirosaas_network --name matreiro_django -p 8000:8000 \
+  -e "DATABASE_URL=postgresql://matreiro_user:matreiro_password@postgres:5432/matreiro_db" \
+  -e "REDIS_URL=redis://redis:6379/0" \
+  -e DJANGO_SETTINGS_MODULE=matreiro.settings \
+  -e PYTHONUNBUFFERED=1 \
+  plataformamatreirosaas-django:latest \
+  gunicorn matreiro.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 2 --timeout 120
+
+# Nginx por último
+docker run -d --network plataformamatreirosaas_network --name matreiro_nginx \
+  -p 80:80 \
+  -v /tmp/nginx.conf:/etc/nginx/conf.d/default.conf:ro \
+  -v /var/www/matreiro:/usr/share/nginx/html:ro \
+  nginx:alpine
+```
+
+### 5. Configuração do Nginx (Produção)
+
+O Nginx no host usa `/tmp/nginx.conf` com referência a `matreiro_django` (não só `django`). O arquivo do compose está em `./nginx.conf` mas a versão corrigida que funciona está em `/tmp/nginx.conf`.
+
+Para verificar qual está ativo:
+```bash
+docker exec matreiro_nginx cat /etc/nginx/conf.d/default.conf | grep upstream
+```
+
+### 6. Django Settings e DATABASE_URL
+
+O Django **SÓ funciona** se a variável `DATABASE_URL` estiver setada. O `settings.py` tem um default hardcoded com senha errada:
+```python
+default='postgresql://matreiro_user:matreiro_password_dev@postgres:5432/matreiro_db'
+#                                                            ^^^^^^^^ senha errada
+```
+
+Se o Django logar `password authentication failed`, é porque a variável não chegou. Verifique:
+```bash
+docker exec matreiro_django env | grep DATABASE
+```
+
+### 7. Se o npm install Morre (SIGKILL)
+
+O servidor tem RAM limitada. Use:
+```bash
+# Reduzir workers e threads
+NODE_OPTIONS="--max-old-space-size=2048" npm install --prefer-offline
+
+# Ou instalar em partes
+npm install --no-optional --legacy-peer-deps
+```
+
+### 8. Health Check do Sistema
+
+```bash
+# Backend
+curl http://10.35.0.39:8000/api/health/
+
+# Frontend
+curl http://10.35.0.39/
+
+# Nginx
+curl -I http://10.35.0.39/
+
+# Postgres (via container)
+docker exec matreiro_postgres pg_isready -U matreiro_user -d matreiro_db
+```
+
+---
+
+**Resumo: Rebuildar o frontend sem derrubar o sistema**
+
+```bash
+# Fluxo seguro (não destrói containers rodando)
+cd /root/.openclaw/workspace/Plataformamatreirosaas
+find src -type f -name "*.tsx" -exec sed -i "s|import logoMatreiro from [^;]*;|const logoMatreiro = '';|g" {} +
+npm run build
+cp -r dist/* /var/www/matreiro/
+docker restart matreiro_nginx
+# Django não precisa restartar se não mudou o backend
+```
+

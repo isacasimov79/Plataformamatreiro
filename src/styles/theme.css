@@ -1,119 +1,173 @@
 @custom-variant dark (&:is(.dark *));
 
+/* ============================================================
+   DESIGN SYSTEM - UNDER PROTECTION / MATREIRO
+   ============================================================
+   Cores Principais:
+   • Primary Blue: #212146
+   • Secondary Grape: #9D4897
+   • Neutral Graphite: #4A4A4C
+   • White: #FFFFFF
+   • Light tones: #7C7EAA, #E0C7E6, #CFD2D3, #D8D6DF
+   ============================================================ */
+
 :root {
-  /* Cores da marca Under Protection / Matreiro */
-  --brand-navy: #242545;
-  --brand-purple: #834a8b;
-  --brand-gray: #4a4a4a;
-  
+  /* =====================
+     1. CORES DA MARCA
+     ===================== */
+  --color-primary-blue: #212146;    /* Fundos de destaque, navbar, sidebar, botões primários */
+  --color-secondary-grape: #9D4B97; /* CTAs, badges, notificações, destaque */
+  --color-neutral-graphite: #4A4A4C; /* Textos secundários, bordas, ícones inativos */
+  --color-white: #FFFFFF;           /* Fundos de containers, cards */
+
+  /* Tons Claros */
+  --color-light-blue: #7C7EAA;     /* Textos terciários, ícones sobre fundo escuro */
+  --color-light-purple: #E0C7E6;    /* Fundos suaves, balões de chat do sistema */
+  --color-light-gray-1: #CFD2D3;    /* Bordas de inputs, divisórias */
+  --color-light-gray-2: #D8D6DF;    /* Fundos de áreas inativas */
+
+  /* =====================
+     2. DESIGN TOKENS
+     ===================== */
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: #242545;
-  --card: #ffffff;
-  --card-foreground: #242545;
-  --popover: oklch(1 0 0);
-  --popover-foreground: #242545;
-  --primary: #242545;
-  --primary-foreground: #ffffff;
-  --secondary: #f5f5f7;
-  --secondary-foreground: #242545;
-  --muted: #f5f5f7;
-  --muted-foreground: #6b6b7b;
-  --accent: #834a8b;
-  --accent-foreground: #ffffff;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: transparent;
-  --input-background: #f9f9fb;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: #834a8b;
-  --chart-1: #242545;
-  --chart-2: #834a8b;
-  --chart-3: #10b981;
-  --chart-4: #f59e0b;
-  --chart-5: #ef4444;
   --radius: 0.5rem;
-  --sidebar: #242545;
-  --sidebar-foreground: #ffffff;
-  --sidebar-primary: #834a8b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2d2d51;
-  --sidebar-accent-foreground: #ffffff;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* =====================
+     3. SEMÂNTICA (LIGHT MODE)
+     ===================== */
+  --background: #FFFFFF;
+  --foreground: #212146;
+  --background-alt: #F5F5F7;
+  --card: #FFFFFF;
+  --card-foreground: #212146;
+  --popover: #FFFFFF;
+  --popover-foreground: #212146;
+
+  --primary: #212146;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #9D4B97;
+  --secondary-foreground: #FFFFFF;
+
+  --accent: #9D4B97;
+  --accent-foreground: #FFFFFF;
+
+  --muted: #F5F5F7;
+  --muted-foreground: #7C7EAA;
+
+  --destructive: #DC2626;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #CFD2D3;
+  --input: #FFFFFF;
+  --input-border: #CFD2D3;
+  --input-focus-border: #212146;
+  --ring: #9D4B97;
+
+  /* Sidebar */
+  --sidebar: #212146;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #9D4B97;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2D2D51;
+  --sidebar-accent-foreground: #FFFFFF;
   --sidebar-border: #3a3a5e;
-  --sidebar-ring: #834a8b;
+  --sidebar-ring: #9D4B97;
+
+  /* Charts */
+  --chart-1: #212146;
+  --chart-2: #9D4B97;
+  --chart-3: #10B981;
+  --chart-4: #F59E0B;
+  --chart-5: #EF4444;
+
+  /* Typography weights */
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
 }
 
 .dark {
-  --background: #0f0f1a;
-  --foreground: #f5f5f7;
-  --card: #1a1a2e;
-  --card-foreground: #f5f5f7;
-  --popover: #1a1a2e;
-  --popover-foreground: #f5f5f7;
-  --primary: #834a8b;
-  --primary-foreground: #ffffff;
-  --secondary: #2d2d51;
-  --secondary-foreground: #f5f5f7;
-  --muted: #2d2d51;
-  --muted-foreground: #9b9ba8;
-  --accent: #834a8b;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: #2d2d51;
-  --ring: #834a8b;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: #834a8b;
-  --chart-2: #10b981;
-  --chart-3: #f59e0b;
-  --chart-4: #3b82f6;
-  --chart-5: #ef4444;
-  --sidebar: #1a1a2e;
-  --sidebar-foreground: #f5f5f7;
-  --sidebar-primary: #834a8b;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #2d2d51;
-  --sidebar-accent-foreground: #f5f5f7;
+  --background: #0F0F1A;
+  --foreground: #F5F5F7;
+  --background-alt: #1A1A35;
+  --card: #1A1A35;
+  --card-foreground: #F5F5F7;
+  --popover: #1A1A35;
+  --popover-foreground: #F5F5F7;
+
+  --primary: #9D4B97;
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #212146;
+  --secondary-foreground: #FFFFFF;
+
+  --accent: #9D4B97;
+  --accent-foreground: #FFFFFF;
+
+  --muted: #1A1A35;
+  --muted-foreground: #7C7EAA;
+
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #3a3a5e;
+  --input: #1A1A35;
+  --input-border: #4A4A4C;
+  --input-focus-border: #9D4B97;
+  --ring: #9D4B97;
+
+  --sidebar: #1A1A35;
+  --sidebar-foreground: #F5F5F7;
+  --sidebar-primary: #9D4B97;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #2D2D51;
+  --sidebar-accent-foreground: #F5F5F7;
   --sidebar-border: #3a3a5e;
-  --sidebar-ring: #834a8b;
+  --sidebar-ring: #9D4B97;
+
+  --chart-1: #9D4B97;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #3B82F6;
+  --chart-5: #EF4444;
 }
 
 @theme inline {
+  /* Mapeamento para Tailwind */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-background-alt: var(--background-alt);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+
   --color-border: var(--border);
   --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
+  --color-input-border: var(--input-border);
+  --color-input-focus-border: var(--input-focus-border);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -122,251 +176,506 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
-  /* Cores adicionais da marca */
-  --color-brand-navy: var(--brand-navy);
-  --color-brand-purple: var(--brand-purple);
-  --color-brand-gray: var(--brand-gray);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Cores da marca expostas */
+  --color-primary-blue: var(--color-primary-blue);
+  --color-secondary-grape: var(--color-secondary-grape);
+  --color-neutral-graphite: var(--color-neutral-graphite);
+  --color-light-blue: var(--color-light-blue);
+  --color-light-purple: var(--color-light-purple);
+  --color-light-gray-1: var(--color-light-gray-1);
+  --color-light-gray-2: var(--color-light-gray-2);
+
+  /* Border radius */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
+    outline-color: var(--ring);
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-  }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
-
-  html {
+    font-family: 'Montserrat', Arial, sans-serif;
     font-size: var(--font-size);
+    font-weight: var(--font-weight-regular);
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: 600;
-    line-height: 1.5;
+  /* =====================
+     4. TIPOGRAFIA
+     ===================== */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary-blue);
   }
 
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: 600;
-    line-height: 1.5;
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: var(--foreground);
   }
 
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: 600;
-    line-height: 1.5;
+  h1 { font-size: 2rem; font-weight: 600; }
+  h2 { font-size: 1.5rem; font-weight: 600; }
+  h3 { font-size: 1.25rem; font-weight: 600; }
+  h4 { font-size: 1rem; font-weight: 600; }
+
+  p, span {
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-weight: var(--font-weight-light);
+    color: var(--color-neutral-graphite);
   }
 
-  h4 {
-    font-size: var(--text-base);
-    font-weight: 600;
-    line-height: 1.5;
+  .dark p, .dark span {
+    color: var(--foreground);
   }
 
-  label {
-    font-size: var(--text-base);
+  /* =====================
+     5. BOTÕES
+     ===================== */
+
+  /* Primário: Fundo #212146, texto #FFFFFF */
+  .btn-primary,
+  button[class*="primary"],
+  .btn[class*="bg-[#212146]"] {
+    background-color: #212146 !important;
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: 'Montserrat', Arial, sans-serif;
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  button {
-    font-size: var(--text-base);
+  .btn-primary:hover,
+  button[class*="primary"]:hover,
+  .btn[class*="bg-[#212146]"]:hover {
+    background: linear-gradient(135deg, #212146 0%, #7C7EAA 100%) !important;
+    transform: translateY(-1px);
+  }
+
+  /* Secundário / CTA: Fundo #9D4B97, texto #FFFFFF */
+  .btn-secondary,
+  .btn-cta,
+  button[class*="secondary"],
+  .btn[class*="bg-[#9D4B97]"] {
+    background-color: #9D4B97 !important;
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-family: 'Montserrat', Arial, sans-serif;
     font-weight: var(--font-weight-medium);
-    line-height: 1.5;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
-}
-
-/* 🎨 ESTILOS GLOBAIS PARA PÁGINAS - Design Moderno com Fundo Claro */
-@layer components {
-  /* Container principal de todas as páginas */
-  .page-container {
-    @apply min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30;
+  .btn-secondary:hover,
+  .btn-cta:hover,
+  button[class*="secondary"]:hover,
+  .btn[class*="bg-[#9D4B97]"]:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 
-  /* Wrapper interno com padding e max-width */
-  .page-wrapper {
-    @apply p-4 md:p-8 max-w-[1600px] mx-auto;
+  /* Desabilitado: Fundo #CFD2D3, texto #4A4A4C */
+  .btn:disabled,
+  button:disabled,
+  .btn-disabled {
+    background-color: #CFD2D3 !important;
+    color: #4A4A4C !important;
+    opacity: 0.5;
+    cursor: not-allowed !important;
   }
 
-  /* Header de página com gradiente da marca */
-  .page-header {
-    @apply mb-8;
+  /* =====================
+     6. INPUTS DE FORMULÁRIO
+     ===================== */
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="url"],
+  input[type="tel"],
+  textarea,
+  select {
+    background-color: #FFFFFF !important;
+    color: #212146 !important;
+    border: 1px solid #CFD2D3 !important;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Montserrat', Arial, sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .page-header-gradient {
-    @apply bg-gradient-to-r from-[#242545] to-[#834a8b] rounded-2xl p-6 md:p-8 shadow-xl;
+  input::placeholder,
+  textarea::placeholder {
+    color: #7C7EAA !important;
   }
 
-  .page-title {
-    @apply text-2xl md:text-4xl font-bold text-white mb-2;
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #212146 !important;
+    box-shadow: 0 0 0 3px rgba(33, 33, 70, 0.1);
+    outline: none;
   }
 
-  .page-subtitle {
-    @apply text-purple-100 text-sm md:text-base;
+  /* Dark mode inputs */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="search"],
+  .dark textarea,
+  .dark select {
+    background-color: #1A1A35 !important;
+    color: #FFFFFF !important;
+    border-color: #4A4A4C !important;
   }
 
-  /* Cards modernos com gradientes */
-  .stat-card {
-    @apply border-none shadow-lg hover:shadow-xl transition-all duration-300;
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #7C7EAA !important;
   }
 
-  .stat-card-purple {
-    @apply bg-gradient-to-br from-white to-purple-50/50;
+  .dark input:focus,
+  .dark textarea:focus,
+  .dark select:focus {
+    border-color: #9D4B97 !important;
+    box-shadow: 0 0 0 3px rgba(157, 75, 151, 0.2);
   }
 
-  .stat-card-blue {
-    @apply bg-gradient-to-br from-white to-blue-50/50;
+  /* Autofill override - Chrome força white-on-white */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #FFFFFF !important;
+    -webkit-box-shadow: 0 0 0 100px #1A1A35 inset !important;
+    background-color: #1A1A35 !important;
   }
 
-  .stat-card-green {
-    @apply bg-gradient-to-br from-white to-green-50/50;
+  /* =====================
+     7. CARDS E CONTAINERS
+     ===================== */
+
+  .card,
+  .content-card,
+  [class*="card"] {
+    background-color: #FFFFFF;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    border: 1px solid #D8D6DF;
   }
 
-  .stat-card-orange {
-    @apply bg-gradient-to-br from-white to-orange-50/50;
+  .dark .card,
+  .dark .content-card,
+  [class*="card"] {
+    background-color: #1A1A35;
+    border-color: #3a3a5e;
   }
 
-  .stat-card-red {
-    @apply bg-gradient-to-br from-white to-red-50/50;
+  /* =====================
+     8. CHAT / MENSAGENS
+     ===================== */
+
+  /* Mensagem do usuário: Fundo #212146, texto #FFFFFF, alinhada à direita */
+  .chat-message-user,
+  .message-user,
+  [class*="user-message"] {
+    background-color: #212146 !important;
+    color: #FFFFFF !important;
+    border-radius: 12px 12px 4px 12px;
+    align-self: flex-end;
+    max-width: 80%;
   }
 
-  .stat-card-yellow {
-    @apply bg-gradient-to-br from-white to-yellow-50/50;
+  /* Mensagem do sistema/IA: Fundo #E0C7E6, texto #212146, alinhada à esquerda */
+  .chat-message-system,
+  .chat-message-ai,
+  .message-system,
+  .message-ai,
+  [class*="system-message"],
+  [class*="ai-message"] {
+    background-color: #E0C7E6 !important;
+    color: #212146 !important;
+    border-radius: 12px 12px 12px 4px;
+    align-self: flex-start;
+    max-width: 80%;
   }
 
-  /* Ícones coloridos nos cards */
-  .stat-icon-purple {
-    @apply p-2 bg-purple-100 rounded-lg;
+  /* Barra de digitação do chat */
+  .chat-input-bar,
+  .chat-input-wrapper {
+    background-color: #FFFFFF;
+    border-top: 1px solid #D8D6DF;
+    padding: 12px 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
   }
 
-  .stat-icon-blue {
-    @apply p-2 bg-blue-100 rounded-lg;
+  .chat-input-bar input {
+    flex: 1;
+    background-color: #F5F5F7 !important;
+    border: 1px solid #CFD2D3 !important;
+    border-radius: 24px;
+    padding: 10px 16px;
   }
 
-  .stat-icon-green {
-    @apply p-2 bg-green-100 rounded-lg;
+  /* Botão de envio do chat */
+  .chat-send-btn,
+  .btn-send {
+    background-color: #9D4B97 !important;
+    color: #FFFFFF !important;
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
   }
 
-  .stat-icon-orange {
-    @apply p-2 bg-orange-100 rounded-lg;
+  .chat-send-btn:hover {
+    opacity: 0.9;
   }
 
-  .stat-icon-red {
-    @apply p-2 bg-red-100 rounded-lg;
+  /* =====================
+     9. SIDEBAR (DESKTOP)
+     ===================== */
+
+  .sidebar {
+    background-color: #212146;
+    color: #FFFFFF;
   }
 
-  .stat-icon-yellow {
-    @apply p-2 bg-yellow-100 rounded-lg;
+  .sidebar-item,
+  .sidebar-link {
+    color: #7C7EAA;
+    transition: all 0.2s ease;
   }
 
-  /* Valores com gradiente */
-  .stat-value-gradient {
-    @apply text-3xl md:text-4xl font-bold bg-gradient-to-r from-[#242545] to-[#834a8b] bg-clip-text text-transparent;
+  .sidebar-item:hover,
+  .sidebar-link:hover {
+    background-color: #2D2D51;
+    color: #FFFFFF;
   }
 
-  .stat-value-purple {
-    @apply text-3xl md:text-4xl font-bold text-[#834a8b];
+  .sidebar-item.active,
+  .sidebar-link.active {
+    background-color: #9D4B97;
+    color: #FFFFFF;
   }
 
-  .stat-value-blue {
-    @apply text-3xl md:text-4xl font-bold text-blue-600;
+  /* =====================
+     10. BADGES E TAGS
+     ===================== */
+
+  .badge,
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: var(--font-weight-medium);
   }
 
-  .stat-value-green {
-    @apply text-3xl md:text-4xl font-bold text-green-600;
+  .badge-primary {
+    background-color: #212146;
+    color: #FFFFFF;
   }
 
-  .stat-value-orange {
-    @apply text-3xl md:text-4xl font-bold text-orange-600;
+  .badge-secondary,
+  .badge-grape {
+    background-color: #9D4B97;
+    color: #FFFFFF;
   }
 
-  .stat-value-red {
-    @apply text-3xl md:text-4xl font-bold text-red-600;
-  }
-
-  .stat-value-yellow {
-    @apply text-3xl md:text-4xl font-bold text-yellow-600;
-  }
-
-  /* Cards de conteúdo com fundo claro */
-  .content-card {
-    @apply bg-white border border-gray-200 rounded-xl shadow-md hover:shadow-lg transition-all duration-300;
-  }
-
-  /* Blocos de código com tema moderno */
-  .code-block {
-    @apply p-3 bg-gray-800 rounded-lg font-mono text-sm;
-  }
-
-  .code-block-success {
-    @apply text-green-400;
-  }
-
-  .code-block-warning {
-    @apply text-yellow-400;
-  }
-
-  .code-block-error {
-    @apply text-red-400;
-  }
-
-  .code-block-info {
-    @apply text-blue-400;
-  }
-
-  /* Formulários com fundo claro */
-  .form-section {
-    @apply bg-white rounded-xl p-6 shadow-sm border border-gray-200;
-  }
-
-  /* Tabelas modernas */
-  .table-container {
-    @apply bg-white rounded-xl shadow-md overflow-hidden border border-gray-200;
-  }
-
-  /* Estados vazios */
-  .empty-state {
-    @apply text-center py-12 text-gray-500 bg-gray-50 rounded-xl;
-  }
-
-  /* Botões com gradiente */
-  .btn-gradient {
-    @apply bg-gradient-to-r from-[#242545] to-[#834a8b] text-white hover:opacity-90 transition-opacity;
-  }
-
-  /* Badges coloridos */
   .badge-success {
-    @apply bg-green-50 text-green-700 border-green-200;
+    background-color: #E8F5E9;
+    color: #2E7D32;
   }
 
   .badge-warning {
-    @apply bg-orange-50 text-orange-700 border-orange-200;
+    background-color: #FFF3E0;
+    color: #E65100;
   }
 
   .badge-error {
-    @apply bg-red-50 text-red-700 border-red-200;
+    background-color: #FFEBEE;
+    color: #C62828;
   }
 
   .badge-info {
-    @apply bg-blue-50 text-blue-700 border-blue-200;
+    background-color: #E3F2FD;
+    color: #1565C0;
   }
 
-  .badge-purple {
-    @apply bg-purple-50 text-purple-700 border-purple-200;
+  /* =====================
+     11. GRADIENTS
+     ===================== */
+
+  .gradient-brand {
+    background: linear-gradient(135deg, #212146 0%, #9D4B97 100%);
   }
+
+  .gradient-header {
+    background: linear-gradient(135deg, #212146 0%, #7C7EAA 50%, #9D4B97 100%);
+  }
+
+  .gradient-login {
+    background: linear-gradient(135deg, #212146 0%, #2D2D51 50%, #9D4B97 100%);
+  }
+
+  /* =====================
+     12. PÁGINA / LAYOUT
+     ===================== */
+
+  .page-container {
+    background-color: #FFFFFF;
+    min-height: 100vh;
+  }
+
+  .page-header-gradient {
+    background: linear-gradient(135deg, #212146 0%, #9D4B97 100%);
+    border-radius: 12px;
+    padding: 24px 32px;
+  }
+
+  .page-title {
+    color: #FFFFFF;
+    font-size: 1.75rem;
+    font-weight: 600;
+  }
+
+  .page-subtitle {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.875rem;
+  }
+
+  /* =====================
+     13. NAVEGAÇÃO MOBILE
+     ===================== */
+
+  .mobile-nav,
+  .bottom-nav {
+    background-color: #212146;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #7C7EAA;
+    font-size: 10px;
+    padding: 8px 12px;
+    min-width: 48px;
+    min-height: 48px;
+    justify-content: center;
+    transition: color 0.2s ease;
+  }
+
+  .mobile-nav-item:hover,
+  .mobile-nav-item.active {
+    color: #FFFFFF;
+  }
+
+  .hamburger-menu {
+    background-color: #212146;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+/* =====================
+   UTILITÁRIOS EXTRAS
+   ===================== */
+
+/* Ícones com opacidade ajustável */
+.icon-monochrome {
+  color: var(--color-primary-blue);
+  opacity: 0.85;
+}
+
+.icon-duotone {
+  color: var(--color-secondary-grape);
+  opacity: 0.85;
+}
+
+/* Touch targets mínimo 48x48px no mobile */
+@media (max-width: 768px) {
+  .touch-target {
+    min-width: 48px;
+    min-height: 48px;
+  }
+
+  button,
+  .btn,
+  input[type="checkbox"],
+  input[type="radio"],
+  select {
+    min-height: 48px;
+  }
+}
+
+/* ============================================================
+   COMPONENTES shadcn/ui - OVERRIDES
+   ============================================================ */
+
+/* Buttons */
+.btn {
+  border-radius: 6px;
+  font-family: 'Montserrat', Arial, sans-serif;
+  font-weight: var(--font-weight-medium);
+}
+
+/* Sidebar override */
+.sidebar {
+  background-color: var(--sidebar) !important;
+}
+
+/* Command / Search inputs */
+[data-slot="command-input-wrapper"] {
+  background-color: var(--input) !important;
+  border-color: var(--input-border) !important;
 }

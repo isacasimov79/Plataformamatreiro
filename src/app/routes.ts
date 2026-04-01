@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router';
+import { createHashRouter } from 'react-router';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
@@ -29,7 +29,8 @@ import { GamificationPage } from './pages/GamificationPage';
 import { AIGeneratorPage } from './pages/AIGeneratorPage';
 import { MockDataPage } from './pages/MockDataPage';
 
-export const router = createBrowserRouter([
+// createHashRouter usa window.location.hash para rotas (suporta URLs como /#/gamification)
+export const router = createHashRouter([
   {
     path: '/login',
     Component: Login,
