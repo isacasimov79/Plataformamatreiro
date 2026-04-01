@@ -20,8 +20,8 @@ urlpatterns = [
     path('api/tenants/', include('tenants.urls')),
     path('api/campaigns/', include('campaigns.urls')),
     path('api/trainings/', include('trainings.urls')),
-    path('api/reports/', include('reports.urls')),
-    path('api/templates/', include('templates.urls')),
+    # path('api/reports/', include('reports.urls')),  # DISABLED - module not available
+    # path('api/templates/', include('templates.urls')),  # DISABLED - module not available
     path('api/users/', include('core.urls.users')),
     path('api/rbac/', include('core.urls.permissions')),
     path('api/', include('core.urls.health')),

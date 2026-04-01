@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'tenants',
     'campaigns',
     'trainings',
-    'reports',
+    
     'templates',
 ]
 
@@ -87,16 +87,18 @@ DATABASES = {
     )
 }
 
-# Cache
+# Cache - Using local memory (Redis disabled for optimization)
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": os.environ.get('REDIS_URL', 'redis://redis:6379/0'),
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
     }
 }
+
+# NOTE: Redis/Celery can be re-enabled by:
+# 1. Uncommenting REDIS_URL in docker-compose.yml
+# 2. Changing CACHES back to RedisCache
+# 3. Setting CELERY_BROKER_URL and CELERY_RESULT_BACKEND
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -188,12 +190,12 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # Celery Settings
-CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
-CELERY_RESULT_BACKEND = 'django-db'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = TIME_ZONE
+# # CELERY_BROKER_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')  # DISABLED
+# CELERY_RESULT_BACKEND = 'django-db'
+# CELERY_ACCEPT_CONTENT = ['json']
+# CELERY_TASK_SERIALIZER = 'json'
+# CELERY_RESULT_SERIALIZER = 'json'
+# CELERY_TIMEZONE = TIME_ZONE
 
 # API Documentation
 SPECTACULAR_SETTINGS = {
