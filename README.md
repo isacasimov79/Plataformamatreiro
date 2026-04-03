@@ -2,593 +2,275 @@
 
 **SaaS Multi-Tenant para Simulação de Phishing e Conscientização em Segurança da Informação**
 
-A Plataforma Matreiro é uma solução completa desenvolvida pela Under Protection para treinamento e conscientização de colaboradores através de campanhas simuladas de phishing, módulos educacionais e análise avançada de métricas de segurança.
+Plataforma completa desenvolvida pela Under Protection para treinamento e conscientização de colaboradores através de campanhas simuladas de phishing, módulos educacionais e análise avançada de métricas de segurança.
+
+> ⚠️ **Esta versão NÃO usa Supabase.** Backend completo em Django com PostgreSQL local via Docker.
 
 ---
 
 ## 📋 Índice
 
-- [Características Principais](#características-principais)
-- [Arquitetura do Sistema](#arquitetura-do-sistema)
-- [Tecnologias Utilizadas](#tecnologias-utilizadas)
-- [Pré-requisitos](#pré-requisitos)
-- [Instalação Rápida](#instalação-rápida)
-- [Documentação Completa](#documentação-completa)
-- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Arquitetura](#arquitetura)
+- [Stack Tecnológico](#stack-tecnológico)
+- [Quick Start](#quick-start)
 - [Estrutura do Projeto](#estrutura-do-projeto)
-- [Licença](#licença)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Deploy](#deploy)
+- [FAQ](#faq)
 
 ---
 
-## 🎯 Características Principais
-
-### Multi-Tenancy Completo
-- **Hierarquia de Tenants**: Suporte a clientes e sub-clientes
-- **Isolamento de Dados**: Cada tenant possui dados completamente isolados
-- **RBAC Granular**: Sistema de permissões baseado em roles (SuperAdmin, Admin, Manager, Analyst, User)
-
-### Campanhas de Phishing
-- **Engine de Templates**: Sistema avançado de criação e personalização de e-mails
-- **Disparo Automatizado**: Agendamento e envio automático de campanhas
-- **Tracking em Tempo Real**: Monitoramento de aberturas, cliques e submissões
-- **Landing Pages Dinâmicas**: Sistema de páginas falsas integrado ao banco
-
-### Análise e Relatórios
-- **Dashboard Analítico**: Métricas em tempo real com gráficos interativos
-- **Relatórios Exportáveis**: Geração de relatórios em PDF/Excel
-- **Análise de Comportamento**: Identificação de usuários vulneráveis
-- **Compliance**: Relatórios específicos para auditorias (LGPD, ISO 27001)
-
-### Módulo de Treinamentos
-- **Cursos Interativos**: Sistema completo de e-learning
-- **Validação via IA**: Detecção de fraude em provas usando computer vision
-- **Certificados Digitais**: Emissão automática após conclusão
-- **Gamificação**: Sistema de pontos e rankings
-
-### Integrações Corporativas
-- **Azure Active Directory**: Importação automática de usuários e grupos
-- **Microsoft 365**: Integração com Exchange/Outlook
-- **Single Sign-On**: Autenticação via Keycloak (SAML/OIDC)
-- **Webhooks**: Notificações para sistemas externos
-
-### Segurança
-- **Impersonation Segura**: SuperAdmins podem visualizar como outros usuários
-- **Auditoria Completa**: Log de todas as ações sensíveis
-- **Criptografia**: Dados sensíveis criptografados em repouso
-- **Rate Limiting**: Proteção contra abusos de API
-
----
-
-## 🏗️ Arquitetura do Sistema
+## 🏗️ Arquitetura
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         FRONTEND (React)                         │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  Dashboard   │  │  Campaigns   │  │  Training    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Targets    │  │   Reports    │  │   Settings   │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓ HTTPS/REST
-┌─────────────────────────────────────────────────────────────────┐
-│                    API GATEWAY (Supabase)                        │
-│                    Edge Functions (Hono)                         │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    BACKEND (Django/Python)                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  Campaign    │  │   Training   │  │    Azure     │          │
-│  │   Engine     │  │   Module     │  │  Integration │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   Email      │  │  Analytics   │  │     IAM      │          │
-│  │   Sender     │  │   Engine     │  │  (Keycloak)  │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                    DATABASES & CACHE                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │  PostgreSQL  │  │    Redis     │  │   Supabase   │          │
-│  │  (Principal) │  │   (Cache)    │  │   (Edge DB)  │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        NGINX (Porta 80/443)                  │
+│                    Reverse Proxy + Static Files             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              ▼                               ▼
+┌─────────────────────────┐     ┌─────────────────────────┐
+│   React Frontend         │     │   Django Backend        │
+│   (Vite + Tailwind)     │     │   (DRF + PostgreSQL)    │
+│   Porta 3000 (dev)       │     │   Porta 8000            │
+│   Porta 80 (prod)        │     │                         │
+└─────────────────────────┘     └─────────────────────────┘
+                                               │
+                              ┌────────────────┴────────────────┐
+                              ▼                                 ▼
+                    ┌─────────────────┐             ┌─────────────────┐
+                    │   PostgreSQL    │             │     Redis       │
+                    │   Porta 5432   │             │   Porta 6379   │
+                    │   (Dados)       │             │  (Opcional)    │
+                    └─────────────────┘             └─────────────────┘
 ```
+
+### O que NÃO é Supabase
+- ❌ Não usa Supabase Auth
+- ❌ Não usa Supabase Database
+- ❌ Não usa Supabase Edge Functions
+- ✅ Backend Django + PostgreSQL local (Docker)
+- ✅ Auth via Keycloak (opcional) ou modo dev
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 💻 Stack Tecnológico
 
 ### Frontend
-- **React 18** - Framework principal
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS 4** - Estilização
-- **React Router** - Navegação
-- **Recharts** - Gráficos e visualizações
-- **Lucide React** - Ícones
+- **React 18** + TypeScript
+- **Vite** (build tool)
+- **Tailwind CSS v4**
+- **React Router v7** (hash mode)
+- **shadcn/ui** (componentes)
+- **Recharts** (gráficos)
+- **Lucide** (ícones)
 
 ### Backend
-- **Django 4.2** - Framework web
-- **Django REST Framework** - APIs RESTful
-- **Celery** - Processamento assíncrono
-- **Python 3.11** - Linguagem principal
-
-### Banco de Dados
-- **PostgreSQL 15** - Banco principal
-- **Redis 7** - Cache e filas
-- **Supabase** - Edge database e storage
+- **Django 4.2**
+- **Django REST Framework**
+- **PostgreSQL 15** (banco local via Docker)
+- **Redis 7** (cache, opcional)
+- **Celery** (filas, opcional)
+- **Keycloak** (autenticação OAuth, opcional)
 
 ### Infraestrutura
-- **Docker & Docker Compose** - Containerização
-- **Keycloak** - Identity & Access Management
-- **Nginx** - Proxy reverso
-- **Gunicorn** - WSGI server
-
-### Integrações
-- **Azure AD** - Microsoft Active Directory
-- **SendGrid/AWS SES** - Envio de e-mails
-- **OpenAI API** - Validação via IA
+- **Docker Compose** (orquestração)
+- **Nginx** (proxy reverso + static files)
+- **Gunicorn** (WSGI server)
 
 ---
 
-## ✅ Pré-requisitos
+## 🚀 Quick Start
 
-Antes de começar, certifique-se de ter instalado:
+### Pré-requisitos
+- Docker e Docker Compose instalados
+- Git
+- Porta 80, 443, 5432, 8000 disponíveis
 
-- **Docker** >= 20.10
-- **Docker Compose** >= 2.0
-- **Git** >= 2.30
-- **Node.js** >= 18 (para o frontend)
-- **Python** >= 3.11 (para desenvolvimento local)
-
-### Verificar Instalação
-
+### 1. Clone o repositório
 ```bash
-docker --version
-docker-compose --version
-git --version
-node --version
-python --version
+git clone https://github.com/isacasimov79/Plataformamatreiro.git
+cd Plataformamatreiro
 ```
 
----
-
-## 🚀 Instalação Rápida
-
-### 1. Clone o Repositório
-
+### 2. Configure as variáveis de ambiente
 ```bash
-git clone https://github.com/underprotection/plataforma-matreiro.git
-cd plataforma-matreiro
+cp .env.example .env
+# Edite o .env com suas configurações
 ```
 
-### 2. Configure as Variáveis de Ambiente
-
+### 3. Suba os containers
 ```bash
-# Backend
-cp backend/.env.example backend/.env
+docker-compose up -d
+```
+
+### 4. Aguarde o startup e verifique
+```bash
+# Backend API
+curl http://localhost:8000/api/v1/health/
 
 # Frontend
-cp .env.example .env
-```
+curl http://localhost/
 
-**Edite os arquivos `.env` com suas credenciais.**
-
-### 3. Suba os Containers Docker
-
-```bash
-# Subir todos os serviços
-docker-compose up -d
-
-# Verificar logs
+# Ver logs
 docker-compose logs -f
 ```
 
-### 4. Execute as Migrações e Seed
-
-```bash
-# Entrar no container do Django
-docker-compose exec django bash
-
-# Executar migrações
-python manage.py migrate
-
-# Criar superusuário
-python manage.py createsuperuser
-
-# Importar dados iniciais
-python manage.py loaddata seed
-
-# Sair do container
-exit
-```
-
-### 5. Acesse a Aplicação
-
-- **Frontend**: http://localhost:3000
-- **Backend Admin**: http://localhost:8000/admin
-- **API Docs**: http://localhost:8000/api/docs
-- **Keycloak**: http://localhost:8080
-
----
-
-## 📚 Documentação Completa
-
-A documentação completa está organizada na pasta `/docs`:
-
-| Documento | Descrição |
-|-----------|-----------|
-| [QUICKSTART.md](/QUICKSTART.md) | Guia de início rápido (5 minutos) |
-| [SETUP.md](/docs/SETUP.md) | Instalação detalhada passo a passo |
-| [ARCHITECTURE.md](/docs/ARCHITECTURE.md) | Arquitetura e decisões técnicas |
-| [DATABASE.md](/docs/DATABASE.md) | Estrutura e modelo do banco de dados |
-| [API.md](/docs/API.md) | Documentação completa das APIs |
-| [DEPLOYMENT.md](/docs/DEPLOYMENT.md) | Guia de deploy em produção |
-| [TROUBLESHOOTING.md](/docs/TROUBLESHOOTING.md) | Resolução de problemas comuns |
-
-### Backend
-
-Documentação específica do backend Django:
-
-```bash
-cd backend
-cat README.md
-```
-
-### Database
-
-Scripts e estrutura do banco de dados:
-
-```bash
-cd database
-cat README.md
-```
-
----
-
-## 🔐 Variáveis de Ambiente
-
-### Backend (`/backend/.env`)
-
-```env
-# Django
-DEBUG=True
-SECRET_KEY=your-secret-key-here
-ALLOWED_HOSTS=localhost,127.0.0.1
-
-# Database
-DB_ENGINE=django.db.backends.postgresql
-DB_NAME=matreiro_db
-DB_USER=matreiro_user
-DB_PASSWORD=matreiro_password
-DB_HOST=postgres
-DB_PORT=5432
-
-# Redis
-REDIS_URL=redis://redis:6379/0
-
-# Keycloak
-KEYCLOAK_URL=http://keycloak:8080
-KEYCLOAK_REALM=matreiro
-KEYCLOAK_CLIENT_ID=matreiro-backend
-KEYCLOAK_CLIENT_SECRET=your-client-secret
-
-# Azure AD
-AZURE_CLIENT_ID=your-azure-client-id
-AZURE_CLIENT_SECRET=your-azure-client-secret
-AZURE_TENANT_ID=your-azure-tenant-id
-
-# Email
-EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
-EMAIL_HOST=smtp.sendgrid.net
-EMAIL_PORT=587
-EMAIL_USE_TLS=True
-EMAIL_HOST_USER=apikey
-EMAIL_HOST_PASSWORD=your-sendgrid-api-key
-
-# Supabase
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key
-
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
-
-# Security
-CORS_ALLOWED_ORIGINS=http://localhost:3000
-CSRF_TRUSTED_ORIGINS=http://localhost:3000
-```
-
-### Frontend (`/.env`)
-
-```env
-# Supabase
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-
-# Keycloak
-VITE_KEYCLOAK_URL=http://localhost:8080
-VITE_KEYCLOAK_REALM=matreiro
-VITE_KEYCLOAK_CLIENT_ID=matreiro-frontend
-
-# API
-VITE_API_BASE_URL=http://localhost:8000/api
-
-# Azure AD (Frontend)
-VITE_AZURE_CLIENT_ID=your-azure-client-id
-VITE_AZURE_TENANT_ID=your-azure-tenant-id
-```
+### 5. Acesse a plataforma
+- **URL:** http://localhost (ou seu IP/domínio)
+- **Admin Django:** http://localhost:8000/admin
 
 ---
 
 ## 📁 Estrutura do Projeto
 
 ```
-plataforma-matreiro/
-├── backend/                    # Backend Django
-│   ├── matreiro/              # Projeto principal
-│   │   ├── settings.py        # Configurações
-│   │   ├── urls.py            # URLs principais
-│   │   └── asgi.py            # ASGI config
-│   ├── api/                   # App principal da API
-│   │   ├── models.py          # Modelos do banco
-│   │   ├── views.py           # Views/Controllers
-│   │   ├── serializers.py     # Serializers DRF
-│   │   ├── urls.py            # URLs da API
-│   │   └── admin.py           # Django Admin
-│   ├── campaigns/             # Módulo de Campanhas
-│   ├── training/              # Módulo de Treinamentos
-│   ├── integrations/          # Integrações (Azure, etc)
-│   ├── Dockerfile             # Dockerfile do Django
-│   ├── requirements.txt       # Dependências Python
-│   └── README.md              # Docs do backend
-│
-├── src/                       # Frontend React
-│   ├── app/                   # Componentes principais
-│   │   ├── App.tsx           # Componente raiz
-│   │   ├── routes.ts         # Configuração de rotas
-│   │   └── components/       # Componentes reutilizáveis
-│   ├── pages/                # Páginas da aplicação
-���   │   ├── Dashboard.tsx
-│   │   ├── Campaigns.tsx
-│   │   ├── Targets.tsx
-│   │   └── ...
-│   └── styles/               # Estilos globais
-│
-├── database/                  # Scripts de banco de dados
-│   ├── schema.sql            # Schema completo
-│   ├── seed.sql              # Dados iniciais
-│   └── README.md             # Documentação do DB
-│
-├── docs/                      # Documentação completa
-│   ├── SETUP.md              # Guia de instalação
-│   ├── ARCHITECTURE.md       # Arquitetura
-│   ├── DATABASE.md           # Modelo de dados
-│   ├── API.md                # Documentação da API
-│   ├── DEPLOYMENT.md         # Deploy
-│   └── TROUBLESHOOTING.md    # Troubleshooting
-│
-├── supabase/                  # Supabase Edge Functions
-│   └── functions/
-│       └── server/           # Edge Function principal
-│
-├── docker-compose.yml         # Orquestração Docker
+Plataformamatreiro/
+├── backend/                 # Django API
+│   ├── matreiro/            # Configurações principais
+│   ├── campaigns/           # App de campanhas
+│   ├── tenants/             # App de clientes/tenants
+│   ├── targets/             # App de alvos
+│   ├── templates/           # App de templates
+│   ├── trainings/           # App de treinamentos
+│   ├── api/                 # API endpoints
+│   └── requirements.txt     # Dependências Python
+├── frontend/                 # React App
+│   ├── src/                  # Código fonte
+│   │   ├── app/              # Páginas e componentes
+│   │   └── styles/           # CSS e tema
+│   ├── dist/                 # Build de produção
+│   ├── package.json          # Dependências Node
+│   └── vite.config.ts        # Configuração Vite
+├── nginx.conf                # Configuração Nginx
+├── docker-compose.yml        # Orquestração Docker
 ├── .env.example              # Exemplo de variáveis
-├── package.json              # Dependências Node
 └── README.md                 # Este arquivo
 ```
 
 ---
 
-## 🎨 Design System
+## 🔧 Variáveis de Ambiente
 
-### Cores Oficiais Under Protection
-
-```css
-/* Cores Principais */
---navy: #242545;       /* Azul navy - Cor primária */
---purple: #834a8b;     /* Uva/Roxo - Cor secundária */
---graphite: #4a4a4a;   /* Grafite - Cor neutra */
-
-/* Cores de Sistema */
---success: #10b981;    /* Verde - Sucesso */
---warning: #f59e0b;    /* Laranja - Aviso */
---error: #ef4444;      /* Vermelho - Erro */
---info: #3b82f6;       /* Azul - Informação */
-```
-
-### Tipografia
-
-- **Fonte Principal**: Montserrat
-- **Pesos**: 300 (Light), 400 (Regular), 500 (Medium), 600 (SemiBold), 700 (Bold)
+| Variável | Descrição | Exemplo |
+|----------|-----------|---------|
+| `SECRET_KEY` | Chave secreta do Django | `generar-uma-chave-unica` |
+| `ALLOWED_HOSTS` | Hosts permitidos | `localhost,127.0.0.1,seu-dominio.com` |
+| `DB_NAME` | Nome do banco | `matreiro_db` |
+| `DB_USER` | Usuário do banco | `matreiro_user` |
+| `DB_PASSWORD` | Senha do banco | `senha-forte` |
+| `KEYCLOAK_URL` | URL do Keycloak | `https://iam.upn.com.br/auth` |
+| `KEYCLOAK_REALM` | Realm do Keycloak | `matreiro` |
+| `CORS_ALLOWED_ORIGINS` | Origins permitidos para CORS | `http://localhost:5173` |
 
 ---
 
-## 🌍 Multi-idioma
+## 🚢 Deploy
 
-A plataforma suporta 3 idiomas:
-
-- 🇧🇷 **Português (BR)** - Idioma padrão
-- 🇺🇸 **Inglês (EN)** - English
-- 🇪🇸 **Espanhol (ES)** - Español
-
-Todos os textos são traduzidos através do sistema i18n implementado no frontend.
-
----
-
-## 🧪 Testes
-
-### Backend
-
+### Desenvolvimento
 ```bash
-# Executar todos os testes
-docker-compose exec django python manage.py test
-
-# Executar com coverage
-docker-compose exec django coverage run --source='.' manage.py test
-docker-compose exec django coverage report
-```
-
-### Frontend
-
-```bash
-# Executar testes
-npm test
-
-# Coverage
-npm run test:coverage
-```
-
----
-
-## 📦 Build para Produção
-
-### Backend
-
-```bash
-docker build -t matreiro-backend:latest ./backend
-```
-
-### Frontend
-
-```bash
-npm run build
-```
-
----
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
----
-
-## 📝 Comandos Úteis
-
-### Docker
-
-```bash
-# Subir todos os serviços
+# Subir tudo
 docker-compose up -d
 
+# Rebuildar backend após mudanças
+docker-compose build django
+docker-compose up -d django
+
 # Ver logs
+docker-compose logs -f django
+```
+
+### Produção (VPS/Server)
+
+```bash
+# 1. Clone no servidor
+git clone https://github.com/isacasimov79/Plataformamatreiro.git /opt/matreiro
+cd /opt/matreiro
+
+# 2. Configure .env
+cp .env.example .env
+nano .env  # Preencha com dados de produção
+
+# 3. Configure Nginx (SSL, domínio)
+# Edite nginx.conf com seu domínio
+
+# 4. Suba
+docker-compose up -d
+
+# 5. Verifique
+curl https://seu-dominio.com/api/v1/health/
+```
+
+### Build do Frontend (após mudanças no React)
+
+```bash
+cd frontend
+npm install
+npm run build
+# O build vai para dist/ e é servida pelo Nginx automaticamente
+```
+
+---
+
+## 🔐 Segurança
+
+### Em Produção
+1. ✅ Use HTTPS (configure SSL no Nginx)
+2. ✅ Altere o `SECRET_KEY`
+3. ✅ Use senhas fortes para o banco
+4. ✅ Configure Firewall (apenas portas 80/443)
+5. ✅ Ative autenticação Keycloak se necessário
+6. ✅ Faça backup regular do banco
+
+### Variáveis Sensíveis
+```bash
+# NUNCA commite o .env no git!
+echo ".env" >> .gitignore
+```
+
+---
+
+## ❓ FAQ
+
+### Preciso do Supabase?
+**Não.** Esta versão usa PostgreSQL local via Docker. O Supabase foi removido na versão atual.
+
+### Como fazer backup do banco?
+```bash
+docker exec matreiro_postgres pg_dump -U matreiro_user matreiro_db > backup_$(date +%Y%m%d).sql
+```
+
+### Como restaurar um backup?
+```bash
+cat backup_20260401.sql | docker exec -i matreiro_postgres psql -U matreiro_user matreiro_db
+```
+
+### O Redis é obrigatório?
+**Não.** O Redis é opcional e pode ser desabilitado se você não precisar de cache ou filas Celery.
+
+### Como ver os logs?
+```bash
+# Todos os serviços
 docker-compose logs -f
 
-# Parar todos os serviços
-docker-compose down
-
-# Rebuild dos containers
-docker-compose up -d --build
-
-# Limpar volumes (CUIDADO: apaga dados!)
-docker-compose down -v
+# Serviço específico
+docker-compose logs -f django
+docker-compose logs -f postgres
+docker-compose logs -f nginx
 ```
 
-### Django
-
-```bash
-# Entrar no container
-docker-compose exec django bash
-
-# Migrações
-python manage.py makemigrations
-python manage.py migrate
-
-# Criar superusuário
-python manage.py createsuperuser
-
-# Shell interativo
-python manage.py shell
-
-# Coletar arquivos estáticos
-python manage.py collectstatic
-```
-
-### Database
-
-```bash
-# Backup do banco
-docker-compose exec postgres pg_dump -U matreiro_user matreiro_db > backup.sql
-
-# Restaurar backup
-docker-compose exec -T postgres psql -U matreiro_user matreiro_db < backup.sql
-
-# Acessar PostgreSQL
-docker-compose exec postgres psql -U matreiro_user -d matreiro_db
-```
-
----
-
-## 🔧 Troubleshooting
-
-### Problema: Containers não sobem
-
-```bash
-# Verificar logs
-docker-compose logs
-
-# Limpar e rebuild
-docker-compose down -v
-docker-compose up -d --build
-```
-
-### Problema: Erro de conexão com o banco
-
-```bash
-# Verificar se o PostgreSQL está rodando
-docker-compose ps
-
-# Verificar logs do PostgreSQL
-docker-compose logs postgres
-
-# Reiniciar o serviço
-docker-compose restart postgres
-```
-
-### Problema: Erro de permissão
-
-```bash
-# Ajustar permissões
-sudo chown -R $USER:$USER .
-```
-
-Para mais problemas comuns, consulte [TROUBLESHOOTING.md](/docs/TROUBLESHOOTING.md).
-
----
-
-## 📄 Licença
-
-Este projeto é propriedade da **Under Protection** e está sob licença proprietária.  
-Todos os direitos reservados © 2024-2026 Under Protection.
-
----
-
-## 👥 Equipe
-
-Desenvolvido com ❤️ pela equipe Under Protection:
-
-- **Backend**: Django + Python
-- **Frontend**: React + TypeScript
-- **DevOps**: Docker + AWS
-- **Security**: Pentesting & IAM
+### O frontend não carrega após rebuild?
+Faça hard refresh no navegador: `Ctrl+Shift+R`
 
 ---
 
 ## 📞 Suporte
 
-Para suporte técnico:
-
-- 📧 Email: suporte@underprotection.com.br
-- 🌐 Website: https://underprotection.com.br
-- 📚 Docs: https://docs.underprotection.com.br
+**Desenvolvido por:** Igor Jeronimo de Moura  
+**Empresa:** Under Protection  
+**Plataforma:** Matreiro SaaS  
 
 ---
 
-**🛡️ Proteja sua empresa com a Plataforma Matreiro**
+**Problemas? Abra uma issue no GitHub.**
