@@ -10,16 +10,28 @@ class CampaignSerializer(serializers.ModelSerializer):
     
     tenant_name = serializers.CharField(source='tenant.name', read_only=True)
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
+    stats = serializers.SerializerMethodField()
+    tenantId = serializers.IntegerField(source='tenant_id', read_only=True)
+    templateId = serializers.IntegerField(source='template_id', read_only=True)
     
     class Meta:
         model = Campaign
         fields = [
-            'id', 'tenant', 'tenant_name', 'name', 'description', 'status',
-            'template', 'start_date', 'end_date', 'target_count', 'target_list',
+            'id', 'tenant', 'tenantId', 'tenant_name', 'name', 'description', 'status',
+            'template', 'templateId', 'start_date', 'end_date', 'target_count', 'target_list',
             'emails_sent', 'emails_opened', 'links_clicked', 'credentials_submitted',
+            'stats',
             'created_by', 'created_by_name', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'emails_sent', 'emails_opened', 'links_clicked', 'credentials_submitted']
+    
+    def get_stats(self, obj):
+        return {
+            'sent': obj.emails_sent or 0,
+            'opened': obj.emails_opened or 0,
+            'clicked': obj.links_clicked or 0,
+            'submitted': obj.credentials_submitted or 0,
+        }
 
 
 class CampaignEventSerializer(serializers.ModelSerializer):

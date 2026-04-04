@@ -155,6 +155,51 @@ def campaign_events(request, campaign_id):
     return Response(CampaignEventSerializer(events, many=True).data)
 
 
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def campaign_launch(request, pk):
+    """Launch a campaign — triggers async email sending via Celery."""
+    try:
+        campaign = Campaign.objects.get(pk=pk)
+    except Campaign.DoesNotExist:
+        return Response({"error": "Campaign not found"}, status=404)
+    if campaign.status in ('active', 'completed'):
+        return Response({"error": "Campaign already launched"}, status=400)
+    from campaigns.tasks import execute_campaign
+    execute_campaign.delay(campaign.id)
+    campaign.status = 'scheduled'
+    campaign.save(update_fields=['status'])
+    return Response({"success": True, "message": "Campaign queued for sending"})
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def smtp_test(request):
+    """Test SMTP connection."""
+    host = request.data.get('host', '')
+    port = request.data.get('port', 587)
+    user = request.data.get('user', '')
+    password = request.data.get('password', '')
+    encryption = request.data.get('encryption', 'tls')
+    test_to = request.data.get('testEmail', '')
+    if not host:
+        return Response({"success": False, "error": "SMTP host required"}, status=400)
+    try:
+        import smtplib
+        if encryption == 'ssl':
+            server = smtplib.SMTP_SSL(host, int(port), timeout=10)
+        else:
+            server = smtplib.SMTP(host, int(port), timeout=10)
+            if encryption == 'tls':
+                server.starttls()
+        if user and password:
+            server.login(user, password)
+        server.quit()
+        return Response({"success": True, "message": "SMTP connection successful"})
+    except Exception as e:
+        return Response({"success": False, "error": str(e)}, status=400)
+
+
 # =====================================================
 # TARGETS
 # =====================================================
@@ -659,9 +704,14 @@ urlpatterns = [
     # Campaigns
     path('api/v1/campaigns/', campaigns_list),
     path('api/v1/campaigns/<int:pk>/', campaign_detail),
+    path('api/v1/campaigns/<int:pk>/launch/', campaign_launch),
     path('api/v1/campaigns/<int:campaign_id>/events/', campaign_events),
     path('api/v2/campaigns/', campaigns_list),
     path('api/v2/campaigns/<int:pk>/', campaign_detail),
+
+    # SMTP
+    path('api/v1/smtp/config', smtp_config),
+    path('api/v1/smtp/test', smtp_test),
 
     # Targets
     path('api/v1/targets/', targets_list),
