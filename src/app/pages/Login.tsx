@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '../components/ui/alert';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { AlertCircle, Shield, KeyRound } from 'lucide-react';
-const logoMatreiro = '';
+import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import logoUnderProtection from '../../imports/Logo_Positiva_-_Vetor-01.svg';
 import { login as keycloakLogin } from '../lib/keycloak';
 

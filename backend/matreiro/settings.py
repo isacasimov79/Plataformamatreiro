@@ -81,8 +81,8 @@ WSGI_APPLICATION = 'matreiro.wsgi.application'
 # Database
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 
-            'postgresql://matreiro_user:matreiro_password_dev@postgres:5432/matreiro_db'),
+        default=os.environ.get('DATABASE_URL',
+            f'postgresql://{os.environ.get("DB_USER", "matreiro_user")}:{os.environ.get("DB_PASSWORD", "matreiro_password")}@{os.environ.get("DB_HOST", "postgres")}:{os.environ.get("DB_PORT", "5432")}/{os.environ.get("DB_NAME", "matreiro_db")}'),
         conn_max_age=600
     )
 }
@@ -219,3 +219,7 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Encryption key for CapturedData - MUST be set in production!
+# Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY = os.environ.get('ENCRYPTION_KEY', 'development-key-change-in-production-12345678901234567890123456789012')

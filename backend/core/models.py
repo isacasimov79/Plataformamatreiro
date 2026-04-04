@@ -5,6 +5,10 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+# Import sub-models so Django discovers them
+from .models_notification import Notification  # noqa: F401
+from .models_system_settings import SystemSettings  # noqa: F401
+
 
 class User(AbstractUser):
     """Custom User model with extended fields."""

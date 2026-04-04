@@ -37,8 +37,7 @@ services:
     container_name: matreiro_django
     restart: unless-stopped
     command: >
-      sh -c "python manage.py migrate &&
-             gunicorn matreiro.wsgi:application --bind 0.0.0.0:8000 --workers 1 --threads 2 --timeout 300 --keep-alive 60 --log-level info --access-logfile - --error-logfile -"
+      sh -c "gunicorn matreiro.wsgi:application --bind 0.0.0.0:8000 --workers 1 --threads 2 --timeout 300 --keep-alive 60 --log-level info --access-logfile - --error-logfile -"
     environment:
       - DEBUG=${DEBUG:-False}
       - SECRET_KEY=${SECRET_KEY}
@@ -49,6 +48,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_HOST=postgres
       - DB_PORT=${DB_PORT:-5432}
+      - DATABASE_URL=postgresql://${DB_USER:-matreiro_user}:${DB_PASSWORD:-matreiro_password}@postgres:${DB_PORT:-5432}/${DB_NAME:-matreiro_db}
       - KEYCLOAK_URL=https://iam.upn.com.br/auth
       - KEYCLOAK_REALM=${KEYCLOAK_REALM:-matreiro}
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-matreiro-client}
@@ -80,13 +80,11 @@ services:
     restart: unless-stopped
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - /etc/nginx/ssl:/etc/nginx/ssl:ro
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
     ports:
       - "80:80"
-      - "443:443"
     depends_on:
       - django
     deploy:

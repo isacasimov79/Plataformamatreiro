@@ -36,7 +36,7 @@ import {
   X,
   ChevronRight,
 } from 'lucide-react';
-const logoMatreiro = '';
+import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';

@@ -1,6 +1,9 @@
 """Models for Trainings app."""
 from django.db import models
 
+# Import sub-models so Django discovers them
+from .models_certificate import Certificate  # noqa: F401
+
 
 class Training(models.Model):
     STATUS_CHOICES = [('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed')]

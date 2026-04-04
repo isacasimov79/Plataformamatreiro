@@ -15,6 +15,12 @@ from .models_landing import (
     AttachmentDownload,
 )
 
+# Import automation models
+from .models_automation import Automation, AutomationExecution
+
+# Import domain models
+from .models_domains import PhishingDomain
+
 # Make them available when importing from campaigns.models
 __all__ = [
     'Campaign',
@@ -26,6 +32,9 @@ __all__ = [
     'LandingPageAttachment',
     'CapturedData',
     'AttachmentDownload',
+    'Automation',
+    'AutomationExecution',
+    'PhishingDomain',
 ]
 
 

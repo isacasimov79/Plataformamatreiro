@@ -2,7 +2,7 @@ import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/button';
 import { Home } from 'lucide-react';
-const logoMatreiro = '';
+import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 
 export function NotFound() {
   const { t } = useTranslation();

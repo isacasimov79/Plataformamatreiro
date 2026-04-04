@@ -4,6 +4,9 @@ Models for Tenants app - Multi-tenancy support.
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+# Import settings model so Django discovers it
+from .models_settings import TenantSettings  # noqa: F401
+
 
 class Tenant(models.Model):
     """Main tenant (client) model."""

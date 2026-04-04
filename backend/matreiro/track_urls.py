@@ -4,6 +4,7 @@ These handle click and open tracking for emails sent in campaigns.
 """
 import base64
 import json
+from django.db.models import F
 from django.urls import path
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -56,7 +57,7 @@ def track_open(request, token):
                 )
                 # Increment campaign emails_opened
                 Campaign.objects.filter(id=campaign_id).update(
-                    emails_opened__gte=1
+                    emails_opened=F('emails_opened') + 1
                 )
             except Campaign.DoesNotExist:
                 pass
@@ -97,7 +98,7 @@ def track_click(request, token):
                 
                 # Increment campaign links_clicked
                 Campaign.objects.filter(id=campaign_id).update(
-                    links_clicked__gte=1
+                    links_clicked=F('links_clicked') + 1
                 )
                 
                 # Try to get landing page URL for redirect
@@ -144,7 +145,7 @@ def track_submit(request, token):
                 
                 # Increment credentials submitted counter
                 Campaign.objects.filter(id=campaign_id).update(
-                    credentials_submitted__gte=1
+                    credentials_submitted=F('credentials_submitted') + 1
                 )
                 
                 return Response({'status': 'ok', 'redirect': '/?success=1'})
