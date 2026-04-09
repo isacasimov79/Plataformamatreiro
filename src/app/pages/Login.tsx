@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { AlertCircle, Shield, KeyRound } from 'lucide-react';
 import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import logoUnderProtection from '../../imports/Logo_Positiva_-_Vetor-01.svg';
-import { useMsal } from '@azure/msal-react';
+
 
 export function Login() {
   const navigate = useNavigate();
@@ -72,7 +72,7 @@ export function Login() {
               </Alert>
             )}
 
-            {/* Botão principal de Keycloak */}
+            {/* Botão de Login Microsoft */}
             <Button 
               onClick={handleMicrosoftLogin}
               className="w-full bg-[#0078D4] hover:bg-[#005ba1] h-12" 

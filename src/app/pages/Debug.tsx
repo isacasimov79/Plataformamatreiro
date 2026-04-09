@@ -95,7 +95,7 @@ const mockAuthLogs = [
     action: 'login',
     status: 'success',
     ip: '192.168.1.10',
-    message: 'Login realizado com sucesso via Keycloak',
+    message: 'Login realizado com sucesso via Microsoft Entra ID',
   },
   {
     id: 'auth-2',
@@ -543,7 +543,7 @@ export function Debug() {
             <CardHeader>
               <CardTitle>Logs de Autenticação</CardTitle>
               <CardDescription>
-                Histórico de logins, impersonations e renovações de token via Keycloak
+                Histórico de logins, impersonations e renovações de token via Entra ID
               </CardDescription>
             </CardHeader>
             <CardContent>

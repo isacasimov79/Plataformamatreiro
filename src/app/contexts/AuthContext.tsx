@@ -14,7 +14,6 @@ interface AuthContextType {
   login: () => Promise<void>;
   logout: () => void;
   impersonateTenant: (tenantId: string | null) => void;
-  keycloakToken: string | undefined; // Legacy prop kept for compatibility
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -159,7 +158,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         impersonateTenant,
-        keycloakToken: undefined,
       }}
     >
       {contextReady ? (isLoading ? <LoadingScreen /> : children) : <LoadingScreen />}
@@ -178,7 +176,6 @@ export function useAuth() {
       login: async () => {},
       logout: () => {},
       impersonateTenant: async () => {},
-      keycloakToken: undefined,
     } as AuthContextType;
   }
   return context;

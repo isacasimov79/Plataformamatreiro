@@ -1742,17 +1742,17 @@ export function Settings() {
               </CardContent>
             </Card>
 
-            {/* Keycloak */}
+            {/* Microsoft Entra ID (SSO) */}
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="flex items-center gap-2">
-                      <Key className="w-5 h-5 text-purple-600" />
-                      {t('settings.integrations.keycloak.title')}
+                      <Key className="w-5 h-5 text-[#0078D4]" />
+                      Microsoft Entra ID (SSO)
                     </CardTitle>
                     <CardDescription>
-                      {t('settings.integrations.keycloak.desc')}
+                      {t('settings.integrations.entraId.desc', 'Autenticação corporativa via Microsoft Entra ID')}
                     </CardDescription>
                   </div>
                   <Badge className="bg-green-100 text-green-700">
@@ -1764,10 +1764,10 @@ export function Settings() {
               <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="keycloak-url">Keycloak URL</Label>
+                    <Label htmlFor="entra-authority">Authority URL</Label>
                     <Input
-                      id="keycloak-url"
-                      defaultValue="https://iam.upn.com.br"
+                      id="entra-authority"
+                      defaultValue="https://login.microsoftonline.com"
                       className="mt-2"
                       readOnly
                     />
@@ -1775,31 +1775,31 @@ export function Settings() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="keycloak-realm">Realm</Label>
+                      <Label htmlFor="entra-tenant-id">Tenant ID</Label>
                       <Input
-                        id="keycloak-realm"
-                        defaultValue="underprotection"
+                        id="entra-tenant-id"
+                        defaultValue={import.meta.env.VITE_MSAUTH_TENANTID || ''}
                         className="mt-2"
                         readOnly
                       />
                     </div>
                     <div>
-                      <Label htmlFor="keycloak-client">Client ID</Label>
+                      <Label htmlFor="entra-client-id">Client ID</Label>
                       <Input
-                        id="keycloak-client"
-                        defaultValue="matreiro-platform"
+                        id="entra-client-id"
+                        defaultValue={import.meta.env.VITE_MSAUTH_CLIENTID || ''}
                         className="mt-2"
                         readOnly
                       />
                     </div>
                   </div>
 
-                  <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                    <p className="text-sm text-purple-900">
-                      ✅ {t('settings.integrations.keycloak.activeNotice')}
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-900">
+                      ✅ {t('settings.integrations.entraId.activeNotice', 'Autenticação via Microsoft Entra ID está ativa e operacional.')}
                     </p>
-                    <p className="text-xs text-purple-700 mt-2">
-                      ℹ️ {t('settings.integrations.keycloak.readonlyNotice')}
+                    <p className="text-xs text-blue-700 mt-2">
+                      ℹ️ {t('settings.integrations.entraId.readonlyNotice', 'As configurações de SSO são gerenciadas no .env do servidor. Alterações requerem reinício do serviço.')}
                     </p>
                   </div>
                 </div>

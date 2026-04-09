@@ -1,7 +1,7 @@
 /**
- * Exemplos de uso da API com autenticação Keycloak
+ * Exemplos de uso da API com autenticação Microsoft Entra ID
  * 
- * Todos os métodos automaticamente incluem o token JWT do Keycloak
+ * Todos os métodos automaticamente incluem o token JWT local
  * no header Authorization: Bearer <token>
  */
 
@@ -380,16 +380,16 @@ import { tenantsAPI } from '../lib/apiExamples';
 import { useAuth } from '../contexts/AuthContext';
 
 export function MyComponent() {
-  const { keycloakToken } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Só buscar se estiver autenticado
-    if (keycloakToken) {
+    if (isAuthenticated) {
       loadTenants();
     }
-  }, [keycloakToken]);
+  }, [isAuthenticated]);
 
   const loadTenants = async () => {
     try {

@@ -3,7 +3,7 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
-// Helper para obter token de autenticação (JWT do Keycloak ou local)
+// Helper para obter token de autenticação (JWT via MSAL/Entra ID)
 function getAuthToken(): string | null {
   try {
     const userStr = localStorage.getItem('matreiro_user');

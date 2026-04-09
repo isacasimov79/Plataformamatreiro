@@ -1,5 +1,4 @@
 import axios from 'axios';
-import keycloak from './keycloak';
 
 // URL base da API - ajuste conforme necessário
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -12,20 +11,26 @@ const api = axios.create({
   },
 });
 
-// Interceptor de requisição para adicionar token JWT
+// Helper para obter token JWT local (armazenado após login via MSAL)
+function getLocalToken(): string | null {
+  try {
+    const userStr = localStorage.getItem('matreiro_user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      return user.token || null;
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return null;
+}
+
+// Interceptor de requisição para adicionar token JWT local
 api.interceptors.request.use(
   async (config) => {
-    if (keycloak.token) {
-      // Tentar atualizar o token se estiver próximo de expirar
-      try {
-        await keycloak.updateToken(30);
-      } catch (error) {
-        console.error('Erro ao atualizar token:', error);
-        keycloak.login();
-      }
-      
-      // Adicionar token no header Authorization
-      config.headers.Authorization = `Bearer ${keycloak.token}`;
+    const token = getLocalToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -39,9 +44,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expirado ou inválido - redirecionar para login
-      console.error('Token inválido ou expirado');
-      keycloak.login();
+      console.error('Token inválido ou expirado — redirecionando para login');
+      // Limpar sessão local e redirecionar
+      localStorage.removeItem('matreiro_user');
+      window.location.hash = '#/login';
     }
     return Promise.reject(error);
   }
