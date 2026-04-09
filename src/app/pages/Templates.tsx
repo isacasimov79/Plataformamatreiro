@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { getTemplates, deleteTemplate } from '../lib/supabaseApi';
+import { getTemplates, deleteTemplate, updateTemplate } from '../lib/apiLocal';
 import {
   Card,
   CardContent,
@@ -76,6 +76,11 @@ interface Template {
   content: string;
   htmlContent?: string; // Para web phishing
 }
+
+export const formatCategory = (cat: string) => {
+  if (!cat) return 'Outros';
+  return cat.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+};
 
 const mockTemplates: Template[] = [
   {
@@ -170,7 +175,10 @@ Recursos Humanos`,
   },
 ];
 
+import { useTranslation } from 'react-i18next';
+
 export function Templates() {
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | TemplateType>('all');
@@ -197,7 +205,7 @@ export function Templates() {
       // Verificar se data é um array válido
       if (!Array.isArray(data)) {
         console.warn('Templates data is not an array:', data);
-        setTemplates(mockTemplates);
+        setTemplates([]);
         return;
       }
       
@@ -218,8 +226,8 @@ export function Templates() {
       setTemplates(mappedTemplates);
     } catch (error) {
       console.error('Error loading templates:', error);
-      toast.error('Erro ao carregar templates', {
-        description: 'Não foi possível carregar os templates.',
+      toast.error(t('templates.messages.loadError'), {
+        description: t('templates.messages.loadErrorDesc'),
       });
       // Em caso de erro, usar mock templates
       setTemplates(mockTemplates);
@@ -242,19 +250,39 @@ export function Templates() {
 
   const handleAddTemplate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Template criado!', {
-      description: 'O template foi adicionado com sucesso',
+    toast.success(t('templates.messages.created'), {
+      description: t('templates.messages.createdDesc'),
     });
     setIsAddDialogOpen(false);
   };
 
-  const handleEditTemplate = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditTemplate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Template atualizado!', {
-      description: 'As alterações foram salvas',
-    });
-    setIsEditDialogOpen(false);
-    setSelectedTemplate(null);
+    if (!selectedTemplate) return;
+    
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get('name') as string,
+      subject: formData.get('subject') as string,
+      content: formData.get('content') as string,
+    };
+
+    try {
+      await updateTemplate(selectedTemplate.id, {
+        name: data.name,
+        subject: data.subject || '',
+        bodyHtml: selectedTemplate.type === 'email' ? data.content : '',
+        landingPageHtml: selectedTemplate.type === 'web' ? data.content : '',
+      });
+      toast.success(t('templates.messages.updated'), {
+        description: t('templates.messages.updatedDesc'),
+      });
+      setIsEditDialogOpen(false);
+      setSelectedTemplate(null);
+      loadTemplates();
+    } catch (e) {
+      toast.error('Erro ao atualizar template');
+    }
   };
 
   const handleSaveHtmlTemplate = (data: {
@@ -263,24 +291,45 @@ export function Templates() {
     javascript: string;
     images: Array<{ id: string; url: string; name: string }>;
   }) => {
-    toast.success('Template HTML salvo!', {
-      description: 'Template criado com editor avançado',
+    toast.success(t('templates.messages.htmlSaved'), {
+      description: t('templates.messages.htmlSavedDesc'),
     });
     setIsHtmlEditorOpen(false);
   };
 
-  const handleClone = (templateId: string) => {
-    const template = mockTemplates.find((t) => t.id === templateId);
-    toast.success('Template clonado!', {
-      description: `Cópia de "${template?.name}" criada com sucesso`,
-    });
+  const handleClone = async (templateId: string) => {
+    try {
+      // Fetch the template to clone
+      const templatesList = await getTemplates();
+      const template = templatesList.find((t: any) => t.id === templateId);
+      if (!template) throw new Error('Template not found');
+      
+      const { createTemplate } = await import('../lib/apiLocal');
+      await createTemplate({
+        name: `${template.name} (Clone)`,
+        type: template.type || 'email',
+        subject: template.subject || '',
+        category: template.category || 'Outros',
+        bodyHtml: template.bodyHtml || '',
+        landingPageHtml: template.landingPageHtml || '',
+      });
+      toast.success(t('templates.messages.cloned'), {
+        description: t('templates.messages.clonedDesc', { name: template.name }),
+      });
+      loadTemplates();
+    } catch (e) {
+      toast.error('Erro ao clonar template');
+    }
   };
 
-  const handleDelete = (templateId: string) => {
-    const template = mockTemplates.find((t) => t.id === templateId);
-    toast.success('Template removido!', {
-      description: `"${template?.name}" foi deletado`,
-    });
+  const handleDelete = async (templateId: string) => {
+    try {
+      await deleteTemplate(templateId);
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      toast.success(t('templates.messages.deleted'));
+    } catch (e) {
+      toast.error('Erro ao deletar template');
+    }
   };
 
   const getDifficultyBadge = (difficulty: string) => {
@@ -288,19 +337,19 @@ export function Templates() {
       case 'easy':
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Fácil
+            {t('templates.difficulty.easy')}
           </Badge>
         );
       case 'medium':
         return (
           <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-            Médio
+            {t('templates.difficulty.medium')}
           </Badge>
         );
       case 'hard':
         return (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            Difícil
+            {t('templates.difficulty.hard')}
           </Badge>
         );
       default:
@@ -321,9 +370,9 @@ export function Templates() {
         {/* Header com gradiente */}
         <div className="page-header">
           <div className="page-header-gradient">
-            <h1 className="page-title">Templates</h1>
+            <h1 className="page-title">{t('templates.title')}</h1>
             <p className="page-subtitle">
-              Gerencie templates de e-mail e landing pages de phishing
+              {t('templates.desc')}
             </p>
           </div>
         </div>
@@ -336,14 +385,14 @@ export function Templates() {
             onClick={() => setIsHtmlEditorOpen(true)}
           >
             <Code className="w-4 h-4 mr-2" />
-            Editor HTML Avançado
+            {t('templates.actions.htmlEditor')}
           </Button>
           <Button 
             className="bg-[#834a8b] hover:bg-[#6d3d75]"
             onClick={() => setIsAddDialogOpen(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Novo Template
+            {t('templates.actions.new')}
           </Button>
         </div>
 
@@ -351,7 +400,7 @@ export function Templates() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card className="stat-card stat-card-purple">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-600">Total</CardTitle>
+              <CardTitle className="text-sm text-gray-600">{t('templates.stats.total')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="stat-value-gradient">{stats.total}</div>
@@ -361,7 +410,7 @@ export function Templates() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
-                E-mails
+                {t('templates.stats.emails')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -372,7 +421,7 @@ export function Templates() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
                 <Globe className="w-4 h-4" />
-                Web
+                {t('templates.stats.web')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -381,7 +430,7 @@ export function Templates() {
           </Card>
           <Card className="stat-card stat-card-green">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-600">Mais Usado</CardTitle>
+              <CardTitle className="text-sm text-gray-600">{t('templates.stats.mostUsed')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{stats.mostUsed}x</div>
@@ -396,7 +445,7 @@ export function Templates() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  placeholder="Buscar templates..."
+                  placeholder={t('templates.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -407,12 +456,12 @@ export function Templates() {
                 onValueChange={(value) => setSelectedType(value as typeof selectedType)}
               >
                 <SelectTrigger className="w-full md:w-[200px]">
-                  <SelectValue placeholder="Tipo" />
+                  <SelectValue placeholder={t('templates.filters.type')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos os tipos</SelectItem>
-                  <SelectItem value="email">E-mails</SelectItem>
-                  <SelectItem value="web">Landing Pages</SelectItem>
+                  <SelectItem value="all">{t('templates.filters.all')}</SelectItem>
+                  <SelectItem value="email">{t('templates.filters.emails')}</SelectItem>
+                  <SelectItem value="web">{t('templates.filters.landingPages')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -422,21 +471,21 @@ export function Templates() {
         {/* Templates Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Templates</CardTitle>
+            <CardTitle>{t('templates.table.title')}</CardTitle>
             <CardDescription>
-              {filteredTemplates.length} templates encontrados
+              {t('templates.table.desc', { count: filteredTemplates.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Dificuldade</TableHead>
-                  <TableHead>Uso</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>{t('templates.table.cols.name')}</TableHead>
+                  <TableHead>{t('templates.table.cols.type')}</TableHead>
+                  <TableHead>{t('templates.table.cols.category')}</TableHead>
+                  <TableHead>{t('templates.table.cols.difficulty')}</TableHead>
+                  <TableHead>{t('templates.table.cols.usage')}</TableHead>
+                  <TableHead className="text-right">{t('templates.table.cols.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -447,7 +496,7 @@ export function Templates() {
                         <div>{template.name}</div>
                         {template.type === 'email' && template.subject && (
                           <div className="text-xs text-gray-500 mt-1">
-                            Assunto: {template.subject}
+                            {t('templates.table.subject')} {template.subject}
                           </div>
                         )}
                       </div>
@@ -456,23 +505,23 @@ export function Templates() {
                       {template.type === 'email' ? (
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">
                           <Mail className="w-3 h-3 mr-1" />
-                          E-mail
+                          {t('common.email')}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-purple-50 text-purple-700">
                           <Globe className="w-3 h-3 mr-1" />
-                          Web
+                          {t('common.web')}
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{template.category}</Badge>
+                      <Badge variant="secondary">{formatCategory(template.category)}</Badge>
                     </TableCell>
                     <TableCell>{getDifficultyBadge(template.difficulty)}</TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{template.usageCount}x</span>
-                        <span className="text-xs text-gray-500">usado</span>
+                        <span className="text-xs text-gray-500">{t('templates.table.used')}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -483,7 +532,7 @@ export function Templates() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
@@ -492,7 +541,7 @@ export function Templates() {
                             }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Visualizar
+                            {t('common.view')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -501,11 +550,11 @@ export function Templates() {
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Editar
+                            {t('common.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleClone(template.id)}>
                             <Copy className="w-4 h-4 mr-2" />
-                            Clonar
+                            {t('common.clone')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -513,7 +562,7 @@ export function Templates() {
                             onClick={() => handleDelete(template.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Remover
+                            {t('common.remove')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -539,34 +588,34 @@ export function Templates() {
                   {selectedTemplate.name}
                 </DialogTitle>
                 <DialogDescription>
-                  Visualização do template • {selectedTemplate.usageCount} usos
+                  {t('templates.view.desc', { usage: selectedTemplate.usageCount })}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div>
-                    <Label className="text-xs text-gray-500">Tipo</Label>
-                    <p className="font-medium capitalize">{selectedTemplate.type}</p>
+                    <Label className="text-xs text-gray-500">{t('templates.view.labels.type')}</Label>
+                    <p className="font-medium capitalize">{selectedTemplate.type === 'email' ? t('common.email') : t('common.web')}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">Categoria</Label>
-                    <p className="font-medium">{selectedTemplate.category}</p>
+                    <Label className="text-xs text-gray-500">{t('templates.view.labels.category')}</Label>
+                    <p className="font-medium">{formatCategory(selectedTemplate.category)}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">Dificuldade</Label>
+                    <Label className="text-xs text-gray-500">{t('templates.view.labels.difficulty')}</Label>
                     <div className="mt-1">{getDifficultyBadge(selectedTemplate.difficulty)}</div>
                   </div>
                 </div>
 
                 {selectedTemplate.type === 'email' && selectedTemplate.subject && (
                   <div>
-                    <Label className="text-xs text-gray-500">Assunto</Label>
+                    <Label className="text-xs text-gray-500">{t('templates.view.labels.subject')}</Label>
                     <p className="font-medium mt-1">{selectedTemplate.subject}</p>
                   </div>
                 )}
 
                 <div>
-                  <Label className="text-xs text-gray-500 mb-2 block">Conteúdo</Label>
+                  <Label className="text-xs text-gray-500 mb-2 block">{t('templates.view.labels.content')}</Label>
                   {selectedTemplate.type === 'email' ? (
                     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap">
                       {selectedTemplate.content}
@@ -574,8 +623,8 @@ export function Templates() {
                   ) : (
                     <Tabs defaultValue="preview">
                       <TabsList>
-                        <TabsTrigger value="preview">Preview</TabsTrigger>
-                        <TabsTrigger value="code">Código HTML</TabsTrigger>
+                        <TabsTrigger value="preview">{t('templates.view.tabs.preview')}</TabsTrigger>
+                        <TabsTrigger value="code">{t('templates.view.tabs.code')}</TabsTrigger>
                       </TabsList>
                       <TabsContent value="preview">
                         <div
@@ -594,7 +643,7 @@ export function Templates() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
-                  Fechar
+                  {t('common.close')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -603,7 +652,7 @@ export function Templates() {
                   }}
                   className="bg-[#834a8b] hover:bg-[#6d3d75]"
                 >
-                  Editar Template
+                  {t('common.editTemplate')}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -616,16 +665,17 @@ export function Templates() {
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <form onSubmit={handleEditTemplate}>
                 <DialogHeader>
-                  <DialogTitle>Editar Template</DialogTitle>
+                  <DialogTitle>{t('templates.edit.title')}</DialogTitle>
                   <DialogDescription>
-                    Faça alterações no template selecionado
+                    {t('templates.edit.desc')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label htmlFor="edit-name">Nome do Template</Label>
+                    <Label htmlFor="edit-name">{t('templates.edit.labels.name')}</Label>
                     <Input
                       id="edit-name"
+                      name="name"
                       defaultValue={selectedTemplate.name}
                       required
                       className="mt-2"
@@ -634,9 +684,10 @@ export function Templates() {
 
                   {selectedTemplate.type === 'email' && (
                     <div>
-                      <Label htmlFor="edit-subject">Assunto do E-mail</Label>
+                      <Label htmlFor="edit-subject">{t('templates.edit.labels.subject')}</Label>
                       <Input
                         id="edit-subject"
+                        name="subject"
                         defaultValue={selectedTemplate.subject}
                         required
                         className="mt-2"
@@ -645,9 +696,10 @@ export function Templates() {
                   )}
 
                   <div>
-                    <Label htmlFor="edit-content">Conteúdo</Label>
+                    <Label htmlFor="edit-content">{t('templates.edit.labels.content')}</Label>
                     <Textarea
                       id="edit-content"
+                      name="content"
                       defaultValue={
                         selectedTemplate.type === 'email'
                           ? selectedTemplate.content
@@ -668,10 +720,10 @@ export function Templates() {
                       setSelectedTemplate(null);
                     }}
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
                   <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                    Salvar Alterações
+                    {t('common.saveChanges')}
                   </Button>
                 </DialogFooter>
               </form>

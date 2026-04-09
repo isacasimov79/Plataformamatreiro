@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createTenant } from '../lib/supabaseApi';
+import { createTenant } from '../lib/apiLocal';
 import {
   Dialog,
   DialogContent,
@@ -23,8 +23,10 @@ import {
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import { Switch } from './ui/switch';
+import { useTranslation } from 'react-i18next';
 
 export function NewTenantDialog() {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -95,12 +97,12 @@ export function NewTenantDialog() {
       <DialogTrigger asChild>
         <Button className="bg-[#834a8b] hover:bg-[#9a5ba1] text-white w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
-          Novo Cliente
+          {t('tenants.newTenant')}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Novo Cliente (Tenant)</DialogTitle>
+          <DialogTitle>{t('tenants.newTenant')}</DialogTitle>
           <DialogDescription>
             Cadastre um novo cliente na plataforma Matreiro
           </DialogDescription>

@@ -23,7 +23,7 @@ import {
   Send,
   MousePointer,
 } from 'lucide-react';
-import { getTenants, getTargets, getCampaigns, getTemplates } from '../lib/supabaseApi';
+import { getTenants, getTargets, getCampaigns, getTemplates } from '../lib/apiLocal';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { toast } from 'sonner';
 
@@ -122,30 +122,30 @@ export function Dashboard() {
           return {
             id: campaign.id,
             name: campaign.name.length > 20 ? campaign.name.substring(0, 20) + '...' : campaign.name,
-            Enviados: stats.sent || 0,
-            Abertos: stats.opened || 0,
-            Clicados: stats.clicked || 0,
-            Comprometidos: stats.submitted || 0,
+            [t('dashboard.stats.sent')]: stats.sent || 0,
+            [t('dashboard.stats.opened')]: stats.opened || 0,
+            [t('dashboard.stats.clicked')]: stats.clicked || 0,
+            [t('dashboard.stats.submitted')]: stats.submitted || 0,
           };
         })
       : [
         {
           id: 'empty-campaign-1',
-          name: 'Sem dados',
-          Enviados: 0,
-          Abertos: 0,
-          Clicados: 0,
-          Comprometidos: 0,
+          name: t('dashboard.emptyData'),
+          [t('dashboard.stats.sent')]: 0,
+          [t('dashboard.stats.opened')]: 0,
+          [t('dashboard.stats.clicked')]: 0,
+          [t('dashboard.stats.submitted')]: 0,
         }
       ];
 
   const pieData = totalSent > 0 
     ? [
-        { id: 'pie-safe', name: 'Não Comprometidos', value: totalSent - totalSubmitted, color: '#10b981' },
-        { id: 'pie-compromised', name: 'Comprometidos', value: totalSubmitted, color: '#834a8b' },
+        { id: 'pie-safe', name: t('dashboard.stats.notCompromised'), value: totalSent - totalSubmitted, color: '#10b981' },
+        { id: 'pie-compromised', name: t('dashboard.stats.compromised'), value: totalSubmitted, color: '#834a8b' },
       ]
     : [
-        { id: 'pie-empty-data', name: 'Sem dados', value: 1, color: '#e5e7eb' }
+        { id: 'pie-empty-data', name: t('dashboard.emptyData'), value: 1, color: '#e5e7eb' }
       ];
 
   const COLORS = ['#10b981', '#834a8b'];
@@ -253,9 +253,9 @@ export function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
           <Card>
             <CardHeader>
-              <CardTitle>Desempenho de Campanhas</CardTitle>
+              <CardTitle>{t('dashboard.charts.campaignPerformance.title')}</CardTitle>
               <CardDescription>
-                Comparação das 5 campanhas mais recentes
+                {t('dashboard.charts.campaignPerformance.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -264,19 +264,19 @@ export function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%" minHeight={300}>
                     <BarChart data={campaignData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} fontSize={12} />
-                      <YAxis fontSize={12} />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} tickMargin={10} interval={0} />
+                      <YAxis fontSize={12} width={40} />
                       <Tooltip />
                       <Legend wrapperStyle={{ fontSize: '12px' }} />
-                      <Bar key="bar-enviados" dataKey="Enviados" fill="#242545" />
-                      <Bar key="bar-abertos" dataKey="Abertos" fill="#10b981" />
-                      <Bar key="bar-clicados" dataKey="Clicados" fill="#f59e0b" />
-                      <Bar key="bar-comprometidos" dataKey="Comprometidos" fill="#834a8b" />
+                      <Bar key="bar-enviados" dataKey={t('dashboard.stats.sent')} fill="#242545" />
+                      <Bar key="bar-abertos" dataKey={t('dashboard.stats.opened')} fill="#10b981" />
+                      <Bar key="bar-clicados" dataKey={t('dashboard.stats.clicked')} fill="#f59e0b" />
+                      <Bar key="bar-comprometidos" dataKey={t('dashboard.stats.submitted')} fill="#834a8b" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
-                    {loading ? 'Carregando...' : 'Sem dados disponíveis'}
+                    {loading ? t('dashboard.loading') : t('dashboard.emptyDataAvailable')}
                   </div>
                 )}
               </div>
@@ -285,9 +285,9 @@ export function Dashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Taxa de Comprometimento</CardTitle>
+              <CardTitle>{t('dashboard.charts.compromiseRate.title')}</CardTitle>
               <CardDescription>
-                Distribuição de usuários comprometidos vs não comprometidos
+                {t('dashboard.charts.compromiseRate.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -299,9 +299,9 @@ export function Dashboard() {
                         data={pieData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
+                        labelLine={true}
                         label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
+                        outerRadius={90}
                         fill="#8884d8"
                         dataKey="value"
                       >
@@ -315,7 +315,7 @@ export function Dashboard() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="text-gray-400">
-                    {loading ? 'Carregando...' : 'Sem dados disponíveis'}
+                    {loading ? t('dashboard.loading') : t('dashboard.emptyDataAvailable')}
                   </div>
                 )}
               </div>
@@ -326,8 +326,8 @@ export function Dashboard() {
         {/* Campanhas Recentes */}
         <Card>
           <CardHeader>
-            <CardTitle>Campanhas Recentes</CardTitle>
-            <CardDescription>Status das últimas campanhas executadas</CardDescription>
+            <CardTitle>{t('dashboard.recentCampaigns.title')}</CardTitle>
+            <CardDescription>{t('dashboard.recentCampaigns.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             {relevantCampaigns.length > 0 ? (
@@ -346,7 +346,7 @@ export function Dashboard() {
                         <div>
                           <h4 className="font-medium text-gray-900">{campaign.name}</h4>
                           <p className="text-sm text-gray-500">
-                            {stats.sent} enviados • {stats.submitted} comprometidos
+                            {stats.sent} {t('dashboard.stats.sent').toLowerCase()} • {stats.submitted} {t('dashboard.stats.compromised').toLowerCase()}
                           </p>
                         </div>
                       </div>
@@ -354,24 +354,24 @@ export function Dashboard() {
                         {campaign.status === 'completed' && (
                           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Concluída
+                            {t('campaigns.status.completed')}
                           </Badge>
                         )}
                         {campaign.status === 'running' && (
                           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                             <Clock className="w-3 h-3 mr-1" />
-                            Em execução
+                            {t('campaigns.status.running')}
                           </Badge>
                         )}
                         {campaign.status === 'scheduled' && (
                           <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
                             <Clock className="w-3 h-3 mr-1" />
-                            Agendada
+                            {t('campaigns.status.scheduled')}
                           </Badge>
                         )}
                         {campaign.status === 'draft' && (
                           <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-                            Rascunho
+                            {t('campaigns.status.draft')}
                           </Badge>
                         )}
                       </div>
@@ -382,8 +382,8 @@ export function Dashboard() {
             ) : (
               <div className="text-center py-12 text-gray-500">
                 <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-sm">Nenhuma campanha criada ainda.</p>
-                <p className="text-xs mt-1">Use o botão "Popular Banco" acima para criar dados de exemplo.</p>
+                <p className="text-sm">{t('dashboard.recentCampaigns.empty')}</p>
+                <p className="text-xs mt-1">{t('dashboard.recentCampaigns.emptyDesc')}</p>
               </div>
             )}
           </CardContent>

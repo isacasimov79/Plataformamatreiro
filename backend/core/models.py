@@ -189,6 +189,7 @@ class AuditLog(models.Model):
         ('logout', 'Logout'),
         ('impersonate_start', 'Impersonate Start'),
         ('impersonate_end', 'Impersonate End'),
+        ('ai_generation', 'AI Generation'),
     ]
     
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='audit_logs')

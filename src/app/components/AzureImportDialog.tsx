@@ -16,9 +16,9 @@ import {
   XCircle,
   Loader2,
 } from 'lucide-react';
-import { azureGetUsers, azureGetGroups } from '../lib/supabaseApi';
+import { azureGetUsers, azureGetGroups } from '../lib/apiLocal';
 import { toast } from 'sonner';
-import { azureSyncUsers, azureSyncGroups } from '../lib/supabaseApi';
+import { azureSyncUsers, azureSyncGroups } from '../lib/apiLocal';
 
 interface AzureImportDialogProps {
   open: boolean;

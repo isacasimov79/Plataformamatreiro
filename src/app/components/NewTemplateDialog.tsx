@@ -31,7 +31,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from './ui/popover';
-import { createTemplate } from '../lib/supabaseApi';
+import { createTemplate } from '../lib/apiLocal';
 
 interface NewTemplateDialogProps {
   open: boolean;

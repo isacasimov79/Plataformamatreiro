@@ -127,34 +127,49 @@ class MicrosoftGraphClient:
                 "details": "Check your credentials and internet connection"
             }
 
-    def get_users(self, max_results: int = 100, allowed_domains: List[str] = None) -> Dict[str, Any]:
-        """
-        Get users from Azure AD / Microsoft Graph.
-        """
+    def _paginate(self, endpoint: str, params: Dict, max_results: int = 999) -> List[Dict]:
+        """Follow @odata.nextLink to get all pages."""
+        all_items = []
+        result = self._make_request(endpoint, params=params)
+        if result is None:
+            return []
+        all_items.extend(result.get('value', []))
+        next_link = result.get('@odata.nextLink')
+        while next_link and len(all_items) < max_results:
+            try:
+                access_token = self._get_access_token()
+                headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+                resp = requests.get(next_link, headers=headers, timeout=30)
+                resp.raise_for_status()
+                data = resp.json()
+                all_items.extend(data.get('value', []))
+                next_link = data.get('@odata.nextLink')
+            except Exception as e:
+                logger.error(f"Pagination error: {e}")
+                break
+        return all_items[:max_results]
+
+    def get_users(self, max_results: int = 5000, allowed_domains: List[str] = None) -> Dict[str, Any]:
+        """Get users from Azure AD with full pagination."""
         params = {
             '$top': min(max_results, 999),
             '$select': 'id,userPrincipalName,displayName,mail,department,jobTitle,accountEnabled',
             '$filter': 'accountEnabled eq true'
         }
 
-        result = self._make_request("/users", params=params)
-
-        if result is None:
-            return {
-                "success": False,
-                "error": "Failed to fetch users from Microsoft Graph API"
-            }
+        raw_users = self._paginate("/users", params, max_results)
+        if not raw_users:
+            return {"success": False, "error": "Failed to fetch users from Microsoft Graph API"}
 
         users = []
-        for user in result.get('value', []):
+        for user in raw_users:
             email = user.get('mail') or user.get('userPrincipalName', '')
-
-            # Filter by allowed domains if specified
+            if not email or '@' not in email:
+                continue
             if allowed_domains:
-                domain = email.split('@')[1] if '@' in email else ''
-                if domain and not any(domain.lower() == d.lower() for d in allowed_domains):
+                domain = email.split('@')[1]
+                if not any(domain.lower() == d.lower() for d in allowed_domains):
                     continue
-
             users.append({
                 "id": user.get('id'),
                 "email": email,
@@ -163,66 +178,37 @@ class MicrosoftGraphClient:
                 "jobTitle": user.get('jobTitle') or '',
                 "enabled": user.get('accountEnabled', True)
             })
+        return {"success": True, "users": users, "count": len(users)}
 
-        return {
-            "success": True,
-            "users": users,
-            "count": len(users)
-        }
-
-    def get_groups(self, max_results: int = 100) -> Dict[str, Any]:
-        """
-        Get groups from Azure AD / Microsoft Graph.
-        """
+    def get_groups(self, max_results: int = 500) -> Dict[str, Any]:
+        """Get groups from Azure AD with pagination."""
         params = {
             '$top': min(max_results, 999),
             '$select': 'id,displayName,description,mail'
         }
-
-        result = self._make_request("/groups", params=params)
-
-        if result is None:
-            return {
-                "success": False,
-                "error": "Failed to fetch groups from Microsoft Graph API"
-            }
-
+        raw_groups = self._paginate("/groups", params, max_results)
+        if not raw_groups:
+            return {"success": False, "error": "Failed to fetch groups from Microsoft Graph API"}
         groups = []
-        for group in result.get('value', []):
+        for group in raw_groups:
             groups.append({
                 "id": group.get('id'),
                 "name": group.get('displayName', ''),
                 "description": group.get('description') or '',
                 "email": group.get('mail') or ''
             })
+        return {"success": True, "groups": groups, "count": len(groups)}
 
-        return {
-            "success": True,
-            "groups": groups,
-            "count": len(groups)
-        }
-
-    def get_group_members(self, group_id: str, max_results: int = 100) -> Dict[str, Any]:
-        """
-        Get members of a specific group.
-        """
+    def get_group_members(self, group_id: str, max_results: int = 500) -> Dict[str, Any]:
+        """Get members of a specific group with pagination."""
         params = {
             '$top': min(max_results, 999),
             '$select': 'id,userPrincipalName,displayName,mail,department'
         }
-
-        result = self._make_request(f"/groups/{group_id}/members", params=params)
-
-        if result is None:
-            return {
-                "success": False,
-                "error": "Failed to fetch group members from Microsoft Graph API"
-            }
-
+        raw_members = self._paginate(f"/groups/{group_id}/members", params, max_results)
         members = []
-        for member in result.get('value', []):
-            # Skip non-user objects (could be other groups)
-            if member.get('@odata.type', '').endswith('#microsoft.graph.user'):
+        for member in raw_members:
+            if '#microsoft.graph.user' in member.get('@odata.type', ''):
                 email = member.get('mail') or member.get('userPrincipalName', '')
                 members.append({
                     "id": member.get('id'),
@@ -230,12 +216,36 @@ class MicrosoftGraphClient:
                     "name": member.get('displayName', ''),
                     "department": member.get('department') or ''
                 })
+        return {"success": True, "members": members, "count": len(members)}
 
-        return {
-            "success": True,
-            "members": members,
-            "count": len(members)
+    def send_mail(self, from_email: str, to_email: str, subject: str, body_html: str) -> Dict[str, Any]:
+        """Send email via Microsoft Graph API /users/{from}/sendMail."""
+        access_token = self._get_access_token()
+        if not access_token:
+            return {"success": False, "error": "Failed to get access token"}
+
+        url = f"{self.GRAPH_BASE_URL}/users/{from_email}/sendMail"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
         }
+        payload = {
+            "message": {
+                "subject": subject,
+                "body": {"contentType": "HTML", "content": body_html},
+                "toRecipients": [{"emailAddress": {"address": to_email}}],
+            },
+            "saveToSentItems": False,
+        }
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            if response.status_code in (200, 202):
+                return {"success": True}
+            else:
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text[:500]}"}
+        except Exception as e:
+            logger.error(f"Graph send_mail error: {e}")
+            return {"success": False, "error": str(e)}
 
 
 def validate_uuid(value: str) -> bool:
@@ -253,17 +263,13 @@ def validate_credentials(tenant_id: str, client_id: str, client_secret: str) -> 
     """
     if not tenant_id:
         return False, "Tenant ID é obrigatório"
-
     if not client_id:
         return False, "Client ID é obrigatório"
-
     if not client_secret:
         return False, "Client Secret é obrigatório"
-
     if not validate_uuid(tenant_id):
-        return False, "Tenant ID deve ser um UUID válido (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-
+        return False, "Tenant ID deve ser um UUID válido"
     if not validate_uuid(client_id):
-        return False, "Client ID deve ser um UUID válido (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-
+        return False, "Client ID deve ser um UUID válido"
     return True, None
+

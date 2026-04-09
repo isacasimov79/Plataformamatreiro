@@ -2,6 +2,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -64,7 +65,8 @@ import {
   Calendar,
   Code,
 } from 'lucide-react';
-import { getCertificates, deleteCertificate, getTenants, getTrainings } from '../lib/supabaseApi';
+import { getCertificates, deleteCertificate, getTenants, getTrainings } from '../lib/apiLocal';
+import api from '../lib/api';
 
 interface Certificate {
   id: string;
@@ -92,85 +94,10 @@ interface CertificateTemplate {
   isDefault: boolean;
 }
 
-const mockCertificates: Certificate[] = [
-  {
-    id: 'cert-1',
-    userId: 'usr-123',
-    userName: 'João Silva',
-    userEmail: 'joao.silva@empresa.com.br',
-    trainingId: 'trn-1',
-    trainingTitle: 'Introdução à Segurança da Informação',
-    completedAt: '2026-03-05T14:30:00Z',
-    issuedAt: '2026-03-05T14:35:00Z',
-    certificateCode: 'CERT-2026-ABC123',
-    score: 95,
-    templateId: 'tpl-default',
-    status: 'issued',
-  },
-  {
-    id: 'cert-2',
-    userId: 'usr-456',
-    userName: 'Maria Santos',
-    userEmail: 'maria.santos@empresa.com.br',
-    trainingId: 'trn-2',
-    trainingTitle: 'Identificando Ataques de Phishing',
-    completedAt: '2026-03-04T10:15:00Z',
-    issuedAt: '2026-03-04T10:20:00Z',
-    certificateCode: 'CERT-2026-DEF456',
-    score: 88,
-    templateId: 'tpl-default',
-    status: 'issued',
-  },
-  {
-    id: 'cert-3',
-    userId: 'usr-789',
-    userName: 'Pedro Oliveira',
-    userEmail: 'pedro.oliveira@empresa.com.br',
-    trainingId: 'trn-3',
-    trainingTitle: 'Segurança em Dispositivos Móveis',
-    completedAt: '2026-03-03T16:45:00Z',
-    issuedAt: '2026-03-03T16:50:00Z',
-    certificateCode: 'CERT-2026-GHI789',
-    score: 92,
-    templateId: 'tpl-modern',
-    status: 'issued',
-  },
-];
-
-const mockTemplates: CertificateTemplate[] = [
-  {
-    id: 'tpl-default',
-    name: 'Matreiro Clássico',
-    description: 'Template padrão com logo da Matreiro e Under Protection',
-    backgroundColor: '#ffffff',
-    fontColor: '#242545',
-    logoUrl: '/logo-matreiro.png',
-    createdAt: '2026-01-01T00:00:00Z',
-    isDefault: true,
-  },
-  {
-    id: 'tpl-modern',
-    name: 'Moderno Roxo',
-    description: 'Design moderno com gradiente roxo',
-    backgroundColor: '#834a8b',
-    fontColor: '#ffffff',
-    logoUrl: '/logo-matreiro-white.png',
-    createdAt: '2026-02-15T00:00:00Z',
-    isDefault: false,
-  },
-  {
-    id: 'tpl-corporate',
-    name: 'Corporativo Azul',
-    description: 'Template formal para ambientes corporativos',
-    backgroundColor: '#242545',
-    fontColor: '#ffffff',
-    logoUrl: '/logo-matreiro-white.png',
-    createdAt: '2026-02-20T00:00:00Z',
-    isDefault: false,
-  },
-];
+// Mocks removed: Using API directly
 
 export function Certificates() {
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateTemplateOpen, setIsCreateTemplateOpen] = useState(false);
@@ -180,8 +107,44 @@ export function Certificates() {
   );
   const [activeTab, setActiveTab] = useState('certificates');
   const [isHtmlEditorOpen, setIsHtmlEditorOpen] = useState(false);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [templates, setTemplates] = useState<CertificateTemplate[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredCertificates = mockCertificates.filter(
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [certsRes] = await Promise.all([
+          api.get('/v1/certificates/'),
+          // Temporarily hold templates static or fetch if endpoint exists
+        ]);
+        const mappedCerts = certsRes.data.map((c: any) => ({
+          id: c.id,
+          userId: c.user,
+          userName: c.recipient_name || '',
+          userEmail: c.recipient_email || '',
+          trainingId: c.training,
+          trainingTitle: c.training_title || '',
+          completedAt: c.issued_at,
+          issuedAt: c.issued_at,
+          certificateCode: c.certificate_hash || '',
+          score: c.score,
+          templateId: '',
+          status: c.is_valid ? 'issued' : 'revoked'
+        }));
+        setCertificates(mappedCerts);
+      } catch (err) {
+        console.error('Error fetching certificates:', err);
+        toast.error('Erro ao buscar certificados');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [impersonatedTenant]);
+
+  const filteredCertificates = certificates.filter(
     (cert) =>
       cert.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       cert.userEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -190,14 +153,14 @@ export function Certificates() {
   );
 
   const handleDownload = (cert: Certificate) => {
-    toast.success('Certificado baixado!', {
-      description: `${cert.certificateCode}.pdf foi salvo`,
+    toast.success(t('certificates.messages.downloaded'), {
+      description: t('certificates.messages.downloadedDesc', { certCode: cert.certificateCode }),
     });
   };
 
   const handleRevoke = (certId: string) => {
-    toast.success('Certificado revogado!', {
-      description: 'O certificado foi invalidado',
+    toast.success(t('certificates.messages.revoked'), {
+      description: t('certificates.messages.revokedDesc'),
     });
   };
 
@@ -215,55 +178,54 @@ export function Certificates() {
             <Award className="w-8 h-8 text-[#834a8b]" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-                Certificados
+                {t('certificates.title')}
               </h1>
               <p className="text-gray-500 mt-1 text-sm md:text-base">
-                Gerencie certificados de conclusão de treinamentos
+                {t('certificates.subtitle')}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total Emitidos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('certificates.stats.issued')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">
-              {mockCertificates.length}
+              {certificates.length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Ativos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('certificates.stats.active')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {mockCertificates.filter((c) => c.status === 'issued').length}
+              {certificates.filter((c) => c.status === 'issued').length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Revogados</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('certificates.stats.revoked')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {mockCertificates.filter((c) => c.status === 'revoked').length}
+              {certificates.filter((c) => c.status === 'revoked').length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Templates</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('certificates.stats.templates')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#834a8b]">
-              {mockTemplates.length}
+              {templates.length}
             </div>
           </CardContent>
         </Card>
@@ -273,15 +235,15 @@ export function Certificates() {
         <TabsList>
           <TabsTrigger value="certificates">
             <Award className="w-4 h-4 mr-2" />
-            Certificados Emitidos
+            {t('certificates.tabs.issued')}
           </TabsTrigger>
           <TabsTrigger value="templates">
             <Palette className="w-4 h-4 mr-2" />
-            Templates
+            {t('certificates.tabs.templates')}
           </TabsTrigger>
           <TabsTrigger value="validation">
             <Shield className="w-4 h-4 mr-2" />
-            Validação
+            {t('certificates.tabs.validation')}
           </TabsTrigger>
         </TabsList>
 
@@ -293,7 +255,7 @@ export function Certificates() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  placeholder="Buscar certificados por nome, e-mail, treinamento..."
+                  placeholder={t('certificates.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -305,26 +267,40 @@ export function Certificates() {
           {/* Certificates Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Certificados Emitidos</CardTitle>
+              <CardTitle>{t('certificates.tabs.issued')}</CardTitle>
               <CardDescription>
-                {filteredCertificates.length} certificados registrados
+                {t('certificates.registeredCount', { count: filteredCertificates.length })}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Código</TableHead>
-                    <TableHead>Usuário</TableHead>
-                    <TableHead>Treinamento</TableHead>
-                    <TableHead>Data de Emissão</TableHead>
-                    <TableHead>Nota</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead>{t('certificates.table.code')}</TableHead>
+                    <TableHead>{t('certificates.table.user')}</TableHead>
+                    <TableHead>{t('certificates.table.training')}</TableHead>
+                    <TableHead>{t('certificates.table.issueDate')}</TableHead>
+                    <TableHead>{t('certificates.table.score')}</TableHead>
+                    <TableHead>{t('certificates.table.status')}</TableHead>
+                    <TableHead className="text-right">{t('certificates.table.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCertificates.map((cert) => (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <div className="w-8 h-8 border-4 border-t-[#834a8b] border-gray-200 rounded-full animate-spin"></div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredCertificates.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                        Nenhum certificado encontrado.
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredCertificates.map((cert) => (
                     <TableRow key={cert.id}>
                       <TableCell>
                         <div className="font-mono text-xs font-bold text-[#834a8b]">
@@ -333,25 +309,25 @@ export function Certificates() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{cert.userName}</div>
+                          <div className="font-medium">{cert.userName || 'Unknown'}</div>
                           <div className="text-xs text-gray-500">{cert.userEmail}</div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="max-w-xs truncate">{cert.trainingTitle}</div>
+                        <div className="max-w-xs truncate">{cert.trainingTitle || 'N/A'}</div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {format(new Date(cert.issuedAt), 'dd/MM/yyyy')}
+                          {cert.issuedAt ? format(new Date(cert.issuedAt), 'dd/MM/yyyy') : '-'}
                         </div>
                         <div className="text-xs text-gray-500">
-                          {format(new Date(cert.issuedAt), 'HH:mm')}
+                          {cert.issuedAt ? format(new Date(cert.issuedAt), 'HH:mm') : ''}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="text-lg font-bold text-green-600">
-                            {cert.score}
+                            {cert.score || 0}
                           </div>
                           <span className="text-xs text-gray-500">/ 100</span>
                         </div>
@@ -360,10 +336,10 @@ export function Certificates() {
                         {cert.status === 'issued' ? (
                           <Badge className="bg-green-100 text-green-700">
                             <CheckCircle className="w-3 h-3 mr-1" />
-                            Ativo
+                            {t('certificates.status.active', 'Ativo')}
                           </Badge>
                         ) : (
-                          <Badge className="bg-red-100 text-red-700">Revogado</Badge>
+                          <Badge className="bg-red-100 text-red-700">{t('certificates.status.revoked', 'Revogado')}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -374,15 +350,15 @@ export function Certificates() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuLabel>{t('certificates.table.actions')}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handlePreview(cert)}>
                               <Eye className="w-4 h-4 mr-2" />
-                              Visualizar
+                              {t('common.view')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDownload(cert)}>
                               <Download className="w-4 h-4 mr-2" />
-                              Baixar PDF
+                              {t('certificates.actions.download')}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -390,7 +366,7 @@ export function Certificates() {
                               onClick={() => handleRevoke(cert.id)}
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Revogar
+                              {t('certificates.actions.revoke')}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -412,34 +388,34 @@ export function Certificates() {
               onClick={() => setIsHtmlEditorOpen(true)}
             >
               <Code className="w-4 h-4 mr-2" />
-              Editor HTML Avançado
+              {t('certificates.actions.advancedEditor')}
             </Button>
             <Dialog open={isCreateTemplateOpen} onOpenChange={setIsCreateTemplateOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                   <Plus className="w-4 h-4 mr-2" />
-                  Novo Template
+                  {t('certificates.actions.newTemplate')}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Criar Novo Template</DialogTitle>
+                  <DialogTitle>{t('certificates.modals.newTemplate.title')}</DialogTitle>
                   <DialogDescription>
-                    Configure um novo modelo de certificado
+                    {t('certificates.modals.newTemplate.subtitle')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div>
-                    <Label htmlFor="template-name">Nome do Template</Label>
+                    <Label htmlFor="template-name">{t('certificates.modals.newTemplate.fields.name')}</Label>
                     <Input id="template-name" className="mt-2" />
                   </div>
                   <div>
-                    <Label htmlFor="template-description">Descrição</Label>
+                    <Label htmlFor="template-description">{t('certificates.modals.newTemplate.fields.description')}</Label>
                     <Textarea id="template-description" rows={2} className="mt-2" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="bg-color">Cor de Fundo</Label>
+                      <Label htmlFor="bg-color">{t('certificates.modals.newTemplate.fields.bgColor')}</Label>
                       <Input
                         id="bg-color"
                         type="color"
@@ -448,7 +424,7 @@ export function Certificates() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="font-color">Cor da Fonte</Label>
+                      <Label htmlFor="font-color">{t('certificates.modals.newTemplate.fields.fontColor')}</Label>
                       <Input
                         id="font-color"
                         type="color"
@@ -463,16 +439,16 @@ export function Certificates() {
                     variant="outline"
                     onClick={() => setIsCreateTemplateOpen(false)}
                   >
-                    Cancelar
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     onClick={() => {
-                      toast.success('Template criado!');
+                      toast.success(t('certificates.messages.templateCreated'));
                       setIsCreateTemplateOpen(false);
                     }}
                     className="bg-[#834a8b] hover:bg-[#6d3d75]"
                   >
-                    Criar Template
+                    {t('certificates.actions.createTemplate')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -480,11 +456,11 @@ export function Certificates() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockTemplates.map((template) => (
+            {templates.map((template) => (
               <Card key={template.id} className="relative">
                 {template.isDefault && (
                   <Badge className="absolute top-4 right-4 bg-blue-100 text-blue-700">
-                    Padrão
+                    {t('certificates.template.defaultBadge')}
                   </Badge>
                 )}
                 <CardHeader>
@@ -504,16 +480,21 @@ export function Certificates() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1">
                       <Eye className="w-4 h-4 mr-2" />
-                      Preview
+                      {t('common.preview')}
                     </Button>
                     <Button variant="outline" size="sm" className="flex-1">
                       <Edit className="w-4 h-4 mr-2" />
-                      Editar
+                      {t('common.edit')}
                     </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            {templates.length === 0 && (
+               <div className="col-span-3 text-center text-gray-500 py-8">
+                 Sem templates.
+               </div>
+            )}
           </div>
         </TabsContent>
 
@@ -521,15 +502,15 @@ export function Certificates() {
         <TabsContent value="validation" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Validar Certificado</CardTitle>
+              <CardTitle>{t('certificates.validation.title')}</CardTitle>
               <CardDescription>
-                Verifique a autenticidade de um certificado pelo código
+                {t('certificates.validation.subtitle')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="cert-code">Código do Certificado</Label>
+                  <Label htmlFor="cert-code">{t('certificates.validation.fields.code')}</Label>
                   <Input
                     id="cert-code"
                     placeholder="CERT-2026-ABC123"
@@ -538,7 +519,7 @@ export function Certificates() {
                 </div>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                   <Shield className="w-4 h-4 mr-2" />
-                  Validar Certificado
+                  {t('certificates.validation.title')}
                 </Button>
               </div>
             </CardContent>
@@ -549,31 +530,31 @@ export function Certificates() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-green-900">
                 <CheckCircle className="w-5 h-5 text-green-600" />
-                Certificado Válido
+                {t('certificates.validation.result.valid')}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Código:</span>
+                  <span className="text-gray-600">{t('certificates.table.code')}:</span>
                   <span className="font-mono font-bold">CERT-2026-ABC123</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Nome:</span>
+                  <span className="text-gray-600">{t('common.name')}:</span>
                   <span className="font-medium">João Silva</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Treinamento:</span>
+                  <span className="text-gray-600">{t('certificates.table.training')}:</span>
                   <span className="font-medium">
                     Introdução à Segurança da Informação
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Data de Emissão:</span>
+                  <span className="text-gray-600">{t('certificates.table.issueDate')}:</span>
                   <span className="font-medium">05/03/2026</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Nota:</span>
+                  <span className="text-gray-600">{t('certificates.table.score')}:</span>
                   <span className="font-bold text-green-600">95/100</span>
                 </div>
               </div>
@@ -587,31 +568,31 @@ export function Certificates() {
         <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>Preview do Certificado</DialogTitle>
+              <DialogTitle>{t('common.preview')}</DialogTitle>
               <DialogDescription>
                 {selectedCertificate.certificateCode}
               </DialogDescription>
             </DialogHeader>
             <div className="bg-gradient-to-br from-[#242545] to-[#834a8b] p-12 rounded-lg text-white text-center">
               <Award className="w-24 h-24 mx-auto mb-6" />
-              <h2 className="text-3xl font-bold mb-4">CERTIFICADO DE CONCLUSÃO</h2>
-              <p className="text-lg mb-2">Certificamos que</p>
+              <h2 className="text-3xl font-bold mb-4">{t('certificates.preview.title')}</h2>
+              <p className="text-lg mb-2">{t('certificates.preview.certifyThat')}</p>
               <h3 className="text-4xl font-bold mb-6">
                 {selectedCertificate.userName}
               </h3>
-              <p className="text-lg mb-2">concluiu com sucesso o treinamento</p>
+              <p className="text-lg mb-2">{t('certificates.preview.completedTraining')}</p>
               <h4 className="text-2xl font-bold mb-6">
                 {selectedCertificate.trainingTitle}
               </h4>
               <div className="flex justify-center gap-8 mb-6">
                 <div>
-                  <p className="text-sm opacity-80">Data de Conclusão</p>
+                  <p className="text-sm opacity-80">{t('certificates.preview.completionDate')}</p>
                   <p className="font-bold">
                     {format(new Date(selectedCertificate.completedAt), 'dd/MM/yyyy')}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm opacity-80">Nota Final</p>
+                  <p className="text-sm opacity-80">{t('certificates.preview.finalScore')}</p>
                   <p className="font-bold">{selectedCertificate.score}/100</p>
                 </div>
               </div>
@@ -621,14 +602,14 @@ export function Certificates() {
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsPreviewOpen(false)}>
-                Fechar
+                {t('common.close')}
               </Button>
               <Button
                 onClick={() => handleDownload(selectedCertificate)}
                 className="bg-[#834a8b] hover:bg-[#6d3d75]"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Baixar PDF
+                {t('certificates.actions.download')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -640,13 +621,13 @@ export function Certificates() {
         isOpen={isHtmlEditorOpen}
         onClose={() => setIsHtmlEditorOpen(false)}
         onSave={(data) => {
-          toast.success('Template de certificado salvo!', {
-            description: 'Template HTML criado com sucesso',
+          toast.success(t('certificates.messages.templateSaved'), {
+            description: t('certificates.messages.templateSavedDesc'),
           });
           setIsHtmlEditorOpen(false);
         }}
-        title="Editor de Template de Certificado"
-        description="Crie certificados HTML personalizados com variáveis dinâmicas"
+        title={t('certificates.actions.advancedEditor')}
+        description=""
         templateType="certificate"
       />
     </div>

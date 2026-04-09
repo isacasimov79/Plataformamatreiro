@@ -1,7 +1,7 @@
 // API Client para integração com Backend Django local
-// Substitui supabaseApi.ts para usar dados do banco local
+// API Client para integração com Backend Django local
 
-const API_BASE_URL = 'http://localhost:80';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 // Helper para obter token de autenticação (JWT do Keycloak ou local)
 function getAuthToken(): string | null {
@@ -166,6 +166,10 @@ export async function deleteCampaign(id: string) {
   return apiRequest<any>(`/api/v1/campaigns/${id}/`, 'DELETE');
 }
 
+export async function launchCampaign(campaignId: number | string) {
+  return apiRequest<any>(`/api/v1/campaigns/${campaignId}/launch/`, 'POST');
+}
+
 // =====================================================
 // TARGETS (Alvos/Colaboradores)
 // =====================================================
@@ -220,6 +224,18 @@ export async function updateTargetGroup(id: string, data: any) {
 
 export async function deleteTargetGroup(id: string) {
   return apiRequest<any>(`/api/v1/target-groups/${id}/`, 'DELETE');
+}
+
+// =====================================================
+// TENANT SETTINGS
+// =====================================================
+
+export async function getTenantSettings(tenantId: number | string) {
+  return apiRequest<any>(`/api/v1/tenants/${tenantId}/settings/`);
+}
+
+export async function updateTenantSettings(tenantId: number | string, data: any) {
+  return apiRequest<any>(`/api/v1/tenants/${tenantId}/settings/`, 'PUT', data);
 }
 
 // =====================================================
@@ -501,4 +517,113 @@ export async function azureSyncGroups(tenantId: string, clientId: string, client
     targetTenantId,
     allowedDomains,
   });
+}
+
+// =====================================================
+// ANALYTICS (Advanced)
+// =====================================================
+
+export async function getAnalyticsMetrics(timeRange: string = '30d') {
+  return apiRequest<any>(`/api/v1/analytics/metrics?timeRange=${timeRange}`);
+}
+
+export async function getAnalyticsTimeSeries(timeRange: string = '30d') {
+  return apiRequest<any>(`/api/v1/analytics/timeseries?timeRange=${timeRange}`);
+}
+
+export async function getAnalyticsDepartments() {
+  return apiRequest<any>('/api/v1/analytics/departments');
+}
+
+// =====================================================
+// GAMIFICATION
+// =====================================================
+
+export async function getGamificationUserStats() {
+  return apiRequest<any>('/api/v1/gamification/user-stats');
+}
+
+export async function getGamificationRankings(type: string = 'department') {
+  return apiRequest<any>(`/api/v1/gamification/rankings?type=${type}`);
+}
+
+// =====================================================
+// AI TEMPLATE GENERATOR (Multi-Provider)
+// =====================================================
+
+export async function getAIProviders() {
+  return apiRequest<any>('/api/v1/ai/providers');
+}
+
+export async function configureAIProviders(data: {
+  openai_key?: string;
+  gemini_key?: string;
+  minimax_key?: string;
+  openrouter_key?: string;
+}) {
+  return apiRequest<any>('/api/v1/ai/providers/config', 'POST', data);
+}
+
+export async function testAIProvider(data: {
+  provider: string;
+  model?: string;
+  prompt?: string;
+}) {
+  return apiRequest<any>('/api/v1/ai/providers/test', 'POST', data);
+}
+
+export async function generateAITemplate(data: {
+  category: string;
+  difficulty: string;
+  language?: string;
+  customInstructions?: string;
+  provider?: string;
+  model?: string;
+}) {
+  return apiRequest<any>('/api/v1/ai/generate-template', 'POST', data);
+}
+
+export async function analyzeAITemplate(data: {
+  subject: string;
+  bodyHtml: string;
+  provider?: string;
+  model?: string;
+}) {
+  return apiRequest<any>('/api/v1/ai/analyze-template', 'POST', data);
+}
+
+// =====================================================
+// TEMPLATE LIBRARY
+// =====================================================
+
+export async function getTemplateLibrary(params?: { category?: string; difficulty?: string; search?: string }) {
+  const queryParams = new URLSearchParams();
+  if (params?.category) queryParams.set('category', params.category);
+  if (params?.difficulty) queryParams.set('difficulty', params.difficulty);
+  if (params?.search) queryParams.set('search', params.search);
+  const qs = queryParams.toString();
+  return apiRequest<any>(`/api/v1/template-library/${qs ? '?' + qs : ''}`);
+}
+
+export async function cloneTemplateFromLibrary(templateId: string, tenantId: string, name?: string) {
+  return apiRequest<any>(`/api/v1/template-library/${templateId}/clone`, 'POST', {
+    tenantId,
+    name,
+  });
+}
+
+// =====================================================
+// REPORTS (extended)
+// =====================================================
+
+export async function getReportsDepartments() {
+  return apiRequest<any>('/api/v1/reports/departments');
+}
+
+// =====================================================
+// ENHANCED SEED
+// =====================================================
+
+export async function seedDatabaseEnhanced() {
+  return apiRequest<any>('/api/v1/seed/enhanced/', 'POST');
 }

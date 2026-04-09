@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { getAuditLogs } from '../lib/apiLocal';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import {
@@ -36,6 +38,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Brain,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -155,8 +158,66 @@ const mockSystemLogs = [
 ];
 
 export function Debug() {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState('smtp');
+  const [aiLogs, setAiLogs] = useState<any[]>([]);
+  const [smtpLogs, setSmtpLogs] = useState<any[]>([]);
+  const [authLogs, setAuthLogs] = useState<any[]>([]);
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchLogsForTab(selectedTab);
+  }, [selectedTab]);
+
+  const fetchLogsForTab = async (tab: string) => {
+    setIsLoading(true);
+    try {
+      if (tab === 'ai') {
+        const data = await getAuditLogs({ action: 'ai_generation' });
+        setAiLogs(data || []);
+      } else if (tab === 'smtp') {
+        const data = await getAuditLogs({ action: 'create' });
+        // Filter for campaign-related events
+        setSmtpLogs((data || []).filter((l: any) => 
+          l.category === 'campaign_event' || l.action === 'create'
+        ).map((l: any) => ({
+          id: l.id,
+          timestamp: l.timestamp,
+          campaign: l.details?.campaign_name || l.resource_type || '-',
+          target: l.details?.target_email || '-',
+          status: l.status || 'success',
+          message: typeof l.details === 'object' ? (l.details?.message || l.details?.error || 'Operação registrada') : (l.details || '-'),
+        })));
+      } else if (tab === 'auth') {
+        const data = await getAuditLogs({ action: 'login' });
+        setAuthLogs((data || []).map((l: any) => ({
+          id: l.id,
+          timestamp: l.timestamp,
+          user: l.userEmail || l.userName || '-',
+          action: l.action || 'login',
+          status: l.status || 'success',
+          ip: l.ipAddress || '127.0.0.1',
+          message: typeof l.details === 'object' ? JSON.stringify(l.details).substring(0, 100) : (l.details || '-'),
+        })));
+      } else if (tab === 'system') {
+        const data = await getAuditLogs({});
+        setSystemLogs((data || []).slice(0, 20).map((l: any) => ({
+          id: l.id,
+          timestamp: l.timestamp,
+          service: l.category || l.resource_type || 'Backend API',
+          level: l.status === 'failure' ? 'error' : (l.status === 'warning' ? 'warning' : 'info'),
+          message: typeof l.details === 'object' ? JSON.stringify(l.details).substring(0, 150) : (l.details || '-'),
+        })));
+      }
+    } catch (error) {
+      console.error(`Failed to fetch ${tab} logs:`, error);
+      toast.error(t('debug.fetchError', 'Erro ao carregar logs'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const scrollToTab = (tab: string) => {
     setSelectedTab(tab);
@@ -175,14 +236,14 @@ export function Debug() {
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Sucesso
+            {t('common.success', 'Sucesso')}
           </Badge>
         );
       case 'failed':
         return (
           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
             <XCircle className="w-3 h-3 mr-1" />
-            Falha
+            {t('common.failed', 'Falha')}
           </Badge>
         );
       case 'bounced':
@@ -225,11 +286,11 @@ export function Debug() {
   const exportLogs = () => {
     const allLogs = {
       exportDate: new Date().toISOString(),
-      smtp: mockSMTPLogs,
-      auth: mockAuthLogs,
-      system: mockSystemLogs,
+      smtp: smtpLogs,
+      auth: authLogs,
+      system: systemLogs,
       metadata: {
-        totalLogs: mockSMTPLogs.length + mockAuthLogs.length + mockSystemLogs.length,
+        totalLogs: smtpLogs.length + authLogs.length + systemLogs.length,
         searchQuery: searchQuery || 'none',
       }
     };
@@ -245,8 +306,8 @@ export function Debug() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success('Logs exportados com sucesso!', {
-      description: `${allLogs.metadata.totalLogs} registros exportados em JSON`,
+    toast.success(t('debug.messages.exportSuccess', 'Logs exportados com sucesso!'), {
+      description: t('debug.messages.exportDescJSON', { count: allLogs.metadata.totalLogs, defaultValue: `${allLogs.metadata.totalLogs} registros exportados em JSON` }),
     });
   };
 
@@ -255,7 +316,7 @@ export function Debug() {
     let csvContent = 'Tipo,Timestamp,Campo1,Campo2,Campo3,Campo4,Status,Mensagem\n';
     
     // SMTP Logs
-    mockSMTPLogs.forEach(log => {
+    smtpLogs.forEach(log => {
       const row = [
         'SMTP',
         format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss'),
@@ -270,7 +331,7 @@ export function Debug() {
     });
 
     // Auth Logs
-    mockAuthLogs.forEach(log => {
+    authLogs.forEach(log => {
       const row = [
         'AUTH',
         format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss'),
@@ -285,7 +346,7 @@ export function Debug() {
     });
 
     // System Logs
-    mockSystemLogs.forEach(log => {
+    systemLogs.forEach(log => {
       const row = [
         'SYSTEM',
         format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss'),
@@ -309,9 +370,9 @@ export function Debug() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    const totalLogs = mockSMTPLogs.length + mockAuthLogs.length + mockSystemLogs.length;
-    toast.success('Logs exportados com sucesso!', {
-      description: `${totalLogs} registros exportados em CSV`,
+    const totalLogs = smtpLogs.length + authLogs.length + systemLogs.length;
+    toast.success(t('debug.messages.exportSuccess', 'Logs exportados com sucesso!'), {
+      description: t('debug.messages.exportDescCSV', { count: totalLogs, defaultValue: `${totalLogs} registros exportados em CSV` }),
     });
   };
 
@@ -321,23 +382,23 @@ export function Debug() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Modo Debug</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('debug.title', 'Modo Debug')}</h1>
             <p className="text-gray-500 mt-1">
-              Logs operacionais, falhas de SMTP e auditoria de autenticação
+              {t('debug.subtitle', 'Logs operacionais, falhas de SMTP e auditoria de autenticação')}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline">
               <RefreshCw className="w-4 h-4 mr-2" />
-              Atualizar
+              {t('common.refresh', 'Atualizar')}
             </Button>
             <Button variant="outline" onClick={exportLogs}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar JSON
+              {t('debug.actions.exportJson', 'Exportar JSON')}
             </Button>
             <Button variant="outline" onClick={exportLogsCSV}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar CSV
+              {t('debug.actions.exportCsv', 'Exportar CSV')}
             </Button>
           </div>
         </div>
@@ -349,14 +410,14 @@ export function Debug() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Erros SMTP (24h)
+                {t('debug.stats.smtpErrors', 'Erros SMTP (24h)')}
               </CardTitle>
               <Mail className="w-4 h-4 text-gray-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">23</div>
-            <p className="text-xs text-gray-500 mt-1">3 autenticação, 20 bounce</p>
+            <p className="text-xs text-gray-500 mt-1">{t('debug.stats.smtpErrorsDesc', '3 autenticação, 20 bounce')}</p>
           </CardContent>
         </Card>
 
@@ -364,14 +425,14 @@ export function Debug() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Falhas de Login
+                {t('debug.stats.loginFailures', 'Falhas de Login')}
               </CardTitle>
               <Shield className="w-4 h-4 text-gray-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">8</div>
-            <p className="text-xs text-gray-500 mt-1">Últimas 24 horas</p>
+            <p className="text-xs text-gray-500 mt-1">{t('debug.stats.last24h', 'Últimas 24 horas')}</p>
           </CardContent>
         </Card>
 
@@ -379,27 +440,27 @@ export function Debug() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Erros de Sistema
+                {t('debug.stats.systemErrors', 'Erros de Sistema')}
               </CardTitle>
               <Server className="w-4 h-4 text-gray-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">5</div>
-            <p className="text-xs text-gray-500 mt-1">2 críticos, 3 warnings</p>
+            <p className="text-xs text-gray-500 mt-1">{t('debug.stats.systemErrorsDesc', '2 críticos, 3 warnings')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium text-gray-600">Uptime</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">{t('debug.stats.uptime', 'Uptime')}</CardTitle>
               <Clock className="w-4 h-4 text-gray-500" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">99.8%</div>
-            <p className="text-xs text-gray-500 mt-1">Últimos 30 dias</p>
+            <p className="text-xs text-gray-500 mt-1">{t('debug.stats.last30days', 'Últimos 30 dias')}</p>
           </CardContent>
         </Card>
       </div>
@@ -410,7 +471,7 @@ export function Debug() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
-              placeholder="Buscar logs por campanha, usuário ou mensagem..."
+              placeholder={t('debug.searchPlaceholder', 'Buscar logs por campanha, usuário ou mensagem...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -424,15 +485,19 @@ export function Debug() {
         <TabsList>
           <TabsTrigger value="smtp" onClick={() => scrollToTab('smtp')}>
             <Mail className="w-4 h-4 mr-2" />
-            SMTP Logs
+            {t('debug.tabs.smtp', 'SMTP Logs')}
           </TabsTrigger>
           <TabsTrigger value="auth" onClick={() => scrollToTab('auth')}>
             <Shield className="w-4 h-4 mr-2" />
-            Autenticação
+            {t('debug.tabs.auth', 'Autenticação')}
           </TabsTrigger>
           <TabsTrigger value="system" onClick={() => scrollToTab('system')}>
             <Server className="w-4 h-4 mr-2" />
-            Sistema
+            {t('debug.tabs.system', 'Sistema')}
+          </TabsTrigger>
+          <TabsTrigger value="ai" onClick={() => scrollToTab('ai')}>
+            <Brain className="w-4 h-4 mr-2" />
+            AI Logs
           </TabsTrigger>
         </TabsList>
 
@@ -456,7 +521,7 @@ export function Debug() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockSMTPLogs.map((log) => (
+                  {smtpLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs font-mono">
                         {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
@@ -494,7 +559,7 @@ export function Debug() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockAuthLogs.map((log) => (
+                  {authLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs font-mono">
                         {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
@@ -535,7 +600,7 @@ export function Debug() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {mockSystemLogs.map((log) => (
+                  {systemLogs.map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs font-mono">
                         {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
@@ -555,14 +620,80 @@ export function Debug() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="ai">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Logs da API de IA (LLMs)</CardTitle>
+                  <CardDescription>
+                    Registre as requisições enviadas ao provedor de IA e a resposta crua recebida
+                  </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => fetchLogsForTab('ai')} disabled={isLoading}>
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Atualizar
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Provedor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Raw Output</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {aiLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4 text-gray-500">
+                        {isLoading ? 'Carregando logs de IA...' : 'Nenhum log de IA encontrado. Gere um template com IA para ver os logs aqui.'}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    aiLogs.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="text-xs font-mono">
+                          {format(new Date(log.timestamp), 'dd/MM/yyyy HH:mm:ss')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                            {log.details?.provider || 'Unknown'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            Success
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <details className="cursor-pointer">
+                            <summary className="text-xs text-blue-600 font-medium">Ver JSON Retornado</summary>
+                            <pre className="mt-2 p-2 bg-gray-50 rounded text-[10px] w-full max-w-[400px] max-h-[150px] overflow-auto whitespace-pre-wrap">
+                              {log.details?.raw_response || 'No response recorded'}
+                            </pre>
+                          </details>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
         <Card className="bg-red-50 border-red-200">
           <CardHeader>
-            <CardTitle className="text-base">Erros Críticos</CardTitle>
-            <CardDescription className="text-gray-700">Requerem atenção imediata</CardDescription>
+            <CardTitle className="text-base">{t('debug.quickActions.criticalErrors', 'Erros Críticos')}</CardTitle>
+            <CardDescription className="text-gray-700">{t('debug.quickActions.criticalDesc', 'Requerem atenção imediata')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600 mb-2">2</div>
@@ -572,20 +703,20 @@ export function Debug() {
               className="w-full"
               onClick={() => {
                 scrollToTab('system');
-                toast.info('Filtrado por erros críticos', {
-                  description: 'Visualizando logs de sistema com nível "error"'
+                toast.info(t('debug.messages.filterCritical', 'Filtrado por erros críticos'), {
+                  description: t('debug.messages.filterCriticalDesc', 'Visualizando logs de sistema com nível "error"')
                 });
               }}
             >
-              Ver Detalhes
+              {t('common.viewDetails', 'Ver Detalhes')}
             </Button>
           </CardContent>
         </Card>
 
         <Card className="bg-orange-50 border-orange-200">
           <CardHeader>
-            <CardTitle className="text-base">Avisos</CardTitle>
-            <CardDescription className="text-gray-700">Situações a monitorar</CardDescription>
+            <CardTitle className="text-base">{t('debug.quickActions.warnings', 'Avisos')}</CardTitle>
+            <CardDescription className="text-gray-700">{t('debug.quickActions.warningsDesc', 'Situações a monitorar')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600 mb-2">8</div>
@@ -595,20 +726,20 @@ export function Debug() {
               className="w-full"
               onClick={() => {
                 scrollToTab('system');
-                toast.info('Filtrado por avisos', {
-                  description: 'Visualizando logs de sistema com nível "warning"'
+                toast.info(t('debug.messages.filterWarnings', 'Filtrado por avisos'), {
+                  description: t('debug.messages.filterWarningsDesc', 'Visualizando logs de sistema com nível "warning"')
                 });
               }}
             >
-              Ver Detalhes
+              {t('common.viewDetails', 'Ver Detalhes')}
             </Button>
           </CardContent>
         </Card>
 
         <Card className="bg-blue-50 border-blue-200">
           <CardHeader>
-            <CardTitle className="text-base">Performance</CardTitle>
-            <CardDescription className="text-gray-700">Métricas de resposta</CardDescription>
+            <CardTitle className="text-base">{t('debug.quickActions.performance', 'Performance')}</CardTitle>
+            <CardDescription className="text-gray-700">{t('debug.quickActions.performanceDesc', 'Métricas de resposta')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600 mb-2">145ms</div>
@@ -617,12 +748,12 @@ export function Debug() {
               size="sm" 
               className="w-full"
               onClick={() => {
-                toast.success('Métricas de Performance', {
-                  description: 'Tempo médio de resposta da API: 145ms'
+                toast.success(t('debug.messages.performanceMetrics', 'Métricas de Performance'), {
+                  description: t('debug.messages.performanceMetricsDesc', 'Tempo médio de resposta da API: 145ms')
                 });
               }}
             >
-              Ver Detalhes
+              {t('common.viewDetails', 'Ver Detalhes')}
             </Button>
           </CardContent>
         </Card>

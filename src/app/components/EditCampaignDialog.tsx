@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { Checkbox } from './ui/checkbox';
 import { toast } from 'sonner';
-import { getTemplates, getTargetGroups } from '../lib/supabaseApi';
+import { getTemplates, getTargetGroups } from '../lib/apiLocal';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar } from './ui/calendar';
 import { CalendarIcon, Users, Cloud, RefreshCw } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Campaign } from '../lib/mockData';
+import type { Campaign } from '../lib/types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -28,11 +28,11 @@ export function EditCampaignDialog({ campaign, isOpen, onClose }: EditCampaignDi
   const [calendarOpen, setCalendarOpen] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState({
-    name: campaign.name,
-    templateId: campaign.templateId,
-    targetGroupIds: campaign.targetGroupIds,
-    scheduledAt: campaign.scheduledAt ? new Date(campaign.scheduledAt) : undefined,
-    status: campaign.status,
+    name: campaign.name || '',
+    templateId: String(campaign.templateId || (campaign as any).template || ''),
+    targetGroupIds: campaign.targetGroupIds || [],
+    scheduledAt: (campaign as any).start_date || campaign.scheduledAt ? new Date((campaign as any).start_date || campaign.scheduledAt) : undefined,
+    status: campaign.status || 'draft',
   });
   
   // Estados para dados do banco
@@ -164,7 +164,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose }: EditCampaignDi
             <div>
               <Label htmlFor="template">Template *</Label>
               <Select
-                value={formData.templateId}
+                value={String(formData.templateId)}
                 onValueChange={(value) => setFormData({ ...formData, templateId: value })}
               >
                 <SelectTrigger id="template" className="mt-1">
@@ -172,7 +172,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose }: EditCampaignDi
                 </SelectTrigger>
                 <SelectContent>
                   {availableTemplates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
+                    <SelectItem key={template.id} value={String(template.id)}>
                       {template.name} - {template.category}
                     </SelectItem>
                   ))}
@@ -185,7 +185,7 @@ export function EditCampaignDialog({ campaign, isOpen, onClose }: EditCampaignDi
               <Label htmlFor="type">Tipo de Campanha</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                onValueChange={(value) => setFormData({ ...formData, status: value as any })}
               >
                 <SelectTrigger id="type" className="mt-1">
                   <SelectValue />

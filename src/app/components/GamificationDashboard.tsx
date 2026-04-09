@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Trophy, Award, Shield, Star, Zap, Target, Medal, Crown } from 'lucide-react';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { getGamificationUserStats, getGamificationRankings } from '../lib/apiLocal';
 import { useTranslation } from 'react-i18next';
 
 interface UserBadges {
@@ -24,46 +24,45 @@ interface Ranking {
   failed: number;
 }
 
-const BADGE_INFO: Record<string, { name: string; icon: any; color: string; description: string }> = {
+const getBadgeInfo = (t: any): Record<string, { name: string; icon: any; color: string; description: string }> => ({
   'first-campaign': {
-    name: 'Primeira Campanha',
+    name: t('gamification.badges.firstCampaign.name'),
     icon: Zap,
     color: 'text-blue-600',
-    description: 'Criou sua primeira campanha',
+    description: t('gamification.badges.firstCampaign.desc'),
   },
   'perfect-month': {
-    name: 'Mês Perfeito',
+    name: t('gamification.badges.perfectMonth.name'),
     icon: Shield,
     color: 'text-green-600',
-    description: 'Não clicou em phishing por 30 dias',
+    description: t('gamification.badges.perfectMonth.desc'),
   },
   'eagle-eye': {
-    name: 'Olho de Águia',
+    name: t('gamification.badges.eagleEye.name'),
     icon: Target,
     color: 'text-yellow-600',
-    description: 'Reportou 5 tentativas de phishing',
+    description: t('gamification.badges.eagleEye.desc'),
   },
   'master-trainer': {
-    name: 'Mestre Treinador',
+    name: t('gamification.badges.masterTrainer.name'),
     icon: Award,
     color: 'text-purple-600',
-    description: 'Completou todos os treinamentos',
+    description: t('gamification.badges.masterTrainer.desc'),
   },
   'champion': {
-    name: 'Campeão',
+    name: t('gamification.badges.champion.name'),
     icon: Crown,
     color: 'text-orange-600',
-    description: 'Primeiro lugar no ranking',
+    description: t('gamification.badges.champion.desc'),
   },
-};
+});
 
 export function GamificationDashboard() {
   const { t } = useTranslation();
+  const badgesData = getBadgeInfo(t);
   const [userBadges, setUserBadges] = useState<UserBadges | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-99a65fc7`;
 
   useEffect(() => {
     fetchGamificationData();
@@ -72,19 +71,17 @@ export function GamificationDashboard() {
   const fetchGamificationData = async () => {
     setLoading(true);
     try {
-      // Fetch user badges
-      const badgesRes = await fetch(`${API_URL}/gamification/badges/user-1`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const badgesData = await badgesRes.json();
-      setUserBadges(badgesData);
+      const [badgesResult, rankingsResult] = await Promise.allSettled([
+        getGamificationUserStats(),
+        getGamificationRankings('department'),
+      ]);
 
-      // Fetch rankings
-      const rankingsRes = await fetch(`${API_URL}/gamification/rankings?type=department`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const rankingsData = await rankingsRes.json();
-      setRankings(rankingsData.rankings || []);
+      if (badgesResult.status === 'fulfilled') {
+        setUserBadges(badgesResult.value);
+      }
+      if (rankingsResult.status === 'fulfilled') {
+        setRankings(rankingsResult.value.rankings || []);
+      }
     } catch (error) {
       console.error('Error fetching gamification data:', error);
     } finally {
@@ -115,9 +112,9 @@ export function GamificationDashboard() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Gamificação</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{t('gamification.title')}</h2>
         <p className="text-muted-foreground">
-          Acompanhe seu progresso, conquistas e rankings
+          {t('gamification.subtitle')}
         </p>
       </div>
 
@@ -128,9 +125,9 @@ export function GamificationDashboard() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl">Nível {userBadges.level}</CardTitle>
+                  <CardTitle className="text-2xl">{t('gamification.stats.level', { level: userBadges.level })}</CardTitle>
                   <CardDescription>
-                    {userBadges.points} pontos • {getNextLevelPoints(userBadges.level) - userBadges.points} para o próximo nível
+                    {t('gamification.stats.points', { current: userBadges.points, next: (getNextLevelPoints(userBadges.level) - userBadges.points) })}
                   </CardDescription>
                 </div>
                 <div className="p-4 bg-primary/10 rounded-full">
@@ -139,21 +136,21 @@ export function GamificationDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <Progress 
-                value={getCurrentLevelProgress(userBadges.points, userBadges.level)} 
+              <Progress
+                value={getCurrentLevelProgress(userBadges.points, userBadges.level)}
                 className="h-3"
               />
               <div className="flex justify-between text-sm text-muted-foreground mt-2">
-                <span>Nível {userBadges.level}</span>
-                <span>Nível {userBadges.level + 1}</span>
+                <span>{t('gamification.stats.level', { level: userBadges.level })}</span>
+                <span>{t('gamification.stats.level', { level: userBadges.level + 1 })}</span>
               </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Conquistas</CardTitle>
-              <CardDescription>Badges desbloqueados</CardDescription>
+              <CardTitle>{t('gamification.achievements.title')}</CardTitle>
+              <CardDescription>{t('gamification.achievements.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center">
@@ -162,7 +159,7 @@ export function GamificationDashboard() {
                     {userBadges.badges.length}
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    de {Object.keys(BADGE_INFO).length} possíveis
+                    {t('gamification.achievements.unlocked', { total: Object.keys(badgesData).length })}
                   </p>
                 </div>
               </div>
@@ -174,17 +171,17 @@ export function GamificationDashboard() {
       {/* Badges */}
       <Card>
         <CardHeader>
-          <CardTitle>Suas Conquistas</CardTitle>
+          <CardTitle>{t('gamification.badges.title')}</CardTitle>
           <CardDescription>
-            Badges que você conquistou ao longo da jornada
+            {t('gamification.badges.desc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Object.entries(BADGE_INFO).map(([badgeId, badgeInfo]) => {
+            {Object.entries(badgesData).map(([badgeId, badgeInfo]) => {
               const earned = userBadges?.badges.find(b => b.badgeId === badgeId);
               const Icon = badgeInfo.icon;
-              
+
               return (
                 <div
                   key={badgeId}
@@ -207,11 +204,11 @@ export function GamificationDashboard() {
                       </p>
                       {earned && (
                         <p className="text-xs text-primary mt-2">
-                          Conquistado em {new Date(earned.awardedAt).toLocaleDateString('pt-BR')}
+                          {t('gamification.badges.earnedOn', { date: new Date(earned.awardedAt).toLocaleDateString('pt-BR') })}
                         </p>
                       )}
                       {!earned && (
-                        <Badge variant="secondary" className="mt-2">Bloqueado</Badge>
+                        <Badge variant="secondary" className="mt-2">{t('gamification.badges.locked')}</Badge>
                       )}
                     </div>
                   </div>
@@ -227,10 +224,10 @@ export function GamificationDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Medal className="h-5 w-5 text-yellow-600" />
-            Ranking por Departamento
+            {t('gamification.rankings.title')}
           </CardTitle>
           <CardDescription>
-            Classificação baseada em evitar phishing (maior pontuação é melhor)
+            {t('gamification.rankings.desc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -239,7 +236,7 @@ export function GamificationDashboard() {
               const medals = ['🥇', '🥈', '🥉'];
               const medal = index < 3 ? medals[index] : `${index + 1}º`;
               const isTop3 = index < 3;
-              
+
               return (
                 <div
                   key={rank.name}
@@ -254,26 +251,26 @@ export function GamificationDashboard() {
                   }`}>
                     {medal}
                   </div>
-                  
+
                   <div className="flex-1">
                     <h4 className="font-semibold">{rank.name}</h4>
                     <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <Shield className="h-4 w-4 text-green-600" />
-                        {rank.avoided} evitados
+                        {t('gamification.rankings.avoided', { count: rank.avoided })}
                       </span>
                       <span className="flex items-center gap-1">
                         <Target className="h-4 w-4 text-red-600" />
-                        {rank.failed} falharam
+                        {t('gamification.rankings.failed', { count: rank.failed })}
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="text-2xl font-bold text-primary">
                       {rank.score}
                     </div>
-                    <div className="text-xs text-muted-foreground">pontos</div>
+                    <div className="text-xs text-muted-foreground">{t('gamification.rankings.points')}</div>
                   </div>
                 </div>
               );
@@ -283,8 +280,8 @@ export function GamificationDashboard() {
           {rankings.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum ranking disponível ainda</p>
-              <p className="text-sm mt-2">Execute campanhas para gerar dados de ranking</p>
+              <p>{t('gamification.rankings.empty')}</p>
+              <p className="text-sm mt-2">{t('gamification.rankings.emptyHint')}</p>
             </div>
           )}
         </CardContent>
@@ -293,9 +290,9 @@ export function GamificationDashboard() {
       {/* Challenge Cards */}
       <Card>
         <CardHeader>
-          <CardTitle>Desafios Semanais</CardTitle>
+          <CardTitle>{t('gamification.challenges.title')}</CardTitle>
           <CardDescription>
-            Complete os desafios para ganhar pontos extras
+            {t('gamification.challenges.desc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -306,12 +303,12 @@ export function GamificationDashboard() {
                   <Star className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold">Crie 3 Campanhas</h4>
+                  <h4 className="font-semibold">{t('gamification.challenges.createCampaign.title')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Recompensa: 150 pontos
+                    {t('gamification.challenges.reward', { points: 150 })}
                   </p>
                   <Progress value={33} className="mt-3" />
-                  <p className="text-xs text-muted-foreground mt-1">1 de 3 completo</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('gamification.challenges.progress', { current: 1, total: 3 })}</p>
                 </div>
               </div>
             </div>
@@ -322,12 +319,12 @@ export function GamificationDashboard() {
                   <Shield className="h-5 w-5 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold">Evite 10 Phishings</h4>
+                  <h4 className="font-semibold">{t('gamification.challenges.avoidPhishing.title')}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Recompensa: 200 pontos
+                    {t('gamification.challenges.reward', { points: 200 })}
                   </p>
                   <Progress value={70} className="mt-3" />
-                  <p className="text-xs text-muted-foreground mt-1">7 de 10 completo</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('gamification.challenges.progress', { current: 7, total: 10 })}</p>
                 </div>
               </div>
             </div>

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -118,6 +120,8 @@ const mockNotifications: Notification[] = [
 ];
 
 export function Notifications() {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [notifications, setNotifications] = useState(mockNotifications);
@@ -145,25 +149,25 @@ export function Notifications() {
         notif.id === notifId ? { ...notif, read: true } : notif
       )
     );
-    toast.success('Notificação marcada como lida');
+    toast.success(t('notifications.messages.markedAsRead'));
   };
 
   const handleMarkAllAsRead = () => {
     setNotifications((prev) =>
       prev.map((notif) => ({ ...notif, read: true }))
     );
-    toast.success('Todas as notificações foram marcadas como lidas');
+    toast.success(t('notifications.messages.allMarkedAsRead'));
   };
 
   const handleDelete = (notifId: string) => {
     setNotifications((prev) => prev.filter((notif) => notif.id !== notifId));
-    toast.success('Notificação removida');
+    toast.success(t('notifications.messages.deleted'));
   };
 
   const handleDeleteAll = () => {
     const readNotifications = notifications.filter((n) => n.read);
     setNotifications((prev) => prev.filter((notif) => !notif.read));
-    toast.success(`${readNotifications.length} notificações lidas foram removidas`);
+    toast.success(t('notifications.messages.allReadDeleted', { count: readNotifications.length }));
   };
 
   const getIcon = (type: string) => {
@@ -199,11 +203,11 @@ export function Notifications() {
 
   const getCategoryLabel = (category: string) => {
     const labels: Record<string, string> = {
-      campaign: 'Campanha',
-      user: 'Usuário',
-      system: 'Sistema',
-      security: 'Segurança',
-      training: 'Treinamento',
+      campaign: t('notifications.categories.campaign', 'Campanha'),
+      user: t('notifications.categories.user', 'Usuário'),
+      system: t('notifications.categories.system', 'Sistema'),
+      security: t('notifications.categories.security', 'Segurança'),
+      training: t('notifications.categories.training', 'Treinamento'),
     };
     return labels[category] || category;
   };
@@ -216,10 +220,10 @@ export function Notifications() {
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545] flex items-center gap-2">
               <Bell className="w-8 h-8" />
-              Notificações
+              {t('notifications.title', 'Notificações')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
-              Central de alertas e atualizações da plataforma
+              {t('notifications.subtitle', 'Central de alertas e atualizações da plataforma')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -229,7 +233,7 @@ export function Notifications() {
               disabled={unreadCount === 0}
             >
               <CheckCheck className="w-4 h-4 mr-2" />
-              Marcar Todas Como Lidas
+              {t('notifications.actions.markAllAsRead', 'Marcar Todas Como Lidas')}
             </Button>
             <Button
               variant="outline"
@@ -237,7 +241,7 @@ export function Notifications() {
               disabled={notifications.filter((n) => n.read).length === 0}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Limpar Lidas
+              {t('notifications.actions.clearRead', 'Limpar Lidas')}
             </Button>
           </div>
         </div>
@@ -247,7 +251,7 @@ export function Notifications() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('common.total', 'Total')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">
@@ -257,7 +261,7 @@ export function Notifications() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Não Lidas</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('notifications.stats.unread', 'Não Lidas')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{unreadCount}</div>
@@ -265,7 +269,7 @@ export function Notifications() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Avisos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('notifications.stats.warnings', 'Avisos')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
@@ -275,7 +279,7 @@ export function Notifications() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Erros</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('notifications.stats.errors', 'Erros')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -291,7 +295,7 @@ export function Notifications() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
-              placeholder="Buscar notificações..."
+              placeholder={t('notifications.searchPlaceholder', 'Buscar notificações...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -303,16 +307,16 @@ export function Notifications() {
       {/* Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Notificações</CardTitle>
+          <CardTitle>{t('notifications.list.title', 'Lista de Notificações')}</CardTitle>
           <CardDescription>
-            {filteredNotifications.length} notificações encontradas
+            {t('notifications.list.count', { count: filteredNotifications.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="all">
-                Todas
+                {t('notifications.tabs.all', 'Todas')}
                 {notifications.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
                     {notifications.length}
@@ -320,7 +324,7 @@ export function Notifications() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="unread">
-                Não Lidas
+                {t('notifications.tabs.unread', 'Não Lidas')}
                 {unreadCount > 0 && (
                   <Badge variant="secondary" className="ml-2 bg-blue-100 text-blue-700">
                     {unreadCount}
@@ -329,15 +333,15 @@ export function Notifications() {
               </TabsTrigger>
               <TabsTrigger value="campaign">
                 <Mail className="w-4 h-4 mr-1" />
-                Campanhas
+                {t('notifications.categories.campaign', 'Campanhas')}
               </TabsTrigger>
               <TabsTrigger value="security">
                 <Shield className="w-4 h-4 mr-1" />
-                Segurança
+                {t('notifications.categories.security', 'Segurança')}
               </TabsTrigger>
               <TabsTrigger value="system">
                 <Settings className="w-4 h-4 mr-1" />
-                Sistema
+                {t('notifications.categories.system', 'Sistema')}
               </TabsTrigger>
             </TabsList>
 
@@ -345,7 +349,7 @@ export function Notifications() {
               {filteredNotifications.length === 0 ? (
                 <div className="text-center py-12">
                   <BellOff className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Nenhuma notificação encontrada</p>
+                  <p className="text-gray-500">{t('notifications.list.empty', 'Nenhuma notificação encontrada')}</p>
                 </div>
               ) : (
                 filteredNotifications.map((notif) => (
@@ -369,7 +373,7 @@ export function Notifications() {
                               </h3>
                               {!notif.read && (
                                 <Badge className="bg-blue-100 text-blue-700 text-xs">
-                                  Nova
+                                  {t('common.new', 'Nova')}
                                 </Badge>
                               )}
                             </div>
@@ -397,7 +401,7 @@ export function Notifications() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleMarkAsRead(notif.id)}
-                                title="Marcar como lida"
+                                title={t('notifications.actions.markAsRead', 'Marcar como lida')}
                               >
                                 <CheckCheck className="w-4 h-4" />
                               </Button>
@@ -406,7 +410,7 @@ export function Notifications() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDelete(notif.id)}
-                              title="Remover"
+                              title={t('common.remove', 'Remover')}
                             >
                               <Trash2 className="w-4 h-4 text-red-600" />
                             </Button>
@@ -418,9 +422,16 @@ export function Notifications() {
                             variant="outline"
                             size="sm"
                             className="mt-3"
-                            onClick={() => toast.info('Navegando para: ' + notif.actionUrl)}
+                            onClick={() => {
+                              // If it's a relative internal link, navigate. Otherwise window.open
+                              if (notif.actionUrl!.startsWith('/')) {
+                                navigate(notif.actionUrl!);
+                              } else {
+                                window.open(notif.actionUrl, '_blank');
+                              }
+                            }}
                           >
-                            Ver Detalhes
+                            {t('common.viewDetails', 'Ver Detalhes')}
                           </Button>
                         )}
                       </div>

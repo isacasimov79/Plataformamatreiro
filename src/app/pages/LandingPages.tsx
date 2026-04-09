@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -61,7 +62,7 @@ import {
 import { toast } from 'sonner';
 import { HtmlTemplateEditor } from '../components/HtmlTemplateEditor';
 import { NewLandingPageDialog } from '../components/NewLandingPageDialog';
-import * as supabaseApi from '../lib/supabaseApi';
+import * as apiLocal from '../lib/apiLocal';
 
 interface LandingPage {
   id: string;
@@ -81,6 +82,7 @@ interface LandingPage {
 }
 
 export function LandingPages() {
+  const { t } = useTranslation();
   const { impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -101,13 +103,13 @@ export function LandingPages() {
     try {
       setIsLoading(true);
       console.log('🔄 Carregando landing pages do banco...');
-      const pages = await supabaseApi.getLandingPages();
+      const pages = await apiLocal.getLandingPages();
       console.log('✅ Landing pages carregadas:', pages);
       setLandingPages(pages);
     } catch (error: any) {
       console.error('❌ Erro ao carregar landing pages:', error);
-      toast.error('Erro ao carregar landing pages', {
-        description: error.message || 'Não foi possível carregar as landing pages',
+      toast.error(t('landing.errorLoading'), {
+        description: error.message || t('landing.errorLoadingDesc'),
       });
       setLandingPages([]);
     } finally {
@@ -123,16 +125,16 @@ export function LandingPages() {
 
   const handleCreatePage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Landing page criada!', {
-      description: 'A página foi criada com sucesso',
+    toast.success(t('landing.success.created'), {
+      description: t('landing.success.createdDesc'),
     });
     setIsCreateDialogOpen(false);
   };
 
   const handleEditPage = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Landing page atualizada!', {
-      description: 'As alterações foram salvas',
+    toast.success(t('landing.success.updated'), {
+      description: t('landing.success.updatedDesc'),
     });
     setIsEditDialogOpen(false);
     setSelectedPage(null);
@@ -140,26 +142,26 @@ export function LandingPages() {
 
   const handleCopyUrl = (url: string) => {
     navigator.clipboard.writeText(url);
-    toast.success('URL copiada!', {
-      description: 'O link foi copiado para a área de transferência',
+    toast.success(t('landing.success.urlCopied'), {
+      description: t('landing.success.urlCopiedDesc'),
     });
   };
 
   const handleDelete = (pageId: string) => {
     const page = landingPages.find((p) => p.id === pageId);
-    toast.success('Landing page removida!', {
-      description: `"${page?.name}" foi deletada`,
+    toast.success(t('landing.success.deleted'), {
+      description: t('landing.success.deletedDesc', { name: page?.name }),
     });
   };
 
   const getTypeLabel = (type: string) => {
     const types: Record<string, string> = {
-      login: 'Login',
-      prize: 'Prêmio',
-      update: 'Atualização',
-      survey: 'Pesquisa',
-      support: 'Suporte',
-      custom: 'Customizada',
+      login: t('landing.types.login'),
+      prize: t('landing.types.prize'),
+      update: t('landing.types.update'),
+      survey: t('landing.types.survey'),
+      support: t('landing.types.support'),
+      custom: t('landing.types.custom'),
     };
     return types[type] || type;
   };
@@ -183,10 +185,10 @@ export function LandingPages() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              Landing Pages
+              {t('landing.title')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
-              Gerencie páginas de captura para campanhas de phishing
+              {t('landing.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
@@ -196,14 +198,14 @@ export function LandingPages() {
               onClick={() => setIsHtmlEditorOpen(true)}
             >
               <Code className="w-4 h-4 mr-2" />
-              Editor HTML Avançado
+              {t('landing.buttons.advancedEditor')}
             </Button>
             <Button 
               className="bg-[#834a8b] hover:bg-[#6d3d75]"
               onClick={() => setIsCreateDialogOpen(true)}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Nova Landing Page
+              {t('landing.buttons.newLandingPage')}
             </Button>
           </div>
         </div>
@@ -213,7 +215,7 @@ export function LandingPages() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Páginas</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('landing.stats.total')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">
@@ -223,7 +225,7 @@ export function LandingPages() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Páginas Ativas</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('landing.stats.active')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
@@ -233,7 +235,7 @@ export function LandingPages() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Capturas</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('landing.stats.captures')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
@@ -243,7 +245,7 @@ export function LandingPages() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Cliques</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('landing.stats.clicks')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
@@ -259,7 +261,7 @@ export function LandingPages() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
-              placeholder="Buscar landing pages..."
+              placeholder={t('landing.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -271,22 +273,22 @@ export function LandingPages() {
       {/* Landing Pages Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Landing Pages</CardTitle>
+          <CardTitle>{t('landing.table.title')}</CardTitle>
           <CardDescription>
-            {filteredPages.length} páginas de captura configuradas
+            {t('landing.table.desc', { count: filteredPages.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>URL</TableHead>
-                <TableHead>Capturas</TableHead>
-                <TableHead>Taxa</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{t('landing.table.colName')}</TableHead>
+                <TableHead>{t('landing.table.colType')}</TableHead>
+                <TableHead>{t('landing.table.colURL')}</TableHead>
+                <TableHead>{t('landing.table.colCaptures')}</TableHead>
+                <TableHead>{t('landing.table.colRate')}</TableHead>
+                <TableHead>{t('landing.table.colStatus')}</TableHead>
+                <TableHead className="text-right">{t('landing.table.colActions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -330,7 +332,7 @@ export function LandingPages() {
                       <div className="text-center">
                         <div className="text-lg font-bold">{page.capturesCount}</div>
                         <div className="text-xs text-gray-500">
-                          {page.clicksCount} cliques
+                          {t('landing.table.clicksLabel', { count: page.clicksCount })}
                         </div>
                       </div>
                     </TableCell>
@@ -343,14 +345,14 @@ export function LandingPages() {
                       {page.status === 'active' && (
                         <Badge className="bg-green-100 text-green-700">
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Ativa
+                          {t('landing.status.active')}
                         </Badge>
                       )}
                       {page.status === 'draft' && (
-                        <Badge variant="outline">Rascunho</Badge>
+                        <Badge variant="outline">{t('landing.status.draft')}</Badge>
                       )}
                       {page.status === 'archived' && (
-                        <Badge variant="secondary">Arquivada</Badge>
+                        <Badge variant="secondary">{t('landing.status.archived')}</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -361,7 +363,7 @@ export function LandingPages() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuLabel>{t('landing.menu.actions')}</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => {
@@ -370,7 +372,7 @@ export function LandingPages() {
                             }}
                           >
                             <Eye className="w-4 h-4 mr-2" />
-                            Preview
+                            {t('landing.menu.preview')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -379,11 +381,11 @@ export function LandingPages() {
                             }}
                           >
                             <Code className="w-4 h-4 mr-2" />
-                            Ver Código
+                            {t('landing.menu.viewCode')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleCopyUrl(page.url)}>
                             <Copy className="w-4 h-4 mr-2" />
-                            Copiar URL
+                            {t('landing.menu.copyURL')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
@@ -392,11 +394,11 @@ export function LandingPages() {
                             }}
                           >
                             <Edit className="w-4 h-4 mr-2" />
-                            Editar
+                            {t('landing.menu.edit')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => window.open(page.url, '_blank')}>
                             <ExternalLink className="w-4 h-4 mr-2" />
-                            Abrir em Nova Aba
+                            {t('landing.menu.openNewTab')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -404,7 +406,7 @@ export function LandingPages() {
                             onClick={() => handleDelete(page.id)}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
-                            Remover
+                            {t('landing.menu.remove')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -422,10 +424,10 @@ export function LandingPages() {
         <Dialog open={isPreviewDialogOpen} onOpenChange={setIsPreviewDialogOpen}>
           <DialogContent className="max-w-6xl max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>{selectedPage.name} - Preview</DialogTitle>
-              <DialogDescription>Visualização simulada da landing page</DialogDescription>
+              <DialogTitle>{selectedPage.name} - {t('landing.dialogs.preview.title')}</DialogTitle>
+              <DialogDescription>{t('landing.dialogs.preview.desc')}</DialogDescription>
             </DialogHeader>
-            <div className="border rounded-lg bg-gradient-to-br from-blue-50 to-white p-8" style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="border rounded-lg bg-gradient-to-br from-blue-50 to-white p-8 h-[70vh] flex items-center justify-center">
               <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-xl">
                 <div className="text-center mb-6">
                   <div className="flex items-center justify-center mb-4">
@@ -436,13 +438,13 @@ export function LandingPages() {
                       <rect fill="#ffb900" x="12" y="12" width="11" height="11"/>
                     </svg>
                   </div>
-                  <h2 className="text-2xl font-semibold mb-2">Microsoft 365</h2>
-                  <p className="text-gray-600 text-sm">Entrar na sua conta</p>
+                  <h2 className="text-2xl font-semibold mb-2">{t('landing.dialogs.preview.msTitle')}</h2>
+                  <p className="text-gray-600 text-sm">{t('landing.dialogs.preview.msSubtitle')}</p>
                 </div>
                 <div className="space-y-4">
                   <input
                     type="email"
-                    placeholder="Email, telefone ou Skype"
+                    placeholder={t('landing.dialogs.preview.emailPlaceholder')}
                     className="w-full p-3 border border-gray-300 rounded"
                     disabled
                   />
@@ -450,25 +452,24 @@ export function LandingPages() {
                     className="w-full bg-blue-600 text-white p-3 rounded font-semibold hover:bg-blue-700"
                     disabled
                   >
-                    Avançar
+                    {t('landing.dialogs.preview.nextBtn')}
                   </button>
                   <p className="text-sm text-center text-gray-600">
-                    Não tem uma conta? <a href="#" className="text-blue-600">Crie uma!</a>
+                    <span dangerouslySetInnerHTML={{ __html: t('landing.dialogs.preview.createAccountHtml') }} />
                   </p>
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsPreviewDialogOpen(false)}>
-                Fechar
+                {t('landing.buttons.close')}
               </Button>
               <Button className="bg-[#834a8b] hover:bg-[#6d3d75]" onClick={() => {
                 setIsPreviewDialogOpen(false);
-                setSelectedPage(page);
                 setIsEditDialogOpen(true);
               }}>
                 <Edit className="w-4 h-4 mr-2" />
-                Editar
+                {t('landing.buttons.edit')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -480,8 +481,8 @@ export function LandingPages() {
         <Dialog open={isCodeDialogOpen} onOpenChange={setIsCodeDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{selectedPage.name} - Código</DialogTitle>
-              <DialogDescription>HTML e CSS da landing page</DialogDescription>
+              <DialogTitle>{selectedPage.name} - {t('landing.dialogs.code.title')}</DialogTitle>
+              <DialogDescription>{t('landing.dialogs.code.desc')}</DialogDescription>
             </DialogHeader>
             <Tabs defaultValue="html">
               <TabsList>
@@ -644,11 +645,11 @@ button:hover {
             </Tabs>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCodeDialogOpen(false)}>
-                Fechar
+                {t('landing.buttons.close')}
               </Button>
               <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                 <Download className="w-4 h-4 mr-2" />
-                Exportar
+                {t('landing.buttons.export')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -661,14 +662,14 @@ button:hover {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <form onSubmit={handleEditPage}>
               <DialogHeader>
-                <DialogTitle>Editar Landing Page</DialogTitle>
+                <DialogTitle>{t('landing.dialogs.edit.title')}</DialogTitle>
                 <DialogDescription>
-                  Atualize as informações da página de captura
+                  {t('landing.dialogs.edit.desc')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div>
-                  <Label htmlFor="edit-name">Nome da Página</Label>
+                  <Label htmlFor="edit-name">{t('landing.dialogs.edit.nameLabel')}</Label>
                   <Input
                     id="edit-name"
                     defaultValue={selectedPage.name}
@@ -678,7 +679,7 @@ button:hover {
                 </div>
 
                 <div>
-                  <Label htmlFor="edit-description">Descrição</Label>
+                  <Label htmlFor="edit-description">{t('landing.dialogs.edit.descLabel')}</Label>
                   <Textarea
                     id="edit-description"
                     defaultValue={selectedPage.description}
@@ -689,39 +690,39 @@ button:hover {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="edit-type">Tipo de Página</Label>
+                    <Label htmlFor="edit-type">{t('landing.dialogs.edit.typeLabel')}</Label>
                     <Select defaultValue={selectedPage.type}>
                       <SelectTrigger className="mt-2" id="edit-type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="login">Login</SelectItem>
-                        <SelectItem value="prize">Prêmio</SelectItem>
-                        <SelectItem value="update">Atualização</SelectItem>
-                        <SelectItem value="survey">Pesquisa</SelectItem>
-                        <SelectItem value="support">Suporte</SelectItem>
-                        <SelectItem value="custom">Customizada</SelectItem>
+                        <SelectItem value="login">{t('landing.types.login')}</SelectItem>
+                        <SelectItem value="prize">{t('landing.types.prize')}</SelectItem>
+                        <SelectItem value="update">{t('landing.types.update')}</SelectItem>
+                        <SelectItem value="survey">{t('landing.types.survey')}</SelectItem>
+                        <SelectItem value="support">{t('landing.types.support')}</SelectItem>
+                        <SelectItem value="custom">{t('landing.types.custom')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="edit-status">Status</Label>
+                    <Label htmlFor="edit-status">{t('landing.dialogs.edit.statusLabel')}</Label>
                     <Select defaultValue={selectedPage.status}>
                       <SelectTrigger className="mt-2" id="edit-status">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Ativa</SelectItem>
-                        <SelectItem value="draft">Rascunho</SelectItem>
-                        <SelectItem value="archived">Arquivada</SelectItem>
+                        <SelectItem value="active">{t('landing.status.active')}</SelectItem>
+                        <SelectItem value="draft">{t('landing.status.draft')}</SelectItem>
+                        <SelectItem value="archived">{t('landing.status.archived')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="edit-url">URL da Página</Label>
+                  <Label htmlFor="edit-url">{t('landing.dialogs.edit.urlLabel')}</Label>
                   <Input
                     id="edit-url"
                     defaultValue={selectedPage.url}
@@ -730,9 +731,7 @@ button:hover {
                 </div>
 
                 <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                  <p className="text-sm text-purple-700">
-                    ✏️ <strong>Edição Avançada:</strong> Use o Editor HTML Avançado para modificar o código da página.
-                  </p>
+                  <p className="text-sm text-purple-700" dangerouslySetInnerHTML={{ __html: t('landing.dialogs.edit.advancedHtml') }} />
                 </div>
               </div>
               <DialogFooter>
@@ -744,7 +743,7 @@ button:hover {
                     setSelectedPage(null);
                   }}
                 >
-                  Cancelar
+                  {t('landing.buttons.cancel')}
                 </Button>
                 <Button
                   type="button"
@@ -756,10 +755,10 @@ button:hover {
                   }}
                 >
                   <Code className="w-4 h-4 mr-2" />
-                  Editor HTML
+                  {t('landing.buttons.htmlEditor')}
                 </Button>
                 <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                  Salvar Alterações
+                  {t('landing.buttons.saveChanges')}
                 </Button>
               </DialogFooter>
             </form>
@@ -772,13 +771,13 @@ button:hover {
         isOpen={isHtmlEditorOpen}
         onClose={() => setIsHtmlEditorOpen(false)}
         onSave={(data) => {
-          toast.success('Landing page salva!', {
-            description: 'Template HTML criado com sucesso',
+          toast.success(t('landing.success.saved'), {
+            description: t('landing.success.savedDesc'),
           });
           setIsHtmlEditorOpen(false);
         }}
-        title="Editor de Landing Page"
-        description="Crie landing pages HTML personalizadas com JavaScript e captura de dados"
+        title={t('landing.editor.title')}
+        description={t('landing.editor.desc')}
         templateType="landing"
         initialHtml={selectedPage ? `<!DOCTYPE html>
 <html lang="pt-BR">

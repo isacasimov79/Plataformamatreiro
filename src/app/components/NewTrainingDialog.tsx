@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import {
   SelectValue,
 } from './ui/select';
 import { toast } from 'sonner';
-import { createTraining } from '../lib/supabaseApi';
+import { createTraining } from '../lib/apiLocal';
 import { useAuth } from '../contexts/AuthContext';
 import { Plus, Video, FileText } from 'lucide-react';
 
@@ -29,6 +30,7 @@ interface NewTrainingDialogProps {
 }
 
 export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps) {
+  const { t } = useTranslation();
   const { impersonatedTenant } = useAuth();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +48,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
     e.preventDefault();
     
     if (!formData.title.trim()) {
-      toast.error('Por favor, preencha o título do treinamento');
+      toast.error(t('trainings.messages.titleRequired'));
       return;
     }
 
@@ -60,8 +62,8 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
         averageScore: 0,
       });
 
-      toast.success('Treinamento criado!', {
-        description: 'O treinamento foi criado com sucesso.',
+      toast.success(t('trainings.createSuccess', 'Treinamento criado!'), {
+        description: t('trainings.createSuccessDesc'),
       });
 
       setOpen(false);
@@ -80,7 +82,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
       }
     } catch (error) {
       console.error('Error creating training:', error);
-      toast.error('Erro ao criar treinamento', {
+      toast.error(t('common.error'), {
         description: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     } finally {
@@ -93,43 +95,43 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
       <DialogTrigger asChild>
         <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
           <Plus className="w-4 h-4 mr-2" />
-          Novo Treinamento
+          {t('trainings.newTraining')}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Criar Novo Treinamento</DialogTitle>
+            <DialogTitle>{t('trainings.newTrainingTitle')}</DialogTitle>
             <DialogDescription>
-              Adicione um novo treinamento de segurança da informação
+              {t('trainings.newTrainingSubtitle')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
             {/* Título */}
             <div className="grid gap-2">
-              <Label htmlFor="title">Título *</Label>
+              <Label htmlFor="title">{t('trainings.tableTitle')} *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                placeholder="Ex: Introdução à Segurança da Informação"
+                placeholder={t('trainings.modals.edit.fields.titlePlaceholder', 'Ex: Introdução à Segurança da Informação')}
                 required
               />
             </div>
 
             {/* Descrição */}
             <div className="grid gap-2">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="description">{t('common.description')}</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="Descreva o conteúdo do treinamento..."
+                placeholder={t('trainings.modals.edit.fields.descriptionPlaceholder', 'Descreva o conteúdo do treinamento...')}
                 rows={3}
               />
             </div>
@@ -137,7 +139,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
             {/* Tipo e Duração */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="type">Tipo</Label>
+                <Label htmlFor="type">{t('trainings.tableType')}</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value: 'video' | 'slides') =>
@@ -151,13 +153,13 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
                     <SelectItem value="video">
                       <div className="flex items-center gap-2">
                         <Video className="w-4 h-4" />
-                        Vídeo
+                        {t('trainings.typeVideo')}
                       </div>
                     </SelectItem>
                     <SelectItem value="slides">
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4" />
-                        Slides
+                        {t('trainings.typeSlides')}
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -165,7 +167,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="duration">Duração (minutos)</Label>
+                <Label htmlFor="duration">{t('trainings.tableDuration')}</Label>
                 <Input
                   id="duration"
                   type="number"
@@ -180,7 +182,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
 
             {/* Categoria */}
             <div className="grid gap-2">
-              <Label htmlFor="category">Categoria</Label>
+              <Label htmlFor="category">{t('trainings.tableCategory')}</Label>
               <Select
                 value={formData.category}
                 onValueChange={(value) =>
@@ -191,20 +193,20 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Básico">Básico</SelectItem>
-                  <SelectItem value="Intermediário">Intermediário</SelectItem>
-                  <SelectItem value="Avançado">Avançado</SelectItem>
-                  <SelectItem value="Phishing">Phishing</SelectItem>
-                  <SelectItem value="Engenharia Social">Engenharia Social</SelectItem>
-                  <SelectItem value="LGPD">LGPD</SelectItem>
-                  <SelectItem value="Compliance">Compliance</SelectItem>
+                  <SelectItem value="Básico">{t('trainings.categories.basic')}</SelectItem>
+                  <SelectItem value="Intermediário">{t('trainings.categories.intermediate')}</SelectItem>
+                  <SelectItem value="Avançado">{t('trainings.categories.advanced')}</SelectItem>
+                  <SelectItem value="Phishing">{t('trainings.categories.phishing')}</SelectItem>
+                  <SelectItem value="Engenharia Social">{t('trainings.categories.social_engineering')}</SelectItem>
+                  <SelectItem value="LGPD">{t('trainings.categories.lgpd')}</SelectItem>
+                  <SelectItem value="Compliance">{t('trainings.categories.compliance')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             {/* URL do Conteúdo */}
             <div className="grid gap-2">
-              <Label htmlFor="mediaUrl">URL do Conteúdo (opcional)</Label>
+              <Label htmlFor="mediaUrl">{t('trainings.modals.edit.fields.orUrl')} (opcional)</Label>
               <Input
                 id="mediaUrl"
                 type="url"
@@ -215,7 +217,7 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
                 placeholder="https://exemplo.com/video.mp4"
               />
               <p className="text-xs text-gray-500">
-                Link para o vídeo ou apresentação do treinamento
+                {t('trainings.modals.new.linkInfo')}
               </p>
             </div>
           </div>
@@ -227,14 +229,14 @@ export function NewTrainingDialog({ onTrainingCreated }: NewTrainingDialogProps)
               onClick={() => setOpen(false)}
               disabled={isSubmitting}
             >
-              Cancelar
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
               className="bg-[#834a8b] hover:bg-[#6d3d75]"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Criando...' : 'Criar Treinamento'}
+              {isSubmitting ? t('common.creating') : t('trainings.newTraining')}
             </Button>
           </DialogFooter>
         </form>

@@ -5,10 +5,11 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
-import { Search, Copy, Eye, TrendingUp, Award, Zap } from 'lucide-react';
+import { Search, Copy, Eye, TrendingUp, Zap } from 'lucide-react';
 import { toast } from 'sonner';
-import { projectId, publicAnonKey } from '/utils/supabase/info';
+import { getTemplateLibrary, cloneTemplateFromLibrary } from '../lib/apiLocal';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Template {
   id: string;
@@ -25,6 +26,7 @@ interface Template {
 
 export function TemplateLibrary() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const [category, setCategory] = useState('all');
@@ -33,8 +35,6 @@ export function TemplateLibrary() {
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-99a65fc7`;
 
   useEffect(() => {
     fetchTemplates();
@@ -47,14 +47,11 @@ export function TemplateLibrary() {
   const fetchTemplates = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/template-library`, {
-        headers: { 'Authorization': `Bearer ${publicAnonKey}` },
-      });
-      const data = await res.json();
+      const data = await getTemplateLibrary();
       setTemplates(data.templates || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
-      toast.error('Erro ao carregar templates');
+      toast.error(t('templates.messages.libraryLoadError'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +70,7 @@ export function TemplateLibrary() {
 
     if (search) {
       const searchLower = search.toLowerCase();
-      filtered = filtered.filter(t => 
+      filtered = filtered.filter(t =>
         t.name.toLowerCase().includes(searchLower) ||
         t.description.toLowerCase().includes(searchLower)
       );
@@ -84,37 +81,37 @@ export function TemplateLibrary() {
 
   const cloneTemplate = async (template: Template) => {
     try {
-      const res = await fetch(`${API_URL}/template-library/${template.id}/clone`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`,
-        },
-        body: JSON.stringify({
-          tenantId: 'tenant-1',
-          name: `${template.name} (Cópia)`,
-        }),
-      });
+      const tenantId = user?.tenantId || '';
+      const result = await cloneTemplateFromLibrary(
+        template.id,
+        tenantId,
+        `${template.name} (Cópia)`
+      );
 
-      if (res.ok) {
-        toast.success('Template clonado com sucesso!');
+      if (result.success) {
+        toast.success(t('templates.messages.cloneSuccess'));
       } else {
         throw new Error('Failed to clone template');
       }
     } catch (error) {
       console.error('Error cloning template:', error);
-      toast.error('Erro ao clonar template');
+      toast.error(t('templates.messages.cloneError'));
     }
   };
 
   const getCategoryLabel = (cat: string) => {
     const labels: Record<string, string> = {
-      banking: 'Bancário',
-      hr: 'RH',
-      it: 'TI',
-      delivery: 'Entrega',
-      finance: 'Finanças',
-      covid: 'COVID-19',
+      banking: t('templates.categories.banking'),
+      hr: t('templates.categories.hr'),
+      it: t('templates.categories.it'),
+      delivery: t('templates.categories.delivery'),
+      finance: t('templates.categories.finance'),
+      covid: t('templates.categories.covid'),
+      Financeiro: t('templates.categories.finance'),
+      TI: t('templates.categories.it'),
+      RH: t('templates.categories.hr'),
+      Logística: t('templates.categories.logistics'),
+      Social: t('templates.categories.social'),
     };
     return labels[cat] || cat;
   };
@@ -130,9 +127,9 @@ export function TemplateLibrary() {
 
   const getDifficultyLabel = (diff: string) => {
     const labels: Record<string, string> = {
-      basic: 'Básico',
-      intermediate: 'Intermediário',
-      advanced: 'Avançado',
+      basic: t('templates.difficulty.basic'),
+      intermediate: t('templates.difficulty.intermediate'),
+      advanced: t('templates.difficulty.advanced'),
     };
     return labels[diff] || diff;
   };
@@ -141,9 +138,9 @@ export function TemplateLibrary() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-3xl font-bold tracking-tight">Biblioteca de Templates</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{t('templates.library.title')}</h2>
         <p className="text-muted-foreground">
-          Templates profissionais prontos para suas campanhas de phishing
+          {t('templates.library.desc')}
         </p>
       </div>
 
@@ -154,7 +151,7 @@ export function TemplateLibrary() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar templates..."
+                placeholder={t('templates.searchPlaceholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -163,27 +160,28 @@ export function TemplateLibrary() {
 
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
-                <SelectValue placeholder="Categoria" />
+                <SelectValue placeholder={t('templates.filters.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas Categorias</SelectItem>
-                <SelectItem value="banking">Bancário</SelectItem>
-                <SelectItem value="hr">RH</SelectItem>
-                <SelectItem value="it">TI</SelectItem>
-                <SelectItem value="delivery">Entrega</SelectItem>
-                <SelectItem value="finance">Finanças</SelectItem>
+                <SelectItem value="all">{t('templates.categories.all')}</SelectItem>
+                <SelectItem value="banking">{t('templates.categories.banking')}</SelectItem>
+                <SelectItem value="Financeiro">{t('templates.categories.finance')}</SelectItem>
+                <SelectItem value="hr">{t('templates.categories.hr')}</SelectItem>
+                <SelectItem value="TI">{t('templates.categories.it')}</SelectItem>
+                <SelectItem value="delivery">{t('templates.categories.delivery')}</SelectItem>
+                <SelectItem value="Logística">{t('templates.categories.logistics')}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select value={difficulty} onValueChange={setDifficulty}>
               <SelectTrigger>
-                <SelectValue placeholder="Dificuldade" />
+                <SelectValue placeholder={t('templates.filters.difficulty')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas Dificuldades</SelectItem>
-                <SelectItem value="basic">Básico</SelectItem>
-                <SelectItem value="intermediate">Intermediário</SelectItem>
-                <SelectItem value="advanced">Avançado</SelectItem>
+                <SelectItem value="all">{t('templates.difficulty.all')}</SelectItem>
+                <SelectItem value="basic">{t('templates.difficulty.basic')}</SelectItem>
+                <SelectItem value="intermediate">{t('templates.difficulty.intermediate')}</SelectItem>
+                <SelectItem value="advanced">{t('templates.difficulty.advanced')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -199,20 +197,12 @@ export function TemplateLibrary() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredTemplates.map((template) => (
             <Card key={template.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              {/* Thumbnail */}
-              {template.thumbnail && (
-                <div 
-                  className="h-48 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${template.thumbnail})` }}
-                />
-              )}
-
               <CardHeader>
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1">
                     <CardTitle className="text-lg">{template.name}</CardTitle>
                     <CardDescription className="line-clamp-2 mt-1">
-                      {template.description}
+                      {template.description || template.subject}
                     </CardDescription>
                   </div>
                 </div>
@@ -221,9 +211,11 @@ export function TemplateLibrary() {
                   <Badge variant="secondary">
                     {getCategoryLabel(template.category)}
                   </Badge>
-                  <Badge className={getDifficultyColor(template.difficulty)}>
-                    {getDifficultyLabel(template.difficulty)}
-                  </Badge>
+                  {template.difficulty && (
+                    <Badge className={getDifficultyColor(template.difficulty)}>
+                      {getDifficultyLabel(template.difficulty)}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
 
@@ -232,11 +224,11 @@ export function TemplateLibrary() {
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground flex items-center gap-1">
                       <TrendingUp className="h-4 w-4" />
-                      Usado {template.uses || 0}x
+                      {t('templates.library.usedTimes', { count: template.uses || 0 })}
                     </span>
-                    {template.avgClickRate !== undefined && (
+                    {template.avgClickRate !== undefined && template.avgClickRate !== null && (
                       <span className="font-medium text-primary">
-                        {template.avgClickRate}% taxa de clique
+                        {t('templates.library.clickRate', { rate: template.avgClickRate })}
                       </span>
                     )}
                   </div>
@@ -254,7 +246,7 @@ export function TemplateLibrary() {
                   }}
                 >
                   <Eye className="h-4 w-4 mr-1" />
-                  Preview
+                  {t('templates.view.tabs.preview')}
                 </Button>
                 <Button
                   size="sm"
@@ -262,7 +254,7 @@ export function TemplateLibrary() {
                   onClick={() => cloneTemplate(template)}
                 >
                   <Copy className="h-4 w-4 mr-1" />
-                  Clonar
+                  {t('common.clone')}
                 </Button>
               </CardFooter>
             </Card>
@@ -275,9 +267,11 @@ export function TemplateLibrary() {
         <Card>
           <CardContent className="py-12 text-center">
             <Zap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Nenhum template encontrado</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('templates.library.emptyTitle')}</h3>
             <p className="text-muted-foreground">
-              Tente ajustar os filtros ou criar seus próprios templates
+              {templates.length === 0
+                ? t('templates.library.emptyDesc1')
+                : t('templates.library.emptyDesc2')}
             </p>
           </CardContent>
         </Card>
@@ -289,21 +283,21 @@ export function TemplateLibrary() {
           <DialogHeader>
             <DialogTitle>{selectedTemplate?.name}</DialogTitle>
             <DialogDescription>
-              {selectedTemplate?.description}
+              {selectedTemplate?.description || selectedTemplate?.subject}
             </DialogDescription>
           </DialogHeader>
 
           {selectedTemplate && (
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Assunto:</h4>
+                <h4 className="font-semibold mb-2">{t('templates.library.subject')}</h4>
                 <p className="text-sm bg-muted p-3 rounded">{selectedTemplate.subject}</p>
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Corpo do E-mail:</h4>
-                <div 
-                  className="text-sm bg-white p-4 rounded border"
+                <h4 className="font-semibold mb-2">{t('templates.library.body')}</h4>
+                <div
+                  className="text-sm bg-white dark:bg-gray-900 p-4 rounded border"
                   dangerouslySetInnerHTML={{ __html: selectedTemplate.bodyHtml }}
                 />
               </div>
@@ -313,23 +307,19 @@ export function TemplateLibrary() {
                   <Badge variant="secondary">
                     {getCategoryLabel(selectedTemplate.category)}
                   </Badge>
-                  <Badge className={getDifficultyColor(selectedTemplate.difficulty)}>
-                    {getDifficultyLabel(selectedTemplate.difficulty)}
-                  </Badge>
+                  {selectedTemplate.difficulty && (
+                    <Badge className={getDifficultyColor(selectedTemplate.difficulty)}>
+                      {getDifficultyLabel(selectedTemplate.difficulty)}
+                    </Badge>
+                  )}
                 </div>
-                {selectedTemplate.avgClickRate !== undefined && (
-                  <div className="ml-auto">
-                    <span className="text-sm text-muted-foreground">Taxa média: </span>
-                    <span className="font-bold text-primary">{selectedTemplate.avgClickRate}%</span>
-                  </div>
-                )}
               </div>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPreviewOpen(false)}>
-              Fechar
+              {t('common.close')}
             </Button>
             <Button onClick={() => {
               if (selectedTemplate) {
@@ -338,7 +328,7 @@ export function TemplateLibrary() {
               }
             }}>
               <Copy className="h-4 w-4 mr-2" />
-              Clonar Template
+              {t('templates.library.clone')}
             </Button>
           </DialogFooter>
         </DialogContent>

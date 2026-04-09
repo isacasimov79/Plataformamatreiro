@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
-import { getTenants, deleteTenant, updateTenant, getTemplates } from '../lib/supabaseApi';
+import { getTenants, deleteTenant, updateTenant, getTemplates } from '../lib/apiLocal';
 import { NewTenantDialog } from '../components/NewTenantDialog';
 import { EditTenantDialog } from '../components/EditTenantDialog';
 import { toast } from 'sonner';
@@ -44,6 +45,7 @@ import { Building2, Eye, Edit, Trash2, Search, Settings, Zap, Image as ImageIcon
 import { ClientLogoUpload } from '../components/ClientLogoUpload';
 
 export function Tenants() {
+  const { t } = useTranslation();
   const { impersonateTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [tenants, setTenants] = useState<any[]>([]);
@@ -69,8 +71,8 @@ export function Tenants() {
       setTenants(data);
     } catch (error) {
       console.error('Error loading tenants:', error);
-      toast.error('Erro ao carregar clientes', {
-        description: 'Não foi possível carregar a lista de clientes. Tente novamente.',
+      toast.error(t('tenants.errorLoading'), {
+        description: t('tenants.errorLoadingDesc'),
       });
     } finally {
       setLoading(false);
@@ -83,8 +85,8 @@ export function Tenants() {
       setTemplates(data);
     } catch (error) {
       console.error('Error loading templates:', error);
-      toast.error('Erro ao carregar modelos', {
-        description: 'Não foi possível carregar a lista de modelos. Tente novamente.',
+      toast.error(t('tenants.errorLoadingTemplates'), {
+        description: t('tenants.errorLoadingTemplatesDesc'),
       });
     }
   };
@@ -92,14 +94,14 @@ export function Tenants() {
   const handleDeleteTenant = async (id: string, name: string) => {
     try {
       await deleteTenant(id);
-      toast.success('Cliente removido', {
-        description: `${name} foi removido com sucesso.`,
+      toast.success(t('tenants.success.removed'), {
+        description: t('tenants.success.removedDesc', { name }),
       });
       await loadTenants(); // Recarregar lista
     } catch (error) {
       console.error('Error deleting tenant:', error);
-      toast.error('Erro ao remover cliente', {
-        description: 'Não foi possível remover o cliente. Tente novamente.',
+      toast.error(t('tenants.errorRemoving'), {
+        description: t('tenants.errorRemovingDesc'),
       });
     }
   };
@@ -125,30 +127,33 @@ export function Tenants() {
         },
       });
 
-      toast.success('Configuração salva!', {
-        description: `Phishing automático ${autoPhishingEnabled ? 'ativado' : 'desativado'} para ${selectedTenant?.name}`,
+      toast.success(t('tenants.success.configSaved'), {
+        description: autoPhishingEnabled
+          ? t('tenants.success.phishingEnabled', { name: selectedTenant?.name })
+          : t('tenants.success.phishingDisabled', { name: selectedTenant?.name }),
       });
       setIsConfigDialogOpen(false);
       await loadTenants(); // Recarregar lista
     } catch (error) {
       console.error('Error saving auto phishing config:', error);
-      toast.error('Erro ao salvar configuração', {
-        description: 'Não foi possível salvar as configurações. Tente novamente.',
+      toast.error(t('tenants.errorSavingConfig'), {
+        description: t('tenants.errorSavingConfigDesc'),
       });
     }
   };
 
   const handleSaveLogo = (logoUrl: string) => {
-    toast.success('Logo salva!', {
-      description: `Logo de ${selectedTenant?.name} foi atualizada com sucesso`,
+    toast.success(t('tenants.success.logoSaved'), {
+      description: t('tenants.success.logoSavedDesc', { name: selectedTenant?.name }),
     });
     setIsLogoDialogOpen(false);
   };
 
   const filteredTenants = tenants.filter(
     (tenant) =>
-      tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tenant.document.includes(searchQuery)
+      (tenant.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tenant.contact_email || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (tenant.slug || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getTenantById = (id: string) => {
@@ -160,19 +165,19 @@ export function Tenants() {
       case 'active':
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Ativo
+            {t('tenants.status.active')}
           </Badge>
         );
       case 'suspended':
         return (
           <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-            Suspenso
+            {t('tenants.status.suspended')}
           </Badge>
         );
       case 'inactive':
         return (
           <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-            Inativo
+            {t('tenants.status.inactive')}
           </Badge>
         );
       default:
@@ -186,9 +191,9 @@ export function Tenants() {
         {/* Header com gradiente */}
         <div className="page-header">
           <div className="page-header-gradient">
-            <h1 className="page-title">Gestão de Clientes</h1>
+            <h1 className="page-title">{t('tenants.title')}</h1>
             <p className="page-subtitle">
-              Gerencie tenants, sub-clientes e suas configurações
+              {t('tenants.subtitle')}
             </p>
           </div>
         </div>
@@ -205,7 +210,7 @@ export function Tenants() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Input
-                  placeholder="Buscar por nome ou CNPJ..."
+                  placeholder={t('tenants.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10"
@@ -218,26 +223,27 @@ export function Tenants() {
         {/* Tenants Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Clientes Cadastrados</CardTitle>
+            <CardTitle>{t('tenants.table.title')}</CardTitle>
             <CardDescription>
-              {filteredTenants.length} {filteredTenants.length === 1 ? 'cliente' : 'clientes'}
+              {t('tenants.table.desc', { count: filteredTenants.length })}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Cliente Pai</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Criado em</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>{t('tenants.table.colName')}</TableHead>
+                  <TableHead>{t('tenants.table.colCnpj')}</TableHead>
+                  <TableHead>{t('tenants.table.colParent')}</TableHead>
+                  <TableHead>{t('tenants.table.colStatus')}</TableHead>
+                  <TableHead>{t('tenants.table.colCreatedAt')}</TableHead>
+                  <TableHead className="text-right">{t('tenants.table.colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTenants.map((tenant) => {
-                  const parent = tenant.parentId ? getTenantById(tenant.parentId) : null;
+                  const parentId = tenant.parentId || tenant.parent_tenant;
+                  const parent = parentId ? getTenantById(parentId) : null;
                   return (
                     <TableRow key={tenant.id}>
                       <TableCell>
@@ -247,7 +253,7 @@ export function Tenants() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="font-mono text-sm">{tenant.document}</span>
+                        <span className="font-mono text-sm">{tenant.contact_email || tenant.slug || '—'}</span>
                       </TableCell>
                       <TableCell>
                         {parent ? (
@@ -256,9 +262,9 @@ export function Tenants() {
                           <span className="text-xs text-gray-400">—</span>
                         )}
                       </TableCell>
-                      <TableCell>{getStatusBadge(tenant.status)}</TableCell>
+                      <TableCell>{getStatusBadge(tenant.status || 'active')}</TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {format(new Date(tenant.createdAt), 'dd/MM/yyyy')}
+                        {tenant.created_at || tenant.createdAt ? format(new Date(tenant.created_at || tenant.createdAt), 'dd/MM/yyyy') : '—'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -267,9 +273,9 @@ export function Tenants() {
                             size="sm"
                             onClick={() => {
                               impersonateTenant(tenant.id);
-                              toast.success(`Visualizando como ${tenant.name}`);
+                              toast.success(t('tenants.table.impersonating', { name: tenant.name }));
                             }}
-                            title="Visualizar como este cliente"
+                            title={t('tenants.table.impersonateTitle')}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -278,7 +284,7 @@ export function Tenants() {
                             variant="ghost"
                             size="sm"
                             className="text-red-600 hover:text-red-700"
-                            title="Excluir cliente"
+                            title={t('tenants.table.deleteTitle')}
                             onClick={() => handleDeleteTenant(tenant.id, tenant.name)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -287,7 +293,7 @@ export function Tenants() {
                             variant="ghost"
                             size="sm"
                             className="text-blue-600 hover:text-blue-700"
-                            title="Configurar phishing automático"
+                            title={t('tenants.table.configureTitle')}
                             onClick={() => handleConfigureAutoPhishing(tenant)}
                           >
                             <Settings className="w-4 h-4" />
@@ -296,7 +302,7 @@ export function Tenants() {
                             variant="ghost"
                             size="sm"
                             className="text-gray-600 hover:text-gray-700"
-                            title="Upload de Logo"
+                            title={t('tenants.table.uploadLogoTitle')}
                             onClick={() => {
                               setSelectedTenant(tenant);
                               setIsLogoDialogOpen(true);
@@ -318,14 +324,14 @@ export function Tenants() {
         <Dialog open={isConfigDialogOpen} onOpenChange={setIsConfigDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Configurar Phishing Automático</DialogTitle>
+              <DialogTitle>{t('tenants.dialogConfig.title')}</DialogTitle>
               <DialogDescription>
-                Configure as opções de phishing automático para {selectedTenant?.name}.
+                {t('tenants.dialogConfig.desc', { name: selectedTenant?.name })}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="autoPhishingEnabled">Ativar Phishing Automático</Label>
+                <Label htmlFor="autoPhishingEnabled">{t('tenants.dialogConfig.enable')}</Label>
                 <Switch
                   id="autoPhishingEnabled"
                   checked={autoPhishingEnabled}
@@ -333,7 +339,7 @@ export function Tenants() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="delayDays">Atraso em Dias</Label>
+                <Label htmlFor="delayDays">{t('tenants.dialogConfig.delayDays')}</Label>
                 <Input
                   id="delayDays"
                   type="number"
@@ -343,14 +349,14 @@ export function Tenants() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="templateId">Modelo de Phishing</Label>
+                <Label htmlFor="templateId">{t('tenants.dialogConfig.template')}</Label>
                 <Select
                   id="templateId"
                   value={selectedTemplate}
                   onValueChange={setSelectedTemplate}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione um modelo" />
+                    <SelectValue placeholder={t('tenants.dialogConfig.templatePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map((template) => (
@@ -368,13 +374,13 @@ export function Tenants() {
                 variant="outline"
                 onClick={() => setIsConfigDialogOpen(false)}
               >
-                Cancelar
+                {t('tenants.buttons.cancel')}
               </Button>
               <Button
                 type="button"
                 onClick={handleSaveAutoPhishing}
               >
-                Salvar
+                {t('tenants.buttons.save')}
               </Button>
             </DialogFooter>
           </DialogContent>

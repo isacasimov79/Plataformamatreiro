@@ -60,10 +60,12 @@ import {
   Building,
   Network,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { getTargetGroups, getTargets, getTenants } from '../lib/supabaseApi';
+import { getTargetGroups, getTargets, getTenants, createTargetGroup, updateTargetGroup, deleteTargetGroup, getTargetGroup } from '../lib/apiLocal';
 
 export function TargetGroups() {
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,12 +75,26 @@ export function TargetGroups() {
   const [isImportIntegrationOpen, setIsImportIntegrationOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [addMemberMode, setAddMemberMode] = useState<'none' | 'emails' | 'groups'>('none');
+  const [emailsToAdd, setEmailsToAdd] = useState('');
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
+  
+  // Form state for create/edit
+  const [formName, setFormName] = useState('');
+  const [formDescription, setFormDescription] = useState('');
+  const [formTenantId, setFormTenantId] = useState('');
+  const [formParentGroup, setFormParentGroup] = useState('none');
+  
+  // Members view
+  const [viewingGroupMembers, setViewingGroupMembers] = useState<any>(null);
+  const [groupMembers, setGroupMembers] = useState<string[]>([]);
   
   // Estados para dados do banco
   const [targetGroups, setTargetGroups] = useState<any[]>([]);
   const [targets, setTargets] = useState<any[]>([]);
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Carregar dados do banco
   useEffect(() => {
@@ -93,12 +109,26 @@ export function TargetGroups() {
         getTargets(),
         getTenants(),
       ]);
-      setTargetGroups(groupsData);
-      setTargets(targetsData);
-      setTenants(tenantsData);
+      // Map Django snake_case fields to frontend camelCase
+      const mapped = (groupsData || []).map((g: any) => ({
+        id: String(g.id),
+        name: g.name || t('common.unnamed', 'Sem Nome'),
+        description: g.description || '',
+        memberCount: g.target_count ?? g.memberCount ?? 0,
+        type: g.sync_source && g.sync_source !== 'manual' ? 'integration' : 'local',
+        integrationProvider: g.sync_source === 'azure_ad' || g.sync_source === 'azure_ad_group' ? 'Azure AD' : g.sync_source || '',
+        source: g.sync_enabled ? 'integration' : 'local',
+        tenantId: g.tenantId || String(g.tenant || ''),
+        parentGroupId: g.parentGroupId || g.parent_group || null,
+        syncEnabled: g.sync_enabled || false,
+        createdAt: g.created_at || g.createdAt || '',
+      }));
+      setTargetGroups(mapped);
+      setTargets(targetsData || []);
+      setTenants(tenantsData || []);
     } catch (error) {
       console.error('Error loading target groups data:', error);
-      toast.error('Erro ao carregar grupos de alvos');
+      toast.error(t('targetGroups.messages.loadError', 'Erro ao carregar grupos de alvos'));
     } finally {
       setLoading(false);
     }
@@ -109,43 +139,116 @@ export function TargetGroups() {
   // Filtrar grupos baseado em impersonation
   const relevantGroups = isMasterView
     ? targetGroups
-    : targetGroups.filter(g => g.tenantId === impersonatedTenant?.id);
+    : targetGroups.filter(g => String(g.tenantId) === String(impersonatedTenant?.id));
 
   // Filtrar grupos com busca
   const filteredGroups = relevantGroups.filter(
     (group) =>
-      group.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      group.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (group.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (group.description || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateGroup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateGroup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Grupo criado!', {
-      description: 'O grupo de alvos foi criado com sucesso',
-    });
-    setIsCreateDialogOpen(false);
+    if (!formName.trim()) {
+      toast.error('Nome é obrigatório');
+      return;
+    }
+    setSaving(true);
+    try {
+      const tenantId = impersonatedTenant?.id || formTenantId;
+      if (!tenantId) {
+        toast.error('Selecione um cliente');
+        setSaving(false);
+        return;
+      }
+      const payload: any = {
+        name: formName,
+        description: formDescription,
+        tenant: Number(tenantId),
+      };
+      
+      if (emailsToAdd.trim()) {
+        payload.manual_emails = emailsToAdd
+          .split(/[\n,;]+/)
+          .map(e => e.trim())
+          .filter(e => e);
+      }
+      if (formParentGroup && formParentGroup !== 'none') {
+        payload.parent_group = Number(formParentGroup);
+      }
+      await createTargetGroup(payload);
+      toast.success(t('targetGroups.messages.created'), {
+        description: t('targetGroups.messages.createdDesc'),
+      });
+      setIsCreateDialogOpen(false);
+      setFormName('');
+      setFormDescription('');
+      setFormTenantId('');
+      await loadData();
+      setFormParentGroup('none');
+      setEmailsToAdd('');
+      await loadData();
+    } catch (error: any) {
+      console.error('Error creating group:', error);
+      toast.error('Erro ao criar grupo: ' + (error?.message || 'Erro desconhecido'));
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleEditGroup = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditGroup = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Grupo atualizado!', {
-      description: 'O grupo de alvos foi atualizado com sucesso',
-    });
-    setIsEditDialogOpen(false);
+    if (!selectedGroup) return;
+    setSaving(true);
+    try {
+      await updateTargetGroup(selectedGroup.id, {
+        name: formName || selectedGroup.name,
+        description: formDescription || selectedGroup.description,
+      });
+      toast.success(t('targetGroups.messages.updated'), {
+        description: t('targetGroups.messages.updatedDesc'),
+      });
+      setIsEditDialogOpen(false);
+      await loadData();
+    } catch (error: any) {
+      console.error('Error updating group:', error);
+      toast.error('Erro ao atualizar grupo: ' + (error?.message || ''));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleAddMembers = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Membros adicionados!', {
-      description: 'Os membros foram adicionados ao grupo',
+    toast.success(t('targetGroups.messages.membersAdded'), {
+      description: t('targetGroups.messages.membersAddedDesc'),
     });
     setIsAddMembersDialogOpen(false);
   };
 
-  const handleDelete = (groupId: string) => {
-    toast.success('Grupo removido!', {
-      description: 'O grupo foi removido com sucesso',
-    });
+  const handleDelete = async (groupId: string) => {
+    if (!confirm('Tem certeza que deseja excluir este grupo?')) return;
+    try {
+      await deleteTargetGroup(groupId);
+      toast.success(t('targetGroups.messages.deleted'), {
+        description: t('targetGroups.messages.deletedDesc'),
+      });
+      await loadData();
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast.error('Erro ao excluir grupo: ' + (error?.message || ''));
+    }
+  };
+
+  const handleViewMembers = async (group: any) => {
+    setViewingGroupMembers(group);
+    try {
+      const detail = await getTargetGroup(group.id);
+      setGroupMembers(detail?.targets_list || []);
+    } catch {
+      setGroupMembers([]);
+    }
   };
 
   const toggleExpand = (groupId: string) => {
@@ -158,10 +261,12 @@ export function TargetGroups() {
     setExpandedGroups(newExpanded);
   };
 
-  // Construir hierarquia de grupos
+  // Construir hierarquia de grupos — flat list if no parentGroupId found
+  const hasHierarchy = filteredGroups.some(g => g.parentGroupId != null);
+  
   const buildHierarchy = (parentId: string | null = null, level: number = 0): any[] => {
     return filteredGroups
-      .filter((g) => g.parentGroupId === parentId)
+      .filter((g) => (g.parentGroupId || null) === parentId)
       .map((group) => ({
         ...group,
         level,
@@ -169,16 +274,20 @@ export function TargetGroups() {
       }));
   };
 
-  const hierarchy = buildHierarchy();
+  // If no hierarchy data, show flat list
+  const hierarchy = hasHierarchy ? buildHierarchy() : filteredGroups.map(g => ({ ...g, level: 0, children: [] }));
 
-  const renderGroupRow = (group: any): JSX.Element[] => {
+  const renderGroupRow = (group: any): React.ReactNode[] => {
     const isExpanded = expandedGroups.has(group.id);
     const hasChildren = group.children && group.children.length > 0;
 
-    const rows: JSX.Element[] = [
+    const rows: React.ReactNode[] = [
       <TableRow key={group.id}>
         <TableCell>
-          <div className="flex items-center gap-2" style={{ paddingLeft: `${group.level * 24}px` }}>
+          <div className="flex items-center gap-2">
+            {Array.from({ length: group.level }).map((_, i) => (
+              <div key={i} className="w-6 shrink-0" />
+            ))}
             {hasChildren && (
               <button
                 onClick={() => toggleExpand(group.id)}
@@ -209,7 +318,9 @@ export function TargetGroups() {
           </div>
         </TableCell>
         <TableCell>
-          <Badge variant="secondary">{group.type === 'local' ? 'Local' : 'Integração'}</Badge>
+          <Badge variant="secondary">
+            {group.type === 'local' ? t('targetGroups.types.local') : t('targetGroups.types.integration')}
+          </Badge>
         </TableCell>
         {isMasterView && (
           <TableCell>
@@ -229,8 +340,14 @@ export function TargetGroups() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Ações</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('targetGroups.table.cols.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => handleViewMembers(group)}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                {t('targetGroups.actions.viewMembers', 'Ver Membros')}
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedGroup(group.id);
@@ -238,20 +355,22 @@ export function TargetGroups() {
                 }}
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                Adicionar Membros
+                {t('targetGroups.actions.addMembers')}
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   setSelectedGroup(group);
+                  setFormName(group.name);
+                  setFormDescription(group.description);
                   setIsEditDialogOpen(true);
                 }}
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Editar Grupo
+                {t('targetGroups.actions.editGroup')}
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Download className="w-4 h-4 mr-2" />
-                Exportar Membros
+                {t('targetGroups.actions.exportMembers')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -259,7 +378,7 @@ export function TargetGroups() {
                 onClick={() => handleDelete(group.id)}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Remover Grupo
+                {t('targetGroups.actions.removeGroup')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -281,7 +400,7 @@ export function TargetGroups() {
     total: relevantGroups.length,
     local: relevantGroups.filter((g) => g.type === 'local').length,
     integration: relevantGroups.filter((g) => g.type === 'integration').length,
-    totalMembers: relevantGroups.reduce((sum, g) => sum + g.memberCount, 0),
+    totalMembers: relevantGroups.reduce((sum, g) => sum + (g.memberCount || 0), 0),
   };
 
   return (
@@ -291,37 +410,37 @@ export function TargetGroups() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              Grupos de Alvos
+              {t('targetGroups.title')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
               {isMasterView
-                ? 'Gerencie grupos de alvos para campanhas'
-                : `Cliente: ${impersonatedTenant?.name}`}
+                ? t('targetGroups.descMaster')
+                : t('targetGroups.descTenant', { name: impersonatedTenant?.name })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => navigate('/targets')}>
               <Mail className="w-4 h-4 mr-2" />
-              Ver Alvos Individuais
+              {t('targetGroups.actions.viewTargets')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Grupo
+                  {t('targetGroups.actions.addGroup')}
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Escolha o método</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('targetGroups.actions.chooseMethod')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsCreateDialogOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Criar Grupo Local
+                  {t('targetGroups.actions.createLocal')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsImportIntegrationOpen(true)}>
                   <Network className="w-4 h-4 mr-2" />
-                  Importar da Integração
+                  {t('targetGroups.actions.importIntegration')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -333,7 +452,7 @@ export function TargetGroups() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Grupos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targetGroups.stats.total')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">{stats.total}</div>
@@ -341,7 +460,7 @@ export function TargetGroups() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Grupos Locais</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targetGroups.stats.local')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#834a8b]">{stats.local}</div>
@@ -349,7 +468,7 @@ export function TargetGroups() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Da Integração</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targetGroups.stats.integration')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">{stats.integration}</div>
@@ -357,7 +476,7 @@ export function TargetGroups() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Membros</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targetGroups.stats.totalMembers')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.totalMembers}</div>
@@ -371,7 +490,7 @@ export function TargetGroups() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <Input
-              placeholder="Buscar grupos por nome ou descrição..."
+              placeholder={t('targetGroups.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -383,21 +502,21 @@ export function TargetGroups() {
       {/* Groups Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Grupos</CardTitle>
+          <CardTitle>{t('targetGroups.table.title')}</CardTitle>
           <CardDescription>
-            {filteredGroups.length} grupos encontrados (hierarquia expandível)
+            {t('targetGroups.table.desc', { count: filteredGroups.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome do Grupo</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Membros</TableHead>
-                <TableHead>Tipo</TableHead>
-                {isMasterView && <TableHead>Cliente</TableHead>}
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{t('targetGroups.table.cols.name')}</TableHead>
+                <TableHead>{t('targetGroups.table.cols.description')}</TableHead>
+                <TableHead>{t('targetGroups.table.cols.members')}</TableHead>
+                <TableHead>{t('targetGroups.table.cols.type')}</TableHead>
+                {isMasterView && <TableHead>{t('targetGroups.table.cols.tenant')}</TableHead>}
+                <TableHead className="text-right">{t('targetGroups.table.cols.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -406,14 +525,14 @@ export function TargetGroups() {
                   <TableCell colSpan={isMasterView ? 6 : 5} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <FolderTree className="w-12 h-12 text-gray-300" />
-                      <p className="text-gray-500">Nenhum grupo encontrado</p>
+                      <p className="text-gray-500">{t('targetGroups.table.emptyTitle')}</p>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setIsCreateDialogOpen(true)}
                       >
                         <Plus className="w-4 h-4 mr-2" />
-                        Criar Primeiro Grupo
+                        {t('targetGroups.table.emptyBtn')}
                       </Button>
                     </div>
                   </TableCell>
@@ -431,38 +550,42 @@ export function TargetGroups() {
         <DialogContent className="max-w-2xl">
           <form onSubmit={handleCreateGroup}>
             <DialogHeader>
-              <DialogTitle>Criar Grupo de Alvos</DialogTitle>
+              <DialogTitle>{t('targetGroups.dialogs.createTitle')}</DialogTitle>
               <DialogDescription>
-                Crie um grupo local para organizar alvos de campanhas
+                {t('targetGroups.dialogs.createDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="name">Nome do Grupo</Label>
+                <Label htmlFor="name">{t('targetGroups.dialogs.labels.name')}</Label>
                 <Input
                   id="name"
-                  placeholder="Departamento de TI"
+                  placeholder={t('targetGroups.dialogs.labels.nameHolder')}
                   required
                   className="mt-2"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="description">Descrição</Label>
+                <Label htmlFor="description">{t('targetGroups.dialogs.labels.desc')}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Descrição do grupo..."
+                  placeholder={t('targetGroups.dialogs.labels.descHolder')}
                   className="mt-2"
                   rows={3}
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
                 />
               </div>
               <div>
-                <Label htmlFor="parentGroup">Grupo Pai (opcional)</Label>
+                <Label htmlFor="parentGroup">{t('targetGroups.dialogs.labels.parentGroup')}</Label>
                 <Select>
                   <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Nenhum (grupo raiz)" />
+                    <SelectValue placeholder={t('targetGroups.dialogs.labels.parentGroupHolder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Nenhum (grupo raiz)</SelectItem>
+                    <SelectItem value="none">{t('targetGroups.dialogs.labels.parentGroupHolder')}</SelectItem>
                     {relevantGroups
                       .filter((g) => g.type === 'local')
                       .map((group) => (
@@ -479,13 +602,13 @@ export function TargetGroups() {
               {isMasterView && (
                 <div>
                   <Label htmlFor="tenant">Cliente</Label>
-                  <Select>
+                  <Select value={formTenantId} onValueChange={setFormTenantId}>
                     <SelectTrigger className="mt-2">
                       <SelectValue placeholder="Selecione o cliente" />
                     </SelectTrigger>
                     <SelectContent>
                       {tenants.map((tenant) => (
-                        <SelectItem key={tenant.id} value={tenant.id}>
+                        <SelectItem key={tenant.id} value={String(tenant.id)}>
                           {tenant.name}
                         </SelectItem>
                       ))}
@@ -496,15 +619,68 @@ export function TargetGroups() {
               <div className="border-t pt-4">
                 <Label>Adicionar Membros Iniciais</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Button type="button" variant="outline" size="sm">
+                  <Button
+                    type="button"
+                    variant={addMemberMode === 'emails' ? 'default' : 'outline'}
+                    size="sm"
+                    className={addMemberMode === 'emails' ? 'bg-[#834a8b] hover:bg-[#6d3d75]' : ''}
+                    onClick={() => setAddMemberMode(addMemberMode === 'emails' ? 'none' : 'emails')}
+                  >
                     <UserPlus className="w-4 h-4 mr-2" />
                     Adicionar Emails
                   </Button>
-                  <Button type="button" variant="outline" size="sm">
+                  <Button
+                    type="button"
+                    variant={addMemberMode === 'groups' ? 'default' : 'outline'}
+                    size="sm"
+                    className={addMemberMode === 'groups' ? 'bg-[#834a8b] hover:bg-[#6d3d75]' : ''}
+                    onClick={() => setAddMemberMode(addMemberMode === 'groups' ? 'none' : 'groups')}
+                  >
                     <FolderTree className="w-4 h-4 mr-2" />
                     Adicionar Grupos
                   </Button>
                 </div>
+                {addMemberMode === 'emails' && (
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      placeholder={"joao@empresa.com\nmaria@empresa.com\npedro@empresa.com"}
+                      rows={4}
+                      value={emailsToAdd}
+                      onChange={(e) => setEmailsToAdd(e.target.value)}
+                    />
+                    <p className="text-sm text-gray-500">{t('targetGroups.dialogs.labels.emailsHint')}</p>
+                  </div>
+                )}
+                {addMemberMode === 'groups' && (
+                  <div className="mt-3 space-y-1 max-h-48 overflow-y-auto border rounded-lg p-3">
+                    {relevantGroups.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-2">Nenhum grupo disponível</p>
+                    ) : (
+                      relevantGroups.map((group) => (
+                        <label
+                          key={group.id}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={selectedGroupIds.has(group.id)}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedGroupIds);
+                              if (e.target.checked) newSet.add(group.id);
+                              else newSet.delete(group.id);
+                              setSelectedGroupIds(newSet);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{group.name}</div>
+                            <div className="text-xs text-gray-500">{group.memberCount} membros</div>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -513,10 +689,10 @@ export function TargetGroups() {
                 variant="outline"
                 onClick={() => setIsCreateDialogOpen(false)}
               >
-                Cancelar
+                {t('targetGroups.dialogs.buttons.cancel')}
               </Button>
               <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                Criar Grupo
+                {t('targetGroups.dialogs.buttons.create')}
               </Button>
             </DialogFooter>
           </form>
@@ -528,40 +704,40 @@ export function TargetGroups() {
         <DialogContent className="max-w-2xl">
           <form onSubmit={handleEditGroup}>
             <DialogHeader>
-              <DialogTitle>Editar Grupo de Alvos</DialogTitle>
+              <DialogTitle>{t('targetGroups.dialogs.editTitle')}</DialogTitle>
               <DialogDescription>
-                Edite um grupo local para organizar alvos de campanhas
+                {t('targetGroups.dialogs.editDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div>
-                <Label htmlFor="name">Nome do Grupo</Label>
+                <Label htmlFor="name">{t('targetGroups.dialogs.labels.name')}</Label>
                 <Input
                   id="name"
-                  placeholder="Departamento de TI"
+                  placeholder={t('targetGroups.dialogs.labels.nameHolder')}
                   required
                   className="mt-2"
                   defaultValue={selectedGroup?.name}
                 />
               </div>
               <div>
-                <Label htmlFor="description">Descrição</Label>
+                <Label htmlFor="description">{t('targetGroups.dialogs.labels.desc')}</Label>
                 <Textarea
                   id="description"
-                  placeholder="Descrição do grupo..."
+                  placeholder={t('targetGroups.dialogs.labels.descHolder')}
                   className="mt-2"
                   rows={3}
                   defaultValue={selectedGroup?.description}
                 />
               </div>
               <div>
-                <Label htmlFor="parentGroup">Grupo Pai (opcional)</Label>
+                <Label htmlFor="parentGroup">{t('targetGroups.dialogs.labels.parentGroup')}</Label>
                 <Select>
                   <SelectTrigger className="mt-2">
-                    <SelectValue placeholder="Nenhum (grupo raiz)" />
+                    <SelectValue placeholder={t('targetGroups.dialogs.labels.parentGroupHolder')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Nenhum (grupo raiz)</SelectItem>
+                    <SelectItem value="none">{t('targetGroups.dialogs.labels.parentGroupHolder')}</SelectItem>
                     {relevantGroups
                       .filter((g) => g.type === 'local')
                       .map((group) => (
@@ -572,15 +748,15 @@ export function TargetGroups() {
                   </SelectContent>
                 </Select>
                 <p className="text-sm text-gray-500 mt-1">
-                  Crie uma hierarquia adicionando este grupo dentro de outro
+                  {t('targetGroups.dialogs.labels.parentGroupHint')}
                 </p>
               </div>
               {isMasterView && (
                 <div>
-                  <Label htmlFor="tenant">Cliente</Label>
+                  <Label htmlFor="tenant">{t('targetGroups.dialogs.labels.tenant')}</Label>
                   <Select>
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Selecione o cliente" />
+                      <SelectValue placeholder={t('targetGroups.dialogs.labels.tenantHolder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {tenants.map((tenant) => (
@@ -593,17 +769,70 @@ export function TargetGroups() {
                 </div>
               )}
               <div className="border-t pt-4">
-                <Label>Adicionar Membros Iniciais</Label>
+                <Label>{t('targetGroups.dialogs.labels.addInitialMembers')}</Label>
                 <div className="grid grid-cols-2 gap-2 mt-2">
-                  <Button type="button" variant="outline" size="sm">
+                  <Button
+                    type="button"
+                    variant={addMemberMode === 'emails' ? 'default' : 'outline'}
+                    size="sm"
+                    className={addMemberMode === 'emails' ? 'bg-[#834a8b] hover:bg-[#6d3d75]' : ''}
+                    onClick={() => setAddMemberMode(addMemberMode === 'emails' ? 'none' : 'emails')}
+                  >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Adicionar Emails
+                    {t('targetGroups.dialogs.labels.btnEmails')}
                   </Button>
-                  <Button type="button" variant="outline" size="sm">
+                  <Button
+                    type="button"
+                    variant={addMemberMode === 'groups' ? 'default' : 'outline'}
+                    size="sm"
+                    className={addMemberMode === 'groups' ? 'bg-[#834a8b] hover:bg-[#6d3d75]' : ''}
+                    onClick={() => setAddMemberMode(addMemberMode === 'groups' ? 'none' : 'groups')}
+                  >
                     <FolderTree className="w-4 h-4 mr-2" />
-                    Adicionar Grupos
+                    {t('targetGroups.dialogs.labels.btnGroups')}
                   </Button>
                 </div>
+                {addMemberMode === 'emails' && (
+                  <div className="mt-3 space-y-2">
+                    <Textarea
+                      placeholder={"joao@empresa.com\nmaria@empresa.com"}
+                      rows={4}
+                      value={emailsToAdd}
+                      onChange={(e) => setEmailsToAdd(e.target.value)}
+                    />
+                    <p className="text-sm text-gray-500">{t('targetGroups.dialogs.labels.emailsHint')}</p>
+                  </div>
+                )}
+                {addMemberMode === 'groups' && (
+                  <div className="mt-3 space-y-1 max-h-48 overflow-y-auto border rounded-lg p-3">
+                    {relevantGroups.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-2">Nenhum grupo disponível</p>
+                    ) : (
+                      relevantGroups.map((group) => (
+                        <label
+                          key={group.id}
+                          className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            className="rounded"
+                            checked={selectedGroupIds.has(group.id)}
+                            onChange={(e) => {
+                              const newSet = new Set(selectedGroupIds);
+                              if (e.target.checked) newSet.add(group.id);
+                              else newSet.delete(group.id);
+                              setSelectedGroupIds(newSet);
+                            }}
+                          />
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{group.name}</div>
+                            <div className="text-xs text-gray-500">{group.memberCount} membros</div>
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <DialogFooter>
@@ -612,10 +841,10 @@ export function TargetGroups() {
                 variant="outline"
                 onClick={() => setIsEditDialogOpen(false)}
               >
-                Cancelar
+                {t('targetGroups.dialogs.buttons.cancel')}
               </Button>
               <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                Atualizar Grupo
+                {t('targetGroups.dialogs.buttons.update')}
               </Button>
             </DialogFooter>
           </form>
@@ -627,48 +856,48 @@ export function TargetGroups() {
         <DialogContent className="max-w-2xl">
           <form onSubmit={handleAddMembers}>
             <DialogHeader>
-              <DialogTitle>Adicionar Membros ao Grupo</DialogTitle>
+              <DialogTitle>{t('targetGroups.dialogs.addMembersTitle')}</DialogTitle>
               <DialogDescription>
-                Adicione emails individuais ou outros grupos como membros
+                {t('targetGroups.dialogs.addMembersDesc')}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <Card className="cursor-pointer hover:border-[#834a8b] transition-colors">
                   <CardHeader>
-                    <CardTitle className="text-base">Emails Individuais</CardTitle>
+                    <CardTitle className="text-base">{t('targetGroups.dialogs.labels.emailsCardTitle')}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Label htmlFor="emails">Lista de E-mails</Label>
+                    <Label htmlFor="emails">{t('targetGroups.dialogs.labels.emailsCardList')}</Label>
                     <Textarea
                       id="emails"
                       placeholder="joao@empresa.com&#10;maria@empresa.com"
                       className="mt-2"
                       rows={6}
                     />
-                    <p className="text-sm text-gray-500 mt-2">Um email por linha</p>
+                    <p className="text-sm text-gray-500 mt-2">{t('targetGroups.dialogs.labels.emailsHint')}</p>
                   </CardContent>
                 </Card>
                 <Card className="cursor-pointer hover:border-[#834a8b] transition-colors">
                   <CardHeader>
-                    <CardTitle className="text-base">Grupos Existentes</CardTitle>
+                    <CardTitle className="text-base">{t('targetGroups.dialogs.labels.groupsCardTitle')}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <Label htmlFor="groups">Selecionar Grupos</Label>
+                    <Label htmlFor="groups">{t('targetGroups.dialogs.labels.groupsCardDesc')}</Label>
                     <Select>
                       <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Escolha grupos" />
+                        <SelectValue placeholder={t('targetGroups.dialogs.labels.groupsCardDesc')} />
                       </SelectTrigger>
                       <SelectContent>
                         {relevantGroups.map((group) => (
                           <SelectItem key={group.id} value={group.id}>
-                            {group.name} ({group.memberCount} membros)
+                            {group.name} ({group.memberCount} {t('targetGroups.dialogs.labels.membersCount')})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-gray-500 mt-2">
-                      Grupos dentro de grupos (hierarquia)
+                      {t('targetGroups.dialogs.labels.groupsCardHint')}
                     </p>
                   </CardContent>
                 </Card>
@@ -680,10 +909,10 @@ export function TargetGroups() {
                 variant="outline"
                 onClick={() => setIsAddMembersDialogOpen(false)}
               >
-                Cancelar
+                {t('targetGroups.dialogs.buttons.cancel')}
               </Button>
               <Button type="submit" className="bg-[#834a8b] hover:bg-[#6d3d75]">
-                Adicionar Membros
+                {t('targetGroups.actions.addMembers')}
               </Button>
             </DialogFooter>
           </form>
@@ -694,9 +923,9 @@ export function TargetGroups() {
       <Dialog open={isImportIntegrationOpen} onOpenChange={setIsImportIntegrationOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Importar Grupos da Integração</DialogTitle>
+            <DialogTitle>{t('targetGroups.actions.importIntegration')}</DialogTitle>
             <DialogDescription>
-              Sincronize grupos do Microsoft 365 ou Google Workspace
+              {t('targetGroups.stats.integration')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
@@ -802,7 +1031,36 @@ export function TargetGroups() {
               variant="outline"
               onClick={() => setIsImportIntegrationOpen(false)}
             >
-              Fechar
+              {t('targetGroups.dialogs.buttons.cancel')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: View Members */}
+      <Dialog open={!!viewingGroupMembers} onOpenChange={(open) => { if (!open) setViewingGroupMembers(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{viewingGroupMembers?.name} — {t('targetGroups.actions.viewMembers', 'Membros')}</DialogTitle>
+            <DialogDescription>
+              {groupMembers.length} {t('targetGroups.table.cols.members', 'membros')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-80 overflow-y-auto space-y-1 py-2">
+            {groupMembers.length === 0 ? (
+              <p className="text-sm text-gray-500 text-center py-4">Nenhum membro neste grupo</p>
+            ) : (
+              groupMembers.map((email, idx) => (
+                <div key={idx} className="flex items-center gap-2 p-2 rounded hover:bg-gray-50">
+                  <Mail className="w-4 h-4 text-gray-400" />
+                  <span className="text-sm">{email}</span>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingGroupMembers(null)}>
+              {t('common.close', 'Fechar')}
             </Button>
           </DialogFooter>
         </DialogContent>

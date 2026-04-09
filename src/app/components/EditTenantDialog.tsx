@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { getTenants, getTemplates } from '../lib/supabaseApi';
+import { getTenants, getTemplates } from '../lib/apiLocal';
 import { Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';

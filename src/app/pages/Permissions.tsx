@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Shield, Users, Lock, Plus, Edit, Trash2, Save, X, Check } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -38,89 +38,89 @@ interface User {
 }
 
 // Mock Data
-const mockPermissions: Permission[] = [
+const getMockPermissions = (t: any): Permission[] => [
   // Campaigns
-  { id: '1', name: 'Criar Campanhas', codename: 'campaigns.create', module: 'campaigns', description: 'Criar novas campanhas de phishing' },
-  { id: '2', name: 'Visualizar Campanhas', codename: 'campaigns.read', module: 'campaigns', description: 'Visualizar campanhas existentes' },
-  { id: '3', name: 'Editar Campanhas', codename: 'campaigns.update', module: 'campaigns', description: 'Editar campanhas existentes' },
-  { id: '4', name: 'Deletar Campanhas', codename: 'campaigns.delete', module: 'campaigns', description: 'Deletar campanhas' },
-  { id: '5', name: 'Iniciar Campanhas', codename: 'campaigns.start', module: 'campaigns', description: 'Iniciar campanhas' },
-  { id: '6', name: 'Pausar Campanhas', codename: 'campaigns.pause', module: 'campaigns', description: 'Pausar campanhas' },
-  { id: '7', name: 'Ver Resultados', codename: 'campaigns.view_results', module: 'campaigns', description: 'Visualizar resultados de campanhas' },
-  { id: '8', name: 'Exportar Dados', codename: 'campaigns.export', module: 'campaigns', description: 'Exportar dados de campanhas' },
+  { id: '1', name: t('permissions.data.campaigns.create.name'), codename: 'campaigns.create', module: 'campaigns', description: t('permissions.data.campaigns.create.desc') },
+  { id: '2', name: t('permissions.data.campaigns.read.name'), codename: 'campaigns.read', module: 'campaigns', description: t('permissions.data.campaigns.read.desc') },
+  { id: '3', name: t('permissions.data.campaigns.update.name'), codename: 'campaigns.update', module: 'campaigns', description: t('permissions.data.campaigns.update.desc') },
+  { id: '4', name: t('permissions.data.campaigns.delete.name'), codename: 'campaigns.delete', module: 'campaigns', description: t('permissions.data.campaigns.delete.desc') },
+  { id: '5', name: t('permissions.data.campaigns.start.name'), codename: 'campaigns.start', module: 'campaigns', description: t('permissions.data.campaigns.start.desc') },
+  { id: '6', name: t('permissions.data.campaigns.pause.name'), codename: 'campaigns.pause', module: 'campaigns', description: t('permissions.data.campaigns.pause.desc') },
+  { id: '7', name: t('permissions.data.campaigns.results.name'), codename: 'campaigns.view_results', module: 'campaigns', description: t('permissions.data.campaigns.results.desc') },
+  { id: '8', name: t('permissions.data.campaigns.export.name'), codename: 'campaigns.export', module: 'campaigns', description: t('permissions.data.campaigns.export.desc') },
   
   // Targets
-  { id: '9', name: 'Criar Alvos', codename: 'targets.create', module: 'targets', description: 'Criar novos alvos' },
-  { id: '10', name: 'Visualizar Alvos', codename: 'targets.read', module: 'targets', description: 'Visualizar alvos' },
-  { id: '11', name: 'Editar Alvos', codename: 'targets.update', module: 'targets', description: 'Editar alvos' },
-  { id: '12', name: 'Deletar Alvos', codename: 'targets.delete', module: 'targets', description: 'Deletar alvos' },
-  { id: '13', name: 'Importar Alvos', codename: 'targets.import', module: 'targets', description: 'Importar alvos de CSV/Excel' },
-  { id: '14', name: 'Exportar Alvos', codename: 'targets.export', module: 'targets', description: 'Exportar alvos' },
+  { id: '9', name: t('permissions.data.targets.create.name'), codename: 'targets.create', module: 'targets', description: t('permissions.data.targets.create.desc') },
+  { id: '10', name: t('permissions.data.targets.read.name'), codename: 'targets.read', module: 'targets', description: t('permissions.data.targets.read.desc') },
+  { id: '11', name: t('permissions.data.targets.update.name'), codename: 'targets.update', module: 'targets', description: t('permissions.data.targets.update.desc') },
+  { id: '12', name: t('permissions.data.targets.delete.name'), codename: 'targets.delete', module: 'targets', description: t('permissions.data.targets.delete.desc') },
+  { id: '13', name: t('permissions.data.targets.import.name'), codename: 'targets.import', module: 'targets', description: t('permissions.data.targets.import.desc') },
+  { id: '14', name: t('permissions.data.targets.export.name'), codename: 'targets.export', module: 'targets', description: t('permissions.data.targets.export.desc') },
   
   // Templates
-  { id: '15', name: 'Criar Templates', codename: 'templates.create', module: 'templates', description: 'Criar novos templates' },
-  { id: '16', name: 'Visualizar Templates', codename: 'templates.read', module: 'templates', description: 'Visualizar templates' },
-  { id: '17', name: 'Editar Templates', codename: 'templates.update', module: 'templates', description: 'Editar templates' },
-  { id: '18', name: 'Deletar Templates', codename: 'templates.delete', module: 'templates', description: 'Deletar templates' },
-  { id: '19', name: 'Templates Globais', codename: 'templates.create_global', module: 'templates', description: 'Criar templates globais' },
+  { id: '15', name: t('permissions.data.templates.create.name'), codename: 'templates.create', module: 'templates', description: t('permissions.data.templates.create.desc') },
+  { id: '16', name: t('permissions.data.templates.read.name'), codename: 'templates.read', module: 'templates', description: t('permissions.data.templates.read.desc') },
+  { id: '17', name: t('permissions.data.templates.update.name'), codename: 'templates.update', module: 'templates', description: t('permissions.data.templates.update.desc') },
+  { id: '18', name: t('permissions.data.templates.delete.name'), codename: 'templates.delete', module: 'templates', description: t('permissions.data.templates.delete.desc') },
+  { id: '19', name: t('permissions.data.templates.global.name'), codename: 'templates.create_global', module: 'templates', description: t('permissions.data.templates.global.desc') },
   
   // Users
-  { id: '20', name: 'Criar Usuários', codename: 'users.create', module: 'users', description: 'Criar novos usuários' },
-  { id: '21', name: 'Visualizar Usuários', codename: 'users.read', module: 'users', description: 'Visualizar usuários' },
-  { id: '22', name: 'Editar Usuários', codename: 'users.update', module: 'users', description: 'Editar usuários' },
-  { id: '23', name: 'Deletar Usuários', codename: 'users.delete', module: 'users', description: 'Deletar usuários' },
-  { id: '24', name: 'Impersonar Usuários', codename: 'users.impersonate', module: 'users', description: 'Impersonar outros usuários' },
-  { id: '25', name: 'Gerenciar Permissões', codename: 'users.manage_roles', module: 'users', description: 'Gerenciar permissões de usuários' },
+  { id: '20', name: t('permissions.data.users.create.name'), codename: 'users.create', module: 'users', description: t('permissions.data.users.create.desc') },
+  { id: '21', name: t('permissions.data.users.read.name'), codename: 'users.read', module: 'users', description: t('permissions.data.users.read.desc') },
+  { id: '22', name: t('permissions.data.users.update.name'), codename: 'users.update', module: 'users', description: t('permissions.data.users.update.desc') },
+  { id: '23', name: t('permissions.data.users.delete.name'), codename: 'users.delete', module: 'users', description: t('permissions.data.users.delete.desc') },
+  { id: '24', name: t('permissions.data.users.impersonate.name'), codename: 'users.impersonate', module: 'users', description: t('permissions.data.users.impersonate.desc') },
+  { id: '25', name: t('permissions.data.users.roles.name'), codename: 'users.manage_roles', module: 'users', description: t('permissions.data.users.roles.desc') },
   
   // Tenants
-  { id: '26', name: 'Criar Tenants', codename: 'tenants.create', module: 'tenants', description: 'Criar novos clientes' },
-  { id: '27', name: 'Visualizar Tenants', codename: 'tenants.read', module: 'tenants', description: 'Visualizar clientes' },
-  { id: '28', name: 'Editar Tenants', codename: 'tenants.update', module: 'tenants', description: 'Editar clientes' },
-  { id: '29', name: 'Deletar Tenants', codename: 'tenants.delete', module: 'tenants', description: 'Deletar clientes' },
-  { id: '30', name: 'Configurar Tenants', codename: 'tenants.configure', module: 'tenants', description: 'Configurar clientes' },
-  { id: '31', name: 'Criar Sub-tenants', codename: 'tenants.create_sub', module: 'tenants', description: 'Criar sub-clientes' },
+  { id: '26', name: t('permissions.data.tenants.create.name'), codename: 'tenants.create', module: 'tenants', description: t('permissions.data.tenants.create.desc') },
+  { id: '27', name: t('permissions.data.tenants.read.name'), codename: 'tenants.read', module: 'tenants', description: t('permissions.data.tenants.read.desc') },
+  { id: '28', name: t('permissions.data.tenants.update.name'), codename: 'tenants.update', module: 'tenants', description: t('permissions.data.tenants.update.desc') },
+  { id: '29', name: t('permissions.data.tenants.delete.name'), codename: 'tenants.delete', module: 'tenants', description: t('permissions.data.tenants.delete.desc') },
+  { id: '30', name: t('permissions.data.tenants.configure.name'), codename: 'tenants.configure', module: 'tenants', description: t('permissions.data.tenants.configure.desc') },
+  { id: '31', name: t('permissions.data.tenants.sub.name'), codename: 'tenants.create_sub', module: 'tenants', description: t('permissions.data.tenants.sub.desc') },
   
   // Trainings
-  { id: '32', name: 'Criar Treinamentos', codename: 'trainings.create', module: 'trainings', description: 'Criar treinamentos' },
-  { id: '33', name: 'Visualizar Treinamentos', codename: 'trainings.read', module: 'trainings', description: 'Visualizar treinamentos' },
-  { id: '34', name: 'Editar Treinamentos', codename: 'trainings.update', module: 'trainings', description: 'Editar treinamentos' },
-  { id: '35', name: 'Deletar Treinamentos', codename: 'trainings.delete', module: 'trainings', description: 'Deletar treinamentos' },
-  { id: '36', name: 'Atribuir Treinamentos', codename: 'trainings.assign', module: 'trainings', description: 'Atribuir treinamentos a usuários' },
-  { id: '37', name: 'Ver Resultados', codename: 'trainings.view_results', module: 'trainings', description: 'Ver resultados de treinamentos' },
+  { id: '32', name: t('permissions.data.trainings.create.name'), codename: 'trainings.create', module: 'trainings', description: t('permissions.data.trainings.create.desc') },
+  { id: '33', name: t('permissions.data.trainings.read.name'), codename: 'trainings.read', module: 'trainings', description: t('permissions.data.trainings.read.desc') },
+  { id: '34', name: t('permissions.data.trainings.update.name'), codename: 'trainings.update', module: 'trainings', description: t('permissions.data.trainings.update.desc') },
+  { id: '35', name: t('permissions.data.trainings.delete.name'), codename: 'trainings.delete', module: 'trainings', description: t('permissions.data.trainings.delete.desc') },
+  { id: '36', name: t('permissions.data.trainings.assign.name'), codename: 'trainings.assign', module: 'trainings', description: t('permissions.data.trainings.assign.desc') },
+  { id: '37', name: t('permissions.data.trainings.results.name'), codename: 'trainings.view_results', module: 'trainings', description: t('permissions.data.trainings.results.desc') },
   
   // Reports
-  { id: '38', name: 'Ver Relatórios', codename: 'reports.view', module: 'reports', description: 'Visualizar relatórios' },
-  { id: '39', name: 'Exportar Relatórios', codename: 'reports.export', module: 'reports', description: 'Exportar relatórios em PDF/Excel' },
-  { id: '40', name: 'Relatórios Globais', codename: 'reports.global', module: 'reports', description: 'Ver relatórios de todos os tenants' },
-  { id: '41', name: 'Dados Capturados', codename: 'reports.captured_data', module: 'reports', description: 'Ver dados capturados' },
+  { id: '38', name: t('permissions.data.reports.view.name'), codename: 'reports.view', module: 'reports', description: t('permissions.data.reports.view.desc') },
+  { id: '39', name: t('permissions.data.reports.export.name'), codename: 'reports.export', module: 'reports', description: t('permissions.data.reports.export.desc') },
+  { id: '40', name: t('permissions.data.reports.global.name'), codename: 'reports.global', module: 'reports', description: t('permissions.data.reports.global.desc') },
+  { id: '41', name: t('permissions.data.reports.captured.name'), codename: 'reports.captured_data', module: 'reports', description: t('permissions.data.reports.captured.desc') },
   
   // System
-  { id: '42', name: 'Logs de Auditoria', codename: 'system.audit_logs', module: 'system', description: 'Ver logs de auditoria' },
-  { id: '43', name: 'Configurações', codename: 'system.settings', module: 'system', description: 'Gerenciar configurações do sistema' },
-  { id: '44', name: 'Gerenciar Papéis', codename: 'system.roles', module: 'system', description: 'Gerenciar papéis e permissões' },
-  { id: '45', name: 'Integrações', codename: 'system.integrations', module: 'system', description: 'Configurar integrações' },
+  { id: '42', name: t('permissions.data.system.audit.name'), codename: 'system.audit_logs', module: 'system', description: t('permissions.data.system.audit.desc') },
+  { id: '43', name: t('permissions.data.system.settings.name'), codename: 'system.settings', module: 'system', description: t('permissions.data.system.settings.desc') },
+  { id: '44', name: t('permissions.data.system.roles.name'), codename: 'system.roles', module: 'system', description: t('permissions.data.system.roles.desc') },
+  { id: '45', name: t('permissions.data.system.integrations.name'), codename: 'system.integrations', module: 'system', description: t('permissions.data.system.integrations.desc') },
 ];
 
-const mockRoles: Role[] = [
+const getMockRoles = (t: any, permissions: Permission[]): Role[] => [
   {
     id: '1',
     name: 'Superadmin',
-    description: 'Acesso total ao sistema',
-    permissions: mockPermissions,
+    description: t('permissions.roles.superadmin.desc'),
+    permissions: permissions,
     isSystem: true,
   },
   {
     id: '2',
     name: 'Admin de Tenant',
-    description: 'Administrador completo do tenant',
-    permissions: mockPermissions.filter(p => !p.codename.startsWith('tenants.') && !p.codename.startsWith('system.')),
+    description: t('permissions.roles.admin.desc'),
+    permissions: permissions.filter(p => !p.codename.startsWith('tenants.') && !p.codename.startsWith('system.')),
     isSystem: true,
   },
   {
     id: '3',
     name: 'Gerente',
-    description: 'Gerenciar campanhas e alvos',
-    permissions: mockPermissions.filter(p => 
+    description: t('permissions.roles.manager.desc'),
+    permissions: permissions.filter(p => 
       p.module === 'campaigns' || 
       p.module === 'targets' || 
       p.module === 'templates' ||
@@ -131,8 +131,8 @@ const mockRoles: Role[] = [
   {
     id: '4',
     name: 'Analista',
-    description: 'Visualizar e analisar dados',
-    permissions: mockPermissions.filter(p => 
+    description: t('permissions.roles.analyst.desc'),
+    permissions: permissions.filter(p => 
       p.codename.includes('.read') || 
       p.codename.includes('.view') ||
       p.codename === 'reports.view' ||
@@ -142,7 +142,7 @@ const mockRoles: Role[] = [
   },
 ];
 
-const mockUsers: User[] = [
+const getMockUsers = (permissions: Permission[]): User[] => [
   {
     id: '1',
     name: 'Igor Bedesqui',
@@ -162,7 +162,7 @@ const mockUsers: User[] = [
     name: 'Maria Santos',
     email: 'maria@cliente.com.br',
     role: 'Gerente',
-    customPermissions: [mockPermissions[37]], // reports.view extra
+    customPermissions: [permissions[37]], // reports.view extra
   },
 ];
 
@@ -190,16 +190,26 @@ const moduleIcons: Record<string, React.ReactNode> = {
 
 export default function Permissions() {
   const { t } = useTranslation();
-  const [roles, setRoles] = useState<Role[]>(mockRoles);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  
+  // Use React.useMemo to ensure these references are stable if needed
+  const permissionsData = React.useMemo(() => getMockPermissions(t), [t]);
+  
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [isUserPermissionsDialogOpen, setIsUserPermissionsDialogOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Partial<Role>>({});
 
+  useEffect(() => {
+    // Only initialize once on mount
+    setRoles(getMockRoles(t, permissionsData));
+    setUsers(getMockUsers(permissionsData));
+  }, [t, permissionsData]);
+
   // Group permissions by module
-  const permissionsByModule = mockPermissions.reduce((acc, permission) => {
+  const permissionsByModule = permissionsData.reduce((acc, permission) => {
     if (!acc[permission.module]) {
       acc[permission.module] = [];
     }
@@ -219,14 +229,14 @@ export default function Permissions() {
 
   const handleSaveRole = () => {
     if (!editingRole.name) {
-      toast.error('Nome do papel é obrigatório');
+      toast.error(t('permissions.errors.nameRequired'));
       return;
     }
 
     if (editingRole.id) {
       // Update
       setRoles(roles.map(r => r.id === editingRole.id ? editingRole as Role : r));
-      toast.success('Papel atualizado com sucesso');
+      toast.success(t('permissions.success.roleUpdated'));
     } else {
       // Create
       const newRole: Role = {
@@ -237,7 +247,7 @@ export default function Permissions() {
         isSystem: false,
       };
       setRoles([...roles, newRole]);
-      toast.success('Papel criado com sucesso');
+      toast.success(t('permissions.success.roleCreated'));
     }
 
     setIsRoleDialogOpen(false);
@@ -247,12 +257,12 @@ export default function Permissions() {
   const handleDeleteRole = (roleId: string) => {
     const role = roles.find(r => r.id === roleId);
     if (role?.isSystem) {
-      toast.error('Não é possível deletar papéis do sistema');
+      toast.error(t('permissions.errors.systemRole'));
       return;
     }
 
     setRoles(roles.filter(r => r.id !== roleId));
-    toast.success('Papel deletado com sucesso');
+    toast.success(t('permissions.success.roleDeleted'));
   };
 
   const togglePermission = (permission: Permission) => {
@@ -307,10 +317,10 @@ export default function Permissions() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Shield className="w-8 h-8 text-[#834a8b]" />
-            {t('permissions.title', 'Gerenciamento de Permissões')}
+            {t('permissions.title')}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {t('permissions.subtitle', 'Gerencie papéis e permissões de usuários')}
+            {t('permissions.subtitle')}
           </p>
         </div>
       </div>
@@ -320,15 +330,15 @@ export default function Permissions() {
         <TabsList>
           <TabsTrigger value="roles" className="flex items-center gap-2">
             <Lock className="w-4 h-4" />
-            Papéis
+            {t('permissions.tabs.roles')}
           </TabsTrigger>
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Usuários
+            {t('permissions.tabs.users')}
           </TabsTrigger>
           <TabsTrigger value="permissions" className="flex items-center gap-2">
             <Shield className="w-4 h-4" />
-            Todas as Permissões
+            {t('permissions.tabs.allPermissions')}
           </TabsTrigger>
         </TabsList>
 
@@ -336,11 +346,11 @@ export default function Permissions() {
         <TabsContent value="roles" className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              {roles.length} {roles.length === 1 ? 'papel' : 'papéis'} cadastrados
+              {t('permissions.tabs.rolesCount', { count: roles.length })}
             </p>
             <Button onClick={handleCreateRole}>
               <Plus className="w-4 h-4 mr-2" />
-              Novo Papel
+              {t('permissions.buttons.newRole')}
             </Button>
           </div>
 
@@ -354,7 +364,7 @@ export default function Permissions() {
                         {role.name}
                         {role.isSystem && (
                           <Badge variant="secondary" className="text-xs">
-                            Sistema
+                            {t('permissions.badges.system')}
                           </Badge>
                         )}
                       </CardTitle>
@@ -383,7 +393,7 @@ export default function Permissions() {
                 <CardContent>
                   <div className="space-y-2">
                     <p className="text-sm font-medium">
-                      {role.permissions.length} permissões
+                      {t('permissions.roles.permissionsCount', { count: role.permissions.length })}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {Object.keys(permissionsByModule).map(module => {
@@ -411,7 +421,7 @@ export default function Permissions() {
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {users.length} {users.length === 1 ? 'usuário' : 'usuários'}
+            {t('permissions.tabs.usersCount', { count: users.length })}
           </p>
 
           <div className="space-y-2">
@@ -433,7 +443,7 @@ export default function Permissions() {
                         <Badge variant="outline">{user.role}</Badge>
                         {user.customPermissions.length > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            +{user.customPermissions.length} permissões extras
+                            {t('permissions.users.extraPermissions', { count: user.customPermissions.length })}
                           </p>
                         )}
                       </div>
@@ -443,7 +453,7 @@ export default function Permissions() {
                         onClick={() => handleManageUserPermissions(user)}
                       >
                         <Shield className="w-4 h-4 mr-2" />
-                        Permissões
+                        {t('permissions.buttons.managePermissions')}
                       </Button>
                     </div>
                   </div>
@@ -456,7 +466,7 @@ export default function Permissions() {
         {/* All Permissions Tab */}
         <TabsContent value="permissions" className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            {mockPermissions.length} permissões disponíveis
+            {t('permissions.tabs.permissionsCount', { count: permissionsData.length })}
           </p>
 
           {Object.entries(permissionsByModule).map(([module, permissions]) => (
@@ -466,10 +476,10 @@ export default function Permissions() {
                   <span className={`w-8 h-8 rounded-lg ${moduleColors[module]} flex items-center justify-center text-white text-lg`}>
                     {moduleIcons[module]}
                   </span>
-                  {module.charAt(0).toUpperCase() + module.slice(1)}
+                  {t(`permissions.modules.${module}`)}
                 </CardTitle>
                 <CardDescription>
-                  {permissions.length} permissões disponíveis
+                  {t('permissions.tabs.permissionsModuleCount', { count: permissions.length })}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -502,36 +512,36 @@ export default function Permissions() {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingRole.id ? 'Editar Papel' : 'Novo Papel'}
+              {editingRole.id ? t('permissions.dialogs.role.edit') : t('permissions.dialogs.role.new')}
             </DialogTitle>
             <DialogDescription>
-              Configure o nome, descrição e permissões do papel
+              {t('permissions.dialogs.role.desc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
+              <Label htmlFor="name">{t('permissions.fields.name')}</Label>
               <Input
                 id="name"
                 value={editingRole.name || ''}
                 onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                placeholder="Ex: Gerente de Campanhas"
+                placeholder={t('permissions.fields.namePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Descrição</Label>
+              <Label htmlFor="description">{t('permissions.fields.desc')}</Label>
               <Input
                 id="description"
                 value={editingRole.description || ''}
                 onChange={(e) => setEditingRole({ ...editingRole, description: e.target.value })}
-                placeholder="Ex: Pode criar e gerenciar campanhas"
+                placeholder={t('permissions.fields.descPlaceholder')}
               />
             </div>
 
             <div className="space-y-4">
-              <Label>Permissões ({editingRole.permissions?.length || 0} selecionadas)</Label>
+              <Label>{t('permissions.dialogs.role.permissionsLabel', { count: editingRole.permissions?.length || 0 })}</Label>
               
               {Object.entries(permissionsByModule).map(([module, permissions]) => {
                 const selectedCount = permissions.filter(p => 
@@ -552,7 +562,7 @@ export default function Permissions() {
                             {moduleIcons[module]}
                           </span>
                           <CardTitle className="text-base">
-                            {module.charAt(0).toUpperCase() + module.slice(1)}
+                            {t(`permissions.modules.${module}`)}
                           </CardTitle>
                         </div>
                         <Badge variant="secondary">
@@ -590,11 +600,11 @@ export default function Permissions() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsRoleDialogOpen(false)}>
               <X className="w-4 h-4 mr-2" />
-              Cancelar
+              {t('permissions.buttons.cancel')}
             </Button>
             <Button onClick={handleSaveRole}>
               <Save className="w-4 h-4 mr-2" />
-              Salvar
+              {t('permissions.buttons.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -605,16 +615,16 @@ export default function Permissions() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              Permissões de {selectedUser?.name}
+              {t('permissions.dialogs.user.title', { name: selectedUser?.name })}
             </DialogTitle>
             <DialogDescription>
-              Papel atual: <Badge>{selectedUser?.role}</Badge>
+              {t('permissions.dialogs.user.currentRole')} <Badge>{selectedUser?.role}</Badge>
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Alterar Papel</Label>
+              <Label htmlFor="role">{t('permissions.dialogs.user.changeRole')}</Label>
               <Select defaultValue={selectedUser?.role}>
                 <SelectTrigger>
                   <SelectValue />
@@ -630,9 +640,9 @@ export default function Permissions() {
             </div>
 
             <div className="space-y-2">
-              <Label>Permissões Extras ({selectedUser?.customPermissions.length || 0})</Label>
+              <Label>{t('permissions.dialogs.user.extraRoles', { count: selectedUser?.customPermissions.length || 0 })}</Label>
               <p className="text-sm text-muted-foreground">
-                Adicione permissões específicas além do papel base
+                {t('permissions.dialogs.user.extraRolesDesc')}
               </p>
               
               {selectedUser?.customPermissions.map(permission => (
@@ -654,21 +664,21 @@ export default function Permissions() {
 
               <Button variant="outline" size="sm" className="w-full">
                 <Plus className="w-4 h-4 mr-2" />
-                Adicionar Permissão Extra
+                {t('permissions.buttons.addExtraRole')}
               </Button>
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsUserPermissionsDialogOpen(false)}>
-              Fechar
+              {t('permissions.buttons.close')}
             </Button>
             <Button onClick={() => {
-              toast.success('Permissões atualizadas com sucesso');
+              toast.success(t('permissions.success.permissionsUpdated'));
               setIsUserPermissionsDialogOpen(false);
             }}>
               <Save className="w-4 h-4 mr-2" />
-              Salvar Alterações
+              {t('permissions.buttons.save')}
             </Button>
           </DialogFooter>
         </DialogContent>

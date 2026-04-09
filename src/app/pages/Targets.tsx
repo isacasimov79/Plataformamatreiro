@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { getTenants, getTargets, deleteAllTargetsByTenant } from '../lib/supabaseApi';
+import { getTenants, getTargets, deleteAllTargetsByTenant } from '../lib/apiLocal';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -100,8 +100,8 @@ export function Targets() {
       setTargets(mockTargets);
       setTenants(mockTenants);
       
-      toast.warning('Modo Offline', {
-        description: 'Servidor não disponível. Usando dados de demonstração.',
+      toast.warning(t('targets.messages.offlineWarning'), {
+        description: t('targets.messages.offlineDesc'),
       });
     } finally {
       setLoading(false);
@@ -128,8 +128,8 @@ export function Targets() {
 
   const handleAddTarget = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('E-mail alvo adicionado!', {
-      description: 'O alvo foi adicionado com sucesso à lista',
+    toast.success(t('targets.messages.added'), {
+      description: t('targets.messages.addedDesc'),
     });
     setIsNewTargetOpen(false);
   };
@@ -140,23 +140,23 @@ export function Targets() {
       .split('\n')
       .map((email) => email.trim())
       .filter((email) => email.includes('@'));
-    toast.success('E-mails alvos adicionados!', {
-      description: `${emails.length} alvos foram adicionados à lista`,
+    toast.success(t('targets.messages.bulkAdded'), {
+      description: t('targets.messages.bulkAddedDesc', { count: emails.length }),
     });
     setIsBulkAddDialogOpen(false);
   };
 
   const handleImportCSV = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.success('Importação iniciada!', {
-      description: 'Os e-mails alvos estão sendo processados',
+    toast.success(t('targets.messages.importStarted'), {
+      description: t('targets.messages.importStartedDesc'),
     });
     setIsImportDialogOpen(false);
   };
 
   const handleDelete = (targetId: string) => {
-    toast.success('E-mail alvo removido!', {
-      description: 'O alvo foi removido da lista',
+    toast.success(t('targets.messages.deleted'), {
+      description: t('targets.messages.deletedDesc'),
     });
   };
 
@@ -185,15 +185,15 @@ export function Targets() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success('Lista exportada!', {
-      description: `${filteredTargets.length} alvos exportados em CSV`,
+    toast.success(t('targets.messages.exported'), {
+      description: t('targets.messages.exportedDesc', { count: filteredTargets.length }),
     });
   };
 
   const handleCleanupTargets = async () => {
     if (!impersonatedTenant) {
       toast.error('Erro', {
-        description: 'Nenhum tenant selecionado',
+        description: t('targets.messages.cleanupNoTenant'),
       });
       return;
     }
@@ -207,8 +207,8 @@ export function Targets() {
         prevTargets.filter(t => t.tenantId !== impersonatedTenant.id)
       );
       
-      toast.success('Alvos removidos com sucesso!', {
-        description: `${result.deletedCount} alvos foram excluídos do tenant ${impersonatedTenant.name}`,
+      toast.success(t('targets.messages.cleanupSuccess'), {
+        description: t('targets.messages.cleanupSuccessDesc', { count: result.deletedCount, name: impersonatedTenant.name }),
       });
       
       setIsCleanupDialogOpen(false);
@@ -224,14 +224,14 @@ export function Targets() {
           prevTargets.filter(t => t.tenantId !== impersonatedTenant.id)
         );
         
-        toast.success('Dados limpos (Modo Offline)', {
-          description: 'Os alvos foram removidos localmente. Quando o servidor estiver disponível, será necessário fazer a limpeza definitiva.',
+        toast.success(t('targets.messages.cleanupOffline'), {
+          description: t('targets.messages.cleanupOfflineDesc'),
         });
         
         setIsCleanupDialogOpen(false);
       } else {
-        toast.error('Erro ao limpar alvos', {
-          description: error.message || 'Tente novamente',
+        toast.error(t('targets.messages.cleanupError'), {
+          description: error.message || t('targets.messages.cleanupErrorDesc'),
         });
       }
     } finally {
@@ -253,22 +253,22 @@ export function Targets() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              E-mails Alvo
+              {t('targets.title')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
               {isMasterView
-                ? 'Gerencie todos os alvos de campanhas'
-                : `Cliente: ${impersonatedTenant?.name}`}
+                ? t('targets.descMaster')
+                : t('targets.descTenant', { name: impersonatedTenant?.name })}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => navigate('/target-groups')}>
               <FolderTree className="w-4 h-4 mr-2" />
-              Ver Grupos
+              {t('targets.actions.viewGroups')}
             </Button>
             <Button variant="outline" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar
+              {t('targets.actions.export')}
             </Button>
             
             {/* Botão de limpeza de dados (apenas para tenant selecionado) */}
@@ -288,29 +288,29 @@ export function Targets() {
               <DropdownMenuTrigger asChild>
                 <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Alvos
+                  {t('targets.actions.addTargets')}
                   <ChevronDown className="w-4 h-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Escolha o método</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('targets.actions.chooseMethod')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsNewTargetOpen(true)}>
                   <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Individual
+                  {t('targets.actions.addIndividual')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsBulkAddDialogOpen(true)}>
                   <ListPlus className="w-4 h-4 mr-2" />
-                  Adicionar em Massa (Lista)
+                  {t('targets.actions.addBulk')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate('/targets/import')}>
                   <Upload className="w-4 h-4 mr-2" />
-                  Importar CSV/Excel
+                  {t('targets.actions.importCsv')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsIntegrationDialogOpen(true)}>
                   <Users className="w-4 h-4 mr-2" />
-                  Importar da Integração
+                  {t('targets.actions.importIntegration')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -326,27 +326,27 @@ export function Targets() {
               <DialogContent>
                 <form onSubmit={handleAddTarget}>
                   <DialogHeader>
-                    <DialogTitle>Adicionar E-mail Alvo</DialogTitle>
+                    <DialogTitle>{t('targets.actions.addIndividualDialogTitle')}</DialogTitle>
                     <DialogDescription>
-                      Adicione um novo alvo para campanhas de phishing
+                      {t('targets.actions.addIndividualDialogDesc')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="name">Nome Completo</Label>
+                      <Label htmlFor="name">{t('targets.labels.fullName')}</Label>
                       <Input
                         id="name"
-                        placeholder="João Silva"
+                        placeholder={t('targets.placeholders.name')}
                         required
                         className="mt-2"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">E-mail</Label>
+                      <Label htmlFor="email">{t('targets.labels.email')}</Label>
                       <Input
                         id="email"
                         type="email"
-                        placeholder="joao.silva@empresa.com.br"
+                        placeholder={t('targets.placeholders.email')}
                         required
                         className="mt-2"
                       />
@@ -370,26 +370,26 @@ export function Targets() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="group">Grupo</Label>
+                      <Label htmlFor="group">{t('targets.labels.group')}</Label>
                       <Select>
                         <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Selecione o grupo" />
+                          <SelectValue placeholder={t('targets.placeholders.selectGroup')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ti">TI</SelectItem>
-                          <SelectItem value="rh">RH</SelectItem>
-                          <SelectItem value="financeiro">Financeiro</SelectItem>
-                          <SelectItem value="comercial">Comercial</SelectItem>
-                          <SelectItem value="diretoria">Diretoria</SelectItem>
+                          <SelectItem value="ti">{t('targets.groups.ti')}</SelectItem>
+                          <SelectItem value="rh">{t('targets.groups.rh')}</SelectItem>
+                          <SelectItem value="financeiro">{t('targets.groups.financeiro')}</SelectItem>
+                          <SelectItem value="comercial">{t('targets.groups.comercial')}</SelectItem>
+                          <SelectItem value="diretoria">{t('targets.groups.diretoria')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     {isMasterView && (
                       <div>
-                        <Label htmlFor="tenant">Cliente</Label>
+                        <Label htmlFor="tenant">{t('targets.labels.tenant')}</Label>
                         <Select>
                           <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Selecione o cliente" />
+                            <SelectValue placeholder={t('targets.placeholders.selectTenant')} />
                           </SelectTrigger>
                           <SelectContent>
                             {tenants.map((tenant) => (
@@ -430,17 +430,17 @@ export function Targets() {
               <DialogContent>
                 <form onSubmit={handleBulkAddTarget}>
                   <DialogHeader>
-                    <DialogTitle>Adicionar E-mails Alvo em Massa</DialogTitle>
+                    <DialogTitle>{t('targets.actions.addBulkDialogTitle')}</DialogTitle>
                     <DialogDescription>
-                      Adicione múltiplos e-mails alvos para campanhas de phishing
+                      {t('targets.actions.addBulkDialogDesc')}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
                     <div>
-                      <Label htmlFor="emails">E-mails</Label>
+                      <Label htmlFor="emails">{t('targets.labels.emails')}</Label>
                       <Textarea
                         id="emails"
-                        placeholder="joao.silva@empresa.com.br\nmaria.souza@empresa.com.br"
+                        placeholder={t('targets.placeholders.emailsBulk')}
                         required
                         className="mt-2"
                         value={bulkEmails}
@@ -448,35 +448,35 @@ export function Targets() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="department">Departamento</Label>
+                      <Label htmlFor="department">{t('targets.labels.department')}</Label>
                       <Input
                         id="department"
-                        placeholder="TI"
+                        placeholder={t('targets.placeholders.department')}
                         required
                         className="mt-2"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="position">Cargo</Label>
+                      <Label htmlFor="position">{t('targets.labels.position')}</Label>
                       <Input
                         id="position"
-                        placeholder="Analista de Sistemas"
+                        placeholder={t('targets.placeholders.position')}
                         required
                         className="mt-2"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="group">Grupo</Label>
+                      <Label htmlFor="group">{t('targets.labels.group')}</Label>
                       <Select>
                         <SelectTrigger className="mt-2">
-                          <SelectValue placeholder="Selecione o grupo" />
+                          <SelectValue placeholder={t('targets.placeholders.selectGroup')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ti">TI</SelectItem>
-                          <SelectItem value="rh">RH</SelectItem>
-                          <SelectItem value="financeiro">Financeiro</SelectItem>
-                          <SelectItem value="comercial">Comercial</SelectItem>
-                          <SelectItem value="diretoria">Diretoria</SelectItem>
+                          <SelectItem value="ti">{t('targets.groups.ti')}</SelectItem>
+                          <SelectItem value="rh">{t('targets.groups.rh')}</SelectItem>
+                          <SelectItem value="financeiro">{t('targets.groups.financeiro')}</SelectItem>
+                          <SelectItem value="comercial">{t('targets.groups.comercial')}</SelectItem>
+                          <SelectItem value="diretoria">{t('targets.groups.diretoria')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -524,9 +524,9 @@ export function Targets() {
             >
               <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                  <DialogTitle>Importar da Integração</DialogTitle>
+                  <DialogTitle>{t('targets.integration.title')}</DialogTitle>
                   <DialogDescription>
-                    Importe usuários diretamente do Microsoft 365 ou Google Workspace
+                    {t('targets.integration.desc')}
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-6 py-4">
@@ -535,24 +535,24 @@ export function Targets() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">Microsoft 365</CardTitle>
-                          <Badge variant="secondary">Conectado</Badge>
+                          <Badge variant="secondary">{t('targets.integration.connected')}</Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-gray-600 mb-4">
-                          Importar usuários do Azure AD/Entra ID
+                          {t('targets.integration.m365Desc')}
                         </p>
                         <Button
                           className="w-full bg-[#0078d4] hover:bg-[#106ebe]"
                           onClick={() => {
-                            toast.success('Importação iniciada!', {
+                            toast.success(t('targets.messages.importStarted'), {
                               description: 'Sincronizando usuários do Microsoft 365...',
                             });
                             setIsIntegrationDialogOpen(false);
                           }}
                         >
                           <Users className="w-4 h-4 mr-2" />
-                          Importar do M365
+                          {t('targets.integration.btnM365')}
                         </Button>
                       </CardContent>
                     </Card>
@@ -561,24 +561,24 @@ export function Targets() {
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-lg">Google Workspace</CardTitle>
-                          <Badge variant="secondary">Conectado</Badge>
+                          <Badge variant="secondary">{t('targets.integration.connected')}</Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
                         <p className="text-sm text-gray-600 mb-4">
-                          Importar usuários do Google Directory
+                          {t('targets.integration.googleDesc')}
                         </p>
                         <Button
                           className="w-full bg-[#4285f4] hover:bg-[#3367d6]"
                           onClick={() => {
-                            toast.success('Importação iniciada!', {
+                            toast.success(t('targets.messages.importStarted'), {
                               description: 'Sincronizando usuários do Google Workspace...',
                             });
                             setIsIntegrationDialogOpen(false);
                           }}
                         >
                           <Users className="w-4 h-4 mr-2" />
-                          Importar do Google
+                          {t('targets.integration.btnGoogle')}
                         </Button>
                       </CardContent>
                     </Card>
@@ -601,10 +601,10 @@ export function Targets() {
                       </div>
                       <div className="flex-1">
                         <h4 className="text-sm font-medium text-blue-900 mb-1">
-                          Configuração de Integrações
+                          {t('targets.integration.configTitle')}
                         </h4>
                         <p className="text-sm text-blue-700">
-                          Para configurar ou reconectar integrações, acesse a página de{' '}
+                          {t('targets.integration.configDesc1')}
                           <button
                             onClick={() => {
                               navigate('/integrations');
@@ -612,7 +612,7 @@ export function Targets() {
                             }}
                             className="font-medium underline hover:text-blue-900"
                           >
-                            Integrações
+                            {t('targets.integration.configLink')}
                           </button>
                         </p>
                       </div>
@@ -638,7 +638,7 @@ export function Targets() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Total de Alvos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targets.stats.total')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-[#242545]">{stats.total}</div>
@@ -646,7 +646,7 @@ export function Targets() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Ativos</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targets.stats.active')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{stats.active}</div>
@@ -654,7 +654,7 @@ export function Targets() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Bounced</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targets.stats.bounced')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">{stats.bounced}</div>
@@ -662,7 +662,7 @@ export function Targets() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-600">Opted Out</CardTitle>
+            <CardTitle className="text-sm text-gray-600">{t('targets.stats.optedOut')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">{stats.optedOut}</div>
@@ -677,7 +677,7 @@ export function Targets() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
-                placeholder="Buscar por nome, e-mail ou departamento..."
+                placeholder={t('targets.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -685,13 +685,13 @@ export function Targets() {
             </div>
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filtrar por origem" />
+                <SelectValue placeholder={t('targets.filters.source')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as origens</SelectItem>
-                <SelectItem value="manual">Manual</SelectItem>
-                <SelectItem value="azure-ad">Azure AD</SelectItem>
-                <SelectItem value="import">Importação CSV</SelectItem>
+                <SelectItem value="all">{t('targets.filters.sourceAll')}</SelectItem>
+                <SelectItem value="manual">{t('targets.filters.sourceManual')}</SelectItem>
+                <SelectItem value="azure-ad">{t('targets.filters.sourceAzure')}</SelectItem>
+                <SelectItem value="import">{t('targets.filters.sourceCsv')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -701,23 +701,23 @@ export function Targets() {
       {/* Targets Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de E-mails Alvo</CardTitle>
+          <CardTitle>{t('targets.table.title')}</CardTitle>
           <CardDescription>
-            {filteredTargets.length} alvos encontrados
+            {t('targets.table.desc', { count: filteredTargets.length })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>E-mail</TableHead>
-                <TableHead>Departamento</TableHead>
-                <TableHead>Cargo</TableHead>
-                <TableHead>Grupo</TableHead>
-                {isMasterView && <TableHead>Cliente</TableHead>}
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>{t('targets.table.cols.name')}</TableHead>
+                <TableHead>{t('targets.table.cols.email')}</TableHead>
+                <TableHead>{t('targets.table.cols.department')}</TableHead>
+                <TableHead>{t('targets.table.cols.position')}</TableHead>
+                <TableHead>{t('targets.table.cols.group')}</TableHead>
+                {isMasterView && <TableHead>{t('targets.table.cols.tenant')}</TableHead>}
+                <TableHead>{t('targets.table.cols.status')}</TableHead>
+                <TableHead className="text-right">{t('targets.table.cols.actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -764,7 +764,7 @@ export function Targets() {
                         variant="outline"
                         className="bg-green-50 text-green-700 border-green-200"
                       >
-                        Ativo
+                        {t('targets.status.active')}
                       </Badge>
                     )}
                     {target.status === 'bounced' && (
@@ -772,7 +772,7 @@ export function Targets() {
                         variant="outline"
                         className="bg-orange-50 text-orange-700 border-orange-200"
                       >
-                        Bounced
+                        {t('targets.status.bounced')}
                       </Badge>
                     )}
                     {target.status === 'opted_out' && (
@@ -780,7 +780,7 @@ export function Targets() {
                         variant="outline"
                         className="bg-red-50 text-red-700 border-red-200"
                       >
-                        Opted Out
+                        {t('targets.status.optedOut')}
                       </Badge>
                     )}
                   </TableCell>
@@ -792,15 +792,15 @@ export function Targets() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t('targets.table.cols.actions')}</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
                           <Edit className="w-4 h-4 mr-2" />
-                          Editar
+                          {t('targets.table.actions.edit')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <FileText className="w-4 h-4 mr-2" />
-                          Ver Histórico
+                          {t('targets.table.actions.history')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -808,7 +808,7 @@ export function Targets() {
                           onClick={() => handleDelete(target.id)}
                         >
                           <Trash2 className="w-4 h-4 mr-2" />
-                          Remover
+                          {t('targets.table.actions.remove')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -829,9 +829,9 @@ export function Targets() {
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <div>
-                <DialogTitle>Limpar Todos os Alvos</DialogTitle>
+                <DialogTitle>{t('targets.cleanupDialog.title')}</DialogTitle>
                 <DialogDescription>
-                  Esta ação não pode ser desfeita
+                  {t('targets.cleanupDialog.desc', { name: impersonatedTenant?.name })}
                 </DialogDescription>
               </div>
             </div>
@@ -883,12 +883,12 @@ export function Targets() {
               {isCleaningUp ? (
                 <>
                   <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Removendo...
+                  {t('targets.cleanupDialog.btnCleaning')}
                 </>
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Sim, Limpar Todos
+                  {t('targets.cleanupDialog.btnClean')}
                 </>
               )}
             </Button>

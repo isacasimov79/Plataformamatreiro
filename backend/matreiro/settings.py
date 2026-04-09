@@ -155,6 +155,18 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
     'http://localhost:3000,http://localhost:5173'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-tenant-id',
+]
 
 # REST Framework Settings
 REST_FRAMEWORK = {
@@ -198,6 +210,20 @@ CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max per task
+
+# Celery Beat Periodic Tasks Schedule
+CELERY_BEAT_SCHEDULE = {
+    'evaluate-automations': {
+        'task': 'campaigns.tasks.evaluate_automations',
+        'schedule': 300.0,  # Every 5 minutes
+        'options': {'queue': 'default'},
+    },
+    'sync-azure-ad-all-tenants': {
+        'task': 'campaigns.tasks.sync_all_azure_tenants',
+        'schedule': 21600.0,  # Every 6 hours
+        'options': {'queue': 'default'},
+    },
+}
 
 # API Documentation
 SPECTACULAR_SETTINGS = {

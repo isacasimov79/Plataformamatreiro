@@ -1,9 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { superadminUser, type User, type Tenant } from '../lib/mockData';
+import { type User, type Tenant } from '../lib/types';
+
+// Default superadmin user when Keycloak is offline
+const superadminUser: User = {
+  id: 'user-superadmin',
+  email: 'igor@underprotection.com.br',
+  name: 'Igor - Superadmin',
+  tenantId: null,
+  isSuperadmin: true,
+  roles: ['superadmin'],
+};
 import keycloak, { logout as keycloakLogout, login as keycloakLogin, getUserInfo, getRoles } from '../lib/keycloak';
 import { toast } from 'sonner';
 import { LoadingScreen } from '../components/LoadingScreen';
-import { getTenants } from '../lib/supabaseApi';
+import { getTenants } from '../lib/apiLocal';
 
 interface AuthContextType {
   user: User | null;
@@ -168,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (tenantId) {
       try {
         const tenants = await getTenants();
-        const tenant = tenants.find((t: any) => t.id === tenantId);
+        const tenant = tenants.find((t: any) => String(t.id) === String(tenantId));
         if (tenant) {
           setImpersonatedTenant(tenant);
           localStorage.setItem('matreiro_impersonated_tenant', JSON.stringify(tenant));

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { getTenants, getTemplates, getTargets, getCampaigns } from '../lib/supabaseApi';
+import { getTenants, getTemplates, getTargets, getCampaigns, launchCampaign, deleteCampaign } from '../lib/apiLocal';
 import { toast } from 'sonner';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -32,11 +32,15 @@ import {
   Edit,
   Trash2,
   Search,
+  Rocket,
 } from 'lucide-react';
 import { NewCampaignDialog } from '../components/NewCampaignDialog';
+import { EditCampaignDialog } from '../components/EditCampaignDialog';
+import { ViewCampaignDialog } from '../components/ViewCampaignDialog';
 import { PhishingSyslogDialog } from '../components/PhishingSyslogDialog';
 
 export function Campaigns() {
+  const { t } = useTranslation();
   const { impersonatedTenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -46,10 +50,19 @@ export function Campaigns() {
   const [targets, setTargets] = useState<any[]>([]);
   const [tenants, setTenants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modals state
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [selectedCampaignForEdit, setSelectedCampaignForEdit] = useState<any>(null);
+  const [selectedCampaignForView, setSelectedCampaignForView] = useState<any>(null);
 
   // Carregar dados do banco
   useEffect(() => {
     loadData();
+    const handler = () => loadData();
+    window.addEventListener('campaign-created', handler);
+    return () => window.removeEventListener('campaign-created', handler);
   }, []);
 
   const loadData = async () => {
@@ -75,8 +88,8 @@ export function Campaigns() {
       setTenants(tenantsData || []);
     } catch (error) {
       console.error('❌ Error loading campaigns data:', error);
-      toast.error('Erro ao carregar campanhas', {
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+      toast.error(t('campaigns.messages.loadError'), {
+        description: error instanceof Error ? error.message : t('common.unknownError'),
       });
     } finally {
       setLoading(false);
@@ -105,31 +118,31 @@ export function Campaigns() {
       case 'completed':
         return (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Concluída
+            {t('campaigns.status.completed')}
           </Badge>
         );
       case 'running':
         return (
           <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            Em execução
+            {t('campaigns.status.running')}
           </Badge>
         );
       case 'scheduled':
         return (
           <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-            Agendada
+            {t('campaigns.status.scheduled')}
           </Badge>
         );
       case 'paused':
         return (
           <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-            Pausada
+            {t('campaigns.status.paused')}
           </Badge>
         );
       case 'draft':
         return (
           <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-            Rascunho
+            {t('campaigns.status.draft')}
           </Badge>
         );
       default:
@@ -142,13 +155,13 @@ export function Campaigns() {
       case 'welcome_automation':
         return (
           <Badge variant="outline" className="text-xs">
-            Automação Boas-vindas
+            {t('campaigns.type.welcomeAutomation')}
           </Badge>
         );
       default:
         return (
           <Badge variant="outline" className="text-xs">
-            Padrão
+            {t('campaigns.type.standard')}
           </Badge>
         );
     }
@@ -160,11 +173,11 @@ export function Campaigns() {
         {/* Header com gradiente */}
         <div className="page-header">
           <div className="page-header-gradient">
-            <h1 className="page-title">Campanhas</h1>
+            <h1 className="page-title">{t('campaigns.title')}</h1>
             <p className="page-subtitle">
               {isMasterView
-                ? `${campaigns.length} campanhas em todos os clientes`
-                : `${campaigns.length} campanhas para ${impersonatedTenant?.name}`}
+                ? t('campaigns.subtitle.master', { count: campaigns.length })
+                : t('campaigns.subtitle.tenant', { count: campaigns.length, tenant: impersonatedTenant?.name })}
             </p>
           </div>
         </div>
@@ -179,7 +192,7 @@ export function Campaigns() {
           <Card className="stat-card stat-card-purple">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Total de Campanhas
+                {t('campaigns.stats.total')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -190,7 +203,7 @@ export function Campaigns() {
           <Card className="stat-card stat-card-blue">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Em Execução
+                {t('campaigns.stats.running')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -202,7 +215,7 @@ export function Campaigns() {
 
           <Card className="stat-card stat-card-orange">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Agendadas</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">{t('campaigns.stats.scheduled')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="stat-value-orange">
@@ -213,7 +226,7 @@ export function Campaigns() {
 
           <Card className="stat-card stat-card-green">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Concluídas</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-600">{t('campaigns.stats.completed')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="stat-value-green">
@@ -229,7 +242,7 @@ export function Campaigns() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
-                placeholder="Buscar campanhas..."
+                placeholder={t('campaigns.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
@@ -241,20 +254,20 @@ export function Campaigns() {
         {/* Campaigns Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Campanhas Cadastradas</CardTitle>
-            <CardDescription>Histórico e status das campanhas</CardDescription>
+            <CardTitle>{t('campaigns.table.title')}</CardTitle>
+            <CardDescription>{t('campaigns.table.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Campanha</TableHead>
-                  {!impersonatedTenant && <TableHead>Cliente</TableHead>}
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Progresso</TableHead>
-                  <TableHead>Métricas</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>{t('campaigns.table.col.campaign')}</TableHead>
+                  {!impersonatedTenant && <TableHead>{t('campaigns.table.col.client')}</TableHead>}
+                  <TableHead>{t('campaigns.table.col.type')}</TableHead>
+                  <TableHead>{t('campaigns.table.col.status')}</TableHead>
+                  <TableHead>{t('campaigns.table.col.progress')}</TableHead>
+                  <TableHead>{t('campaigns.table.col.metrics')}</TableHead>
+                  <TableHead className="text-right">{t('campaigns.table.col.actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -279,7 +292,7 @@ export function Campaigns() {
                             {campaign.name}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            Template: {template?.name || 'N/A'}
+                            Template: {template?.name || t('common.na')}
                           </div>
                           {campaign.scheduledAt && (
                             <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
@@ -291,7 +304,7 @@ export function Campaigns() {
                       </TableCell>
                       {!impersonatedTenant && (
                         <TableCell>
-                          <span className="text-sm text-gray-600">{tenant?.name || 'N/A'}</span>
+                          <span className="text-sm text-gray-600">{tenant?.name || t('common.na')}</span>
                         </TableCell>
                       )}
                       <TableCell>{getTypeBadge(campaign.type)}</TableCell>
@@ -299,7 +312,7 @@ export function Campaigns() {
                       <TableCell>
                         <div className="w-32">
                           <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="text-gray-500">Aberturas</span>
+                            <span className="text-gray-500">{t('campaigns.progress.openings')}</span>
                             <span className="font-medium">{progressValue.toFixed(0)}%</span>
                           </div>
                           <Progress value={progressValue} className="h-2" />
@@ -308,19 +321,19 @@ export function Campaigns() {
                       <TableCell>
                         <div className="space-y-1 text-xs">
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-500">Enviados:</span>
+                            <span className="text-gray-500">{t('campaigns.metrics.sent')}</span>
                             <span className="font-medium">{campaign.stats.sent}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-500">Abertos:</span>
+                            <span className="text-gray-500">{t('campaigns.metrics.opened')}</span>
                             <span className="font-medium">{campaign.stats.opened}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-gray-500">Cliques:</span>
+                            <span className="text-gray-500">{t('campaigns.metrics.clicked')}</span>
                             <span className="font-medium">{campaign.stats.clicked}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-red-600">Comprometidos:</span>
+                            <span className="text-red-600">{t('campaigns.metrics.compromised')}</span>
                             <span className="font-bold text-red-600">
                               {campaign.stats.submitted} ({phishedRate}%)
                             </span>
@@ -333,15 +346,36 @@ export function Campaigns() {
                             campaignId={campaign.id}
                             campaignName={campaign.name}
                           />
+                          {/* Launch button */}
+                          {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              title={t('campaigns.actions.launch', 'Lançar Campanha')}
+                              onClick={async () => {
+                                if (!confirm(t('campaigns.messages.confirmLaunch', `Deseja lançar "${campaign.name}"? E-mails serão enviados.`))) return;
+                                try {
+                                  await launchCampaign(campaign.id);
+                                  toast.success(t('campaigns.messages.launched', 'Campanha lançada!'));
+                                  loadData();
+                                } catch (error) {
+                                  console.error('Launch error:', error);
+                                  toast.error(t('campaigns.messages.launchError', 'Erro ao lançar'));
+                                }
+                              }}
+                            >
+                              <Rocket className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Ver relatório"
-                            onClick={() =>
-                              toast.info(`Relatório da campanha "${campaign.name}"`, {
-                                description: 'Funcionalidade em desenvolvimento',
-                              })
-                            }
+                            title={t('campaigns.actions.viewReport')}
+                            onClick={() => {
+                              setSelectedCampaignForView(campaign);
+                              setViewDialogOpen(true);
+                            }}
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
@@ -349,9 +383,9 @@ export function Campaigns() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Pausar campanha"
+                              title={t('campaigns.actions.pause')}
                               onClick={() =>
-                                toast.success(`Campanha "${campaign.name}" pausada`)
+                                toast.success(t('campaigns.messages.paused', { name: campaign.name }))
                               }
                             >
                               <Pause className="w-4 h-4" />
@@ -361,9 +395,9 @@ export function Campaigns() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              title="Retomar campanha"
+                              title={t('campaigns.actions.resume')}
                               onClick={() =>
-                                toast.success(`Campanha "${campaign.name}" retomada`)
+                                toast.success(t('campaigns.messages.resumed', { name: campaign.name }))
                               }
                             >
                               <Play className="w-4 h-4" />
@@ -372,12 +406,11 @@ export function Campaigns() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Editar"
-                            onClick={() =>
-                              toast.info(`Editando "${campaign.name}"`, {
-                                description: 'Funcionalidade em desenvolvimento',
-                              })
-                            }
+                            title={t('campaigns.actions.edit')}
+                            onClick={() => {
+                              setSelectedCampaignForEdit(campaign);
+                              setEditDialogOpen(true);
+                            }}
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
@@ -385,12 +418,18 @@ export function Campaigns() {
                             variant="ghost"
                             size="sm"
                             className="text-red-600"
-                            title="Excluir"
-                            onClick={() =>
-                              toast.error(`Campanha "${campaign.name}" removida`, {
-                                description: 'Esta é uma simulação. Nada foi excluído.',
-                              })
-                            }
+                            title={t('campaigns.actions.delete')}
+                            onClick={async () => {
+                              if (confirm(t('campaigns.messages.deleted', { name: campaign.name }))) {
+                                try {
+                                  await deleteCampaign(String(campaign.id));
+                                  toast.success(t('campaigns.messages.deleted', { name: campaign.name }));
+                                  loadData();
+                                } catch (error) {
+                                  toast.error('Erro ao deletar campanha');
+                                }
+                              }
+                            }}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -404,6 +443,25 @@ export function Campaigns() {
           </CardContent>
         </Card>
       </div>
+
+      {selectedCampaignForView && (
+        <ViewCampaignDialog
+          campaign={selectedCampaignForView}
+          open={viewDialogOpen}
+          onOpenChange={setViewDialogOpen}
+        />
+      )}
+
+      {selectedCampaignForEdit && (
+        <EditCampaignDialog
+          campaign={selectedCampaignForEdit}
+          isOpen={editDialogOpen}
+          onClose={() => {
+            setEditDialogOpen(false);
+            loadData();
+          }}
+        />
+      )}
     </div>
   );
 }

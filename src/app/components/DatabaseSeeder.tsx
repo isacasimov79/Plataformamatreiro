@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { toast } from 'sonner';
-import { seedDatabase, getTenants } from '../lib/supabaseApi';
+import { seedDatabase, getTenants } from '../lib/apiLocal';
 import { Database, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 export function DatabaseSeeder() {

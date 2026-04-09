@@ -223,6 +223,16 @@
     color: var(--color-primary-blue);
   }
 
+  /* Allow headings inside containers with text-white to inherit */
+  .text-white h1, .text-white h2, .text-white h3,
+  .text-white h4, .text-white h5, .text-white h6,
+  [data-slot="card-header"].text-white h1,
+  [data-slot="card-header"].text-white h2,
+  [data-slot="card-header"].text-white h3,
+  [data-slot="card-header"].text-white h4 {
+    color: inherit;
+  }
+
   .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
     color: var(--foreground);
   }
@@ -236,6 +246,37 @@
     font-family: 'Montserrat', Arial, sans-serif;
     font-weight: var(--font-weight-light);
     color: var(--color-neutral-graphite);
+  }
+
+  /* Allow p/span inside containers with text-white to inherit */
+  .text-white p, .text-white span {
+    color: inherit;
+  }
+
+  /* Sidebar text must ALWAYS remain light — force override global p/span color rules */
+  [data-sidebar] span,
+  [data-sidebar] a span,
+  [data-sidebar] button span {
+    color: #b0b1d0 !important;
+  }
+
+  [data-sidebar] a.font-medium span,
+  [data-sidebar] a[class*="text-[#e0c7e6]"] span {
+    color: #e0c7e6 !important;
+  }
+
+  [data-sidebar] h3 {
+    color: #7C7EAA !important;
+  }
+
+  [data-sidebar] p {
+    color: #b0b1d0 !important;
+  }
+
+  /* Sidebar user info area - force white text */
+  [data-sidebar] .text-white,
+  [data-sidebar] .text-sm.font-semibold {
+    color: #ffffff !important;
   }
 
   .dark p, .dark span {
@@ -387,7 +428,7 @@
 
   .dark .card,
   .dark .content-card,
-  [class*="card"] {
+  .dark [class*="card"] {
     background-color: #1A1A35;
     border-color: #3a3a5e;
   }

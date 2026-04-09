@@ -42,13 +42,14 @@ import {
   Download,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
-import { getCampaigns } from '../lib/supabaseApi';
+import { getCampaigns } from '../lib/apiLocal';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 import { format } from 'date-fns';
 
 export function Reports() {
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   
   // Estados para dados do banco
@@ -67,7 +68,7 @@ export function Reports() {
       setCampaigns(campaignsData);
     } catch (error) {
       console.error('Error loading reports data:', error);
-      toast.error('Erro ao carregar dados de relatórios');
+      toast.error(t('reports.errorLoadingData'));
     } finally {
       setLoading(false);
     }
@@ -81,10 +82,10 @@ export function Reports() {
     try {
       const element = document.getElementById('reports-content');
       if (!element) {
-        throw new Error('Conteúdo do relatório não encontrado');
+        throw new Error(t('reports.errorElementNotFound'));
       }
 
-      toast.loading('Gerando PDF...', { id: 'pdf-export' });
+      toast.loading(t('reports.generatingPdf'), { id: 'pdf-export' });
 
       // Use html2canvas with options to handle modern CSS
       const canvas = await html2canvas(element, {
@@ -188,12 +189,12 @@ export function Reports() {
 
       // Adicionar logo e header
       pdf.setFontSize(20);
-      pdf.text('Relatório de Campanhas - Matreiro', 10, 15);
+      pdf.text(t('reports.pdfTitle'), 10, 15);
       pdf.setFontSize(10);
-      pdf.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 10, 22);
+      pdf.text(`${t('reports.pdfGeneratedAt')}: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 10, 22);
       
       if (impersonatedTenant) {
-        pdf.text(`Cliente: ${impersonatedTenant.name}`, 10, 27);
+        pdf.text(`${t('reports.pdfClient')}: ${impersonatedTenant.name}`, 10, 27);
       }
 
       position = 35;
@@ -210,17 +211,17 @@ export function Reports() {
         heightLeft -= pageHeight;
       }
 
-      pdf.save(`relatorio-matreiro-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+      pdf.save(`relatorio-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
       
-      toast.success('PDF exportado com sucesso!', { 
+      toast.success(t('reports.pdfExportSuccess'), { 
         id: 'pdf-export',
-        description: 'O relatório foi baixado para seu computador',
+        description: t('reports.pdfExportSuccessDesc'),
       });
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      toast.error('Erro ao exportar PDF', {
+      toast.error(t('reports.pdfExportError'), {
         id: 'pdf-export',
-        description: error instanceof Error ? error.message : 'Tente novamente ou entre em contato com o suporte',
+        description: error instanceof Error ? error.message : t('reports.pdfExportErrorDesc'),
       });
     }
   };
@@ -260,9 +261,9 @@ export function Reports() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Relatórios e Analytics</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{t('reports.title')}</h1>
             <p className="text-gray-500 mt-1">
-              Análise detalhada das campanhas e métricas de segurança
+              {t('reports.subtitle')}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -271,15 +272,15 @@ export function Reports() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="last-7-days">Últimos 7 dias</SelectItem>
-                <SelectItem value="last-30-days">Últimos 30 dias</SelectItem>
-                <SelectItem value="last-90-days">Últimos 90 dias</SelectItem>
-                <SelectItem value="this-year">Este ano</SelectItem>
+                <SelectItem value="last-7-days">{t('reports.timeFilters.last7Days')}</SelectItem>
+                <SelectItem value="last-30-days">{t('reports.timeFilters.last30Days')}</SelectItem>
+                <SelectItem value="last-90-days">{t('reports.timeFilters.last90Days')}</SelectItem>
+                <SelectItem value="this-year">{t('reports.timeFilters.thisYear')}</SelectItem>
               </SelectContent>
             </Select>
             <Button onClick={handleExportPDF}>
               <Download className="w-4 h-4 mr-2" />
-              Exportar PDF
+              {t('reports.btnExportPdf')}
             </Button>
           </div>
         </div>
@@ -291,7 +292,7 @@ export function Reports() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Taxa de Abertura
+                {t('reports.kpis.openRate')}
               </CardTitle>
               <Mail className="w-4 h-4 text-gray-500" />
             </div>
@@ -300,7 +301,7 @@ export function Reports() {
             <div className="text-2xl font-bold">82.3%</div>
             <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
               <TrendingUp className="w-3 h-3" />
-              <span>+5.2% vs mês anterior</span>
+              <span>{t('reports.kpis.vsLastMonth', { count: '+5.2%' })}</span>
             </div>
           </CardContent>
         </Card>
@@ -309,7 +310,7 @@ export function Reports() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Taxa de Cliques
+                {t('reports.kpis.clickRate')}
               </CardTitle>
               <MousePointer className="w-4 h-4 text-gray-500" />
             </div>
@@ -318,7 +319,7 @@ export function Reports() {
             <div className="text-2xl font-bold">34.6%</div>
             <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
               <TrendingUp className="w-3 h-3" />
-              <span>+2.1% vs mês anterior</span>
+              <span>{t('reports.kpis.vsLastMonth', { count: '+2.1%' })}</span>
             </div>
           </CardContent>
         </Card>
@@ -327,7 +328,7 @@ export function Reports() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Taxa de Comprometimento
+                {t('reports.kpis.compromiseRate')}
               </CardTitle>
               <AlertTriangle className="w-4 h-4 text-gray-500" />
             </div>
@@ -336,7 +337,7 @@ export function Reports() {
             <div className="text-2xl font-bold text-red-600">9.8%</div>
             <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
               <TrendingDown className="w-3 h-3" />
-              <span>-1.5% vs mês anterior</span>
+              <span>{t('reports.kpis.vsLastMonth', { count: '-1.5%' })}</span>
             </div>
           </CardContent>
         </Card>
@@ -345,7 +346,7 @@ export function Reports() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium text-gray-600">
-                Colaboradores Avaliados
+                {t('reports.kpis.evaluatedUsers')}
               </CardTitle>
               <Users className="w-4 h-4 text-gray-500" />
             </div>
@@ -353,7 +354,7 @@ export function Reports() {
           <CardContent>
             <div className="text-2xl font-bold">1,350</div>
             <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-              <span>100% da base ativa</span>
+              <span>{t('reports.kpis.activeBase', { percent: '100%' })}</span>
             </div>
           </CardContent>
         </Card>
@@ -362,10 +363,10 @@ export function Reports() {
       {/* Tabs de Relatórios */}
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="departments">Por Departamento</TabsTrigger>
-          <TabsTrigger value="vulnerable">Usuários Vulneráveis</TabsTrigger>
-          <TabsTrigger value="timeline">Linha do Tempo</TabsTrigger>
+          <TabsTrigger value="overview">{t('reports.tabs.overview')}</TabsTrigger>
+          <TabsTrigger value="departments">{t('reports.tabs.departments')}</TabsTrigger>
+          <TabsTrigger value="vulnerable">{t('reports.tabs.vulnerable')}</TabsTrigger>
+          <TabsTrigger value="timeline">{t('reports.tabs.timeline')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -373,8 +374,8 @@ export function Reports() {
             {/* Evolução Temporal */}
             <Card>
               <CardHeader>
-                <CardTitle>Evolução das Métricas</CardTitle>
-                <CardDescription>Últimos 3 meses</CardDescription>
+                <CardTitle>{t('reports.charts.evolution.title')}</CardTitle>
+                <CardDescription>{t('reports.charts.evolution.desc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300} minHeight={300}>
@@ -416,8 +417,8 @@ export function Reports() {
             {/* Distribuição de Risco */}
             <Card>
               <CardHeader>
-                <CardTitle>Distribuição de Risco</CardTitle>
-                <CardDescription>Classificação dos colaboradores</CardDescription>
+                <CardTitle>{t('reports.charts.risk.title')}</CardTitle>
+                <CardDescription>{t('reports.charts.risk.desc')}</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-center">
                 <ResponsiveContainer width="100%" height={300} minHeight={300}>
@@ -449,8 +450,8 @@ export function Reports() {
         <TabsContent value="departments" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Análise por Departamento</CardTitle>
-              <CardDescription>Taxa de comprometimento por área</CardDescription>
+              <CardTitle>{t('reports.charts.department.title')}</CardTitle>
+              <CardDescription>{t('reports.charts.department.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400} minHeight={400}>
@@ -460,8 +461,8 @@ export function Reports() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="total" fill="#3b82f6" name="Total de Colaboradores" />
-                  <Bar dataKey="comprometidos" fill="#ef4444" name="Comprometidos" />
+                  <Bar dataKey="total" fill="#3b82f6" name={t('reports.charts.department.legendTotal')} />
+                  <Bar dataKey="comprometidos" fill="#ef4444" name={t('reports.charts.department.legendComp')} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -471,9 +472,9 @@ export function Reports() {
         <TabsContent value="vulnerable" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Usuários Mais Vulneráveis</CardTitle>
+              <CardTitle>{t('reports.charts.vulnerable.title')}</CardTitle>
               <CardDescription>
-                Colaboradores que caíram em múltiplas simulações
+                {t('reports.charts.vulnerable.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -493,9 +494,9 @@ export function Reports() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Badge variant="destructive">{user.incidents} incidentes</Badge>
+                      <Badge variant="destructive">{t('reports.charts.vulnerable.incidents', { count: user.incidents })}</Badge>
                       <Button variant="outline" size="sm">
-                        Ver detalhes
+                        {t('reports.buttons.viewDetails')}
                       </Button>
                     </div>
                   </div>
@@ -508,8 +509,8 @@ export function Reports() {
         <TabsContent value="timeline" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Linha do Tempo de Campanhas</CardTitle>
-              <CardDescription>Histórico detalhado de execuções</CardDescription>
+              <CardTitle>{t('reports.charts.timelineList.title')}</CardTitle>
+              <CardDescription>{t('reports.charts.timelineList.desc')}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -526,13 +527,13 @@ export function Reports() {
                       <div>
                         <div className="font-medium">{campaign.name}</div>
                         <div className="text-sm text-gray-500 mt-1">
-                          {campaign.stats.sent} enviados • {campaign.stats.opened} abertos •{' '}
-                          {campaign.stats.clicked} cliques
+                          {campaign.stats.sent} {t('reports.campaignStats.sent')} • {campaign.stats.opened} {t('reports.campaignStats.opened')} •{' '}
+                          {campaign.stats.clicked} {t('reports.campaignStats.clicked')}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-red-600">{phishedRate}%</div>
-                        <div className="text-xs text-gray-500">comprometidos</div>
+                        <div className="text-xs text-gray-500">{t('reports.campaignStats.compromised')}</div>
                       </div>
                     </div>
                   );

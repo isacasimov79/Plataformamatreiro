@@ -79,12 +79,31 @@ class ImpersonateSerializer(serializers.Serializer):
 class AuditLogSerializer(serializers.ModelSerializer):
     """Serializer for Audit Log."""
     
-    user_email = serializers.CharField(source='user.email', read_only=True)
+    userName = serializers.SerializerMethodField()
+    userEmail = serializers.CharField(source='user.email', read_only=True, default='')
+    category = serializers.CharField(source='resource_type', read_only=True)
+    status = serializers.SerializerMethodField()
+    ipAddress = serializers.CharField(source='ip_address', read_only=True, default='')
     
     class Meta:
         model = AuditLog
         fields = [
-            'id', 'user', 'user_email', 'action', 'resource_type', 
-            'resource_id', 'details', 'ip_address', 'user_agent', 'timestamp'
+            'id', 'userName', 'userEmail', 'action', 'category', 'resource_type',
+            'resource_id', 'details', 'ipAddress', 'ip_address', 'user_agent',
+            'status', 'timestamp'
         ]
         read_only_fields = fields
+    
+    def get_userName(self, obj):
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.email
+        return 'Sistema'
+    
+    def get_status(self, obj):
+        """Derive status from details or action."""
+        if isinstance(obj.details, dict):
+            if obj.details.get('error'):
+                return 'failure'
+            if obj.details.get('warning'):
+                return 'warning'
+        return 'success'

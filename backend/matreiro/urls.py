@@ -8,6 +8,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.db.models import F
+
+# Extended views (analytics, gamification, AI, template library)
+from .views_extended import (
+    analytics_metrics, analytics_timeseries, analytics_departments,
+    gamification_user_stats, gamification_rankings,
+    ai_providers_list, ai_providers_config, ai_test_provider, ai_generate_template, ai_analyze_template,
+    template_library_list, template_library_clone,
+    seed_database_enhanced,
+)
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -22,7 +31,8 @@ from campaigns.models_domains import PhishingDomain
 from templates.models import EmailTemplate
 from templates.serializers import EmailTemplateSerializer
 from tenants.models import Tenant
-from tenants.serializers import TenantSerializer
+from tenants.serializers import TenantSerializer, TenantSettingsSerializer
+from tenants.models_settings import TenantSettings
 from trainings.models import Training, TrainingEnrollment
 from trainings.serializers import TrainingSerializer
 from trainings.models_certificate import Certificate
@@ -93,7 +103,7 @@ def auth_callback(request):
 # GENERIC CRUD HELPERS
 # =====================================================
 def make_list_create_view(model_class, serializer_class, filter_tenant=True):
-    """Factory for list+create views."""
+    """Factory for list+create views. No hard pagination limit."""
     @api_view(['GET', 'POST'])
     @permission_classes([AllowAny])
     def view(request):
@@ -101,7 +111,11 @@ def make_list_create_view(model_class, serializer_class, filter_tenant=True):
             qs = model_class.objects.all()
             if filter_tenant and hasattr(model_class, 'tenant') and hasattr(request, 'tenant') and request.tenant:
                 qs = qs.filter(tenant=request.tenant)
-            serializer = serializer_class(qs[:200], many=True)
+            # Support ?tenant_id= filter from master view
+            tenant_id = request.query_params.get('tenant_id')
+            if tenant_id and hasattr(model_class, 'tenant'):
+                qs = qs.filter(tenant_id=tenant_id)
+            serializer = serializer_class(qs, many=True)
             return Response(serializer.data)
         else:
             data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
@@ -111,6 +125,7 @@ def make_list_create_view(model_class, serializer_class, filter_tenant=True):
             if serializer.is_valid():
                 serializer.save()
                 return Response(serializer.data, status=201)
+            logger.error(f"Create {model_class.__name__} errors: {serializer.errors}")
             return Response(serializer.errors, status=400)
     return view
 
@@ -211,13 +226,29 @@ target_group_detail = make_detail_view(TargetGroup, TargetGroupSerializer)
 @api_view(['DELETE'])
 @permission_classes([AllowAny])
 def targets_delete_by_tenant(request, tenant_id):
+    """Delete all targets for a specific tenant."""
     count, _ = Target.objects.filter(tenant_id=tenant_id).delete()
     return Response({"success": True, "deletedCount": count, "tenantId": str(tenant_id)})
+
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def targets_delete_all(request):
+    """Delete ALL targets (master-only)."""
+    count, _ = Target.objects.all().delete()
+    return Response({"success": True, "deletedCount": count})
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def targets_sync(request):
-    return Response({"status": "synced", "targets": 0})
+    """Manual sync trigger - re-fetches from Azure AD."""
+    tenant_id = request.data.get('tenantId') or request.data.get('tenant_id')
+    if tenant_id:
+        from campaigns.tasks import sync_azure_ad
+        sync_azure_ad.delay(int(tenant_id))
+        return Response({"status": "sync_started", "tenantId": tenant_id})
+    return Response({"status": "no_tenant", "targets": 0})
 
 
 # =====================================================
@@ -232,6 +263,28 @@ template_detail = make_detail_view(EmailTemplate, EmailTemplateSerializer)
 # =====================================================
 tenants_list = make_list_create_view(Tenant, TenantSerializer, filter_tenant=False)
 tenant_detail = make_detail_view(Tenant, TenantSerializer)
+
+
+@api_view(['GET', 'PUT'])
+def tenant_settings_detail(request, tenant_id):
+    """Get or update TenantSettings for a specific tenant."""
+    try:
+        tenant = Tenant.objects.get(id=tenant_id)
+    except Tenant.DoesNotExist:
+        return Response({'error': 'Tenant not found'}, status=404)
+    
+    ts, _ = TenantSettings.objects.get_or_create(tenant=tenant)
+    
+    if request.method == 'GET':
+        serializer = TenantSettingsSerializer(ts)
+        return Response(serializer.data)
+    
+    elif request.method == 'PUT':
+        serializer = TenantSettingsSerializer(ts, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
 # =====================================================
@@ -332,7 +385,11 @@ def notifications_read_all(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def audit_logs(request):
-    logs = AuditLog.objects.select_related('user').order_by('-timestamp')[:200]
+    action = request.query_params.get('action')
+    qs = AuditLog.objects.select_related('user')
+    if action:
+        qs = qs.filter(action=action)
+    logs = qs.order_by('-timestamp')[:200]
     return Response(AuditLogSerializer(logs, many=True).data)
 
 
@@ -562,6 +619,7 @@ def azure_sync_users(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def azure_sync_groups(request):
+    """Sync groups from Azure AD AND assign members to groups."""
     from .microsoft_graph import MicrosoftGraphClient, validate_credentials
     tid = request.data.get('tenantId')
     cid = request.data.get('clientId')
@@ -580,14 +638,41 @@ def azure_sync_groups(request):
         if target_tid and target_tid != 'default':
             try: target_tenant = Tenant.objects.get(id=target_tid)
             except Tenant.DoesNotExist: pass
+        if not target_tenant:
+            target_tenant = Tenant.objects.first()
         saved = 0
+        members_added = 0
         for g in groups:
             name = g.get('name', '')
-            if not TargetGroup.objects.filter(name=name).exists():
-                TargetGroup.objects.create(name=name, description=g.get('description', ''), tenant=target_tenant)
+            if not name:
+                continue
+            tg, created = TargetGroup.objects.update_or_create(
+                name=name, tenant=target_tenant,
+                defaults={
+                    'description': g.get('description', '') or '',
+                    'sync_enabled': True,
+                    'sync_source': 'azure_ad',
+                }
+            )
+            if created:
                 saved += 1
-        return Response({"success": True, "synced": saved, "totalFound": len(groups), "groups": groups})
+            # Fetch group members from Azure AD
+            group_members = client.get_group_members(g.get('id', ''))
+            if group_members and group_members.get('members'):
+                for member in group_members['members']:
+                    member_email = member.get('email', '')
+                    if member_email:
+                        # Find matching target and add to group
+                        targets_in_db = Target.objects.filter(email=member_email, tenant=target_tenant)
+                        for t in targets_in_db:
+                            tg.targets.add(t)
+                            members_added += 1
+        return Response({
+            "success": True, "synced": saved, "totalFound": len(groups),
+            "membersAdded": members_added, "groups": groups
+        })
     except Exception as e:
+        logger.error(f"Azure sync groups error: {e}")
         return Response({"success": False, "error": str(e)}, status=500)
 
 
@@ -697,6 +782,7 @@ urlpatterns = [
     # Tenants
     path('api/v1/tenants/', tenants_list),
     path('api/v1/tenants/<int:pk>/', tenant_detail),
+    path('api/v1/tenants/<int:tenant_id>/settings/', tenant_settings_detail),
     path('api/v1/clients/', tenants_list),
     path('api/v2/tenants/', tenants_list),
     path('api/v2/tenants/<int:pk>/', tenant_detail),
@@ -717,6 +803,7 @@ urlpatterns = [
     path('api/v1/targets/', targets_list),
     path('api/v1/targets/<int:pk>/', target_detail),
     path('api/v1/targets/sync', targets_sync),
+    path('api/v1/targets/delete-all/', targets_delete_all),
     path('api/v1/targets/tenant/<int:tenant_id>/', targets_delete_by_tenant),
     path('api/v1/target-groups/', target_groups_list),
     path('api/v1/target-groups/<int:pk>/', target_group_detail),
@@ -802,6 +889,29 @@ urlpatterns = [
 
     # Phishing Config
     path('api/v1/phishing/config', phishing_config),
+
+    # Analytics (Advanced)
+    path('api/v1/analytics/metrics', analytics_metrics),
+    path('api/v1/analytics/timeseries', analytics_timeseries),
+    path('api/v1/analytics/departments', analytics_departments),
+
+    # Gamification
+    path('api/v1/gamification/user-stats', gamification_user_stats),
+    path('api/v1/gamification/rankings', gamification_rankings),
+
+    # AI Template Generator
+    path('api/v1/ai/providers', ai_providers_list),
+    path('api/v1/ai/providers/config', ai_providers_config),
+    path('api/v1/ai/providers/test', ai_test_provider),
+    path('api/v1/ai/generate-template', ai_generate_template),
+    path('api/v1/ai/analyze-template', ai_analyze_template),
+
+    # Template Library
+    path('api/v1/template-library/', template_library_list),
+    path('api/v1/template-library/<int:template_id>/clone', template_library_clone),
+
+    # Enhanced Seed
+    path('api/v1/seed/enhanced/', seed_database_enhanced),
 
     # Tracking
     path('api/v1/track/', include(track_urls)),

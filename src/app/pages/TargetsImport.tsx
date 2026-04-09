@@ -57,14 +57,14 @@ export default function TargetsImport() {
         !selectedFile.name.endsWith('.csv') && 
         !selectedFile.name.endsWith('.xlsx') &&
         !selectedFile.name.endsWith('.xls')) {
-      toast.error('Formato de arquivo inválido', {
-        description: 'Por favor, selecione um arquivo CSV ou Excel (.xlsx, .xls)',
+      toast.error(t('targetsImport.messages.invalidFormat'), {
+        description: t('targetsImport.messages.invalidFormatDesc'),
       });
       return;
     }
 
     setFile(selectedFile);
-    toast.success('Arquivo selecionado', {
+    toast.success(t('targetsImport.messages.fileSelected'), {
       description: `${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`,
     });
   };
@@ -133,7 +133,7 @@ export default function TargetsImport() {
 
   const handleProcess = async () => {
     if (!file) {
-      toast.error('Nenhum arquivo selecionado');
+      toast.error(t('targetsImport.messages.noFile'));
       return;
     }
 
@@ -161,11 +161,11 @@ export default function TargetsImport() {
       };
       setStats(stats);
 
-      toast.success('Arquivo processado com sucesso', {
-        description: `${stats.valid} registros válidos encontrados`,
+      toast.success(t('targetsImport.messages.processSuccess'), {
+        description: t('targetsImport.messages.processSuccessDesc', { count: stats.valid }),
       });
     } catch (error) {
-      toast.error('Erro ao processar arquivo', {
+      toast.error(t('targetsImport.messages.processError'), {
         description: error instanceof Error ? error.message : 'Erro desconhecido',
       });
     } finally {
@@ -180,13 +180,13 @@ export default function TargetsImport() {
     const validTargets = importedData.filter(t => t.status !== 'error');
     
     if (validTargets.length === 0) {
-      toast.error('Nenhum registro válido para importar');
+      toast.error(t('targetsImport.messages.noValidRecords'));
       return;
     }
 
     // Simular importação
-    toast.success('Importação concluída!', {
-      description: `${validTargets.length} alvos importados com sucesso`,
+    toast.success(t('targetsImport.messages.importSuccess'), {
+      description: t('targetsImport.messages.importSuccessDesc', { count: validTargets.length }),
     });
 
     // Reset
@@ -204,7 +204,7 @@ export default function TargetsImport() {
     link.download = 'template_importacao_alvos.csv';
     link.click();
     
-    toast.success('Template baixado com sucesso');
+    toast.success(t('targetsImport.messages.templateDownloaded'));
   };
 
   const handleMicrosoftSync = () => {
@@ -234,7 +234,7 @@ export default function TargetsImport() {
         </div>
         <Button variant="outline" onClick={downloadTemplate}>
           <Download className="w-4 h-4 mr-2" />
-          Baixar Template
+          {t('targetsImport.btnDownloadTemplate')}
         </Button>
       </div>
 
@@ -243,15 +243,15 @@ export default function TargetsImport() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="file" className="flex items-center gap-2">
             <FileSpreadsheet className="w-4 h-4" />
-            Arquivo CSV/Excel
+            {t('targetsImport.tabs.file')}
           </TabsTrigger>
           <TabsTrigger value="microsoft" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Microsoft 365
+            {t('targetsImport.tabs.microsoft')}
           </TabsTrigger>
           <TabsTrigger value="google" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
-            Google Workspace
+            {t('targetsImport.tabs.google')}
           </TabsTrigger>
         </TabsList>
 
@@ -260,9 +260,9 @@ export default function TargetsImport() {
           {!stats ? (
             <Card>
               <CardHeader>
-                <CardTitle>Upload de Arquivo</CardTitle>
+                <CardTitle>{t('targetsImport.file.uploadTitle')}</CardTitle>
                 <CardDescription>
-                  Faça upload de um arquivo CSV ou Excel (.xlsx, .xls) com os dados dos alvos
+                  {t('targetsImport.file.uploadDesc')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -284,10 +284,10 @@ export default function TargetsImport() {
                     <label htmlFor="file-upload" className="cursor-pointer">
                       <FileSpreadsheet className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                       <p className="text-lg font-medium mb-2">
-                        Clique para selecionar ou arraste o arquivo aqui
+                        {t('targetsImport.file.dropArea')}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Formatos aceitos: CSV, XLSX, XLS
+                        {t('targetsImport.file.dropHint')}
                       </p>
                     </label>
                   ) : (
@@ -306,7 +306,7 @@ export default function TargetsImport() {
                           setImportedData([]);
                         }}
                       >
-                        Remover arquivo
+                        {t('targetsImport.file.removeFile')}
                       </Button>
                     </div>
                   )}
@@ -315,14 +315,14 @@ export default function TargetsImport() {
                 {/* Format Guide */}
                 <Alert>
                   <AlertCircle className="w-4 h-4" />
-                  <AlertTitle>Formato do Arquivo</AlertTitle>
+                  <AlertTitle>{t('targetsImport.file.guideTitle')}</AlertTitle>
                   <AlertDescription>
-                    <p className="mb-2">O arquivo deve conter as seguintes colunas:</p>
+                    <p className="mb-2">{t('targetsImport.file.guideDesc')}</p>
                     <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li><strong>email</strong> (obrigatório) - Endereço de e-mail do alvo</li>
-                      <li><strong>name</strong> (opcional) - Nome completo</li>
-                      <li><strong>department</strong> (opcional) - Departamento</li>
-                      <li><strong>position</strong> (opcional) - Cargo/Função</li>
+                      <li><strong>email</strong> {t('targetsImport.file.colEmail')}</li>
+                      <li><strong>name</strong> {t('targetsImport.file.colName')}</li>
+                      <li><strong>department</strong> {t('targetsImport.file.colDept')}</li>
+                      <li><strong>position</strong> {t('targetsImport.file.colPos')}</li>
                     </ul>
                   </AlertDescription>
                 </Alert>
@@ -331,7 +331,7 @@ export default function TargetsImport() {
                 {isProcessing && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span>Processando arquivo...</span>
+                      <span>{t('targetsImport.file.processing')}</span>
                       <span>{processingProgress}%</span>
                     </div>
                     <Progress value={processingProgress} />
@@ -342,7 +342,7 @@ export default function TargetsImport() {
                 {file && !isProcessing && (
                   <Button onClick={handleProcess} className="w-full" size="lg">
                     <ArrowRight className="w-4 h-4 mr-2" />
-                    Processar Arquivo
+                    {t('targetsImport.file.btnProcess')}
                   </Button>
                 )}
               </CardContent>
@@ -355,7 +355,7 @@ export default function TargetsImport() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-3xl font-bold">{stats.total}</p>
-                      <p className="text-sm text-muted-foreground">Total</p>
+                      <p className="text-sm text-muted-foreground">{t('targetsImport.stats.total')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -363,7 +363,7 @@ export default function TargetsImport() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-green-500">{stats.valid}</p>
-                      <p className="text-sm text-muted-foreground">Válidos</p>
+                      <p className="text-sm text-muted-foreground">{t('targetsImport.stats.valid')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -371,7 +371,7 @@ export default function TargetsImport() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-yellow-500">{stats.warnings}</p>
-                      <p className="text-sm text-muted-foreground">Avisos</p>
+                      <p className="text-sm text-muted-foreground">{t('targetsImport.stats.warnings')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -379,7 +379,7 @@ export default function TargetsImport() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-red-500">{stats.errors}</p>
-                      <p className="text-sm text-muted-foreground">Erros</p>
+                      <p className="text-sm text-muted-foreground">{t('targetsImport.stats.errors')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -387,7 +387,7 @@ export default function TargetsImport() {
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-3xl font-bold text-orange-500">{stats.duplicates}</p>
-                      <p className="text-sm text-muted-foreground">Duplicados</p>
+                      <p className="text-sm text-muted-foreground">{t('targetsImport.stats.duplicates')}</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -396,15 +396,15 @@ export default function TargetsImport() {
               {/* Import Options */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Opções de Importação</CardTitle>
+                  <CardTitle>{t('targetsImport.options.title')}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Grupo de Destino</Label>
+                      <Label>{t('targetsImport.options.groupSelect')}</Label>
                       <Select value={selectedGroup} onValueChange={setSelectedGroup}>
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione um grupo..." />
+                          <SelectValue placeholder={t('targetsImport.options.groupSelectHolder')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">Todos os Funcionários</SelectItem>
@@ -425,7 +425,7 @@ export default function TargetsImport() {
                           htmlFor="create-group"
                           className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                         >
-                          Criar novo grupo
+                          {t('targetsImport.options.createGroup')}
                         </label>
                       </div>
                     </div>
@@ -436,9 +436,9 @@ export default function TargetsImport() {
               {/* Preview Table */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Prévia dos Dados ({importedData.length} registros)</CardTitle>
+                  <CardTitle>{t('targetsImport.preview.title')} {t('targetsImport.preview.count', { count: importedData.length })}</CardTitle>
                   <CardDescription>
-                    Revise os dados antes de importar
+                    {t('targetsImport.preview.desc')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -447,11 +447,11 @@ export default function TargetsImport() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">#</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Departamento</TableHead>
-                          <TableHead>Cargo</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>{t('targetsImport.preview.cols.email')}</TableHead>
+                          <TableHead>{t('targetsImport.preview.cols.name')}</TableHead>
+                          <TableHead>{t('targetsImport.preview.cols.dept')}</TableHead>
+                          <TableHead>{t('targetsImport.preview.cols.pos')}</TableHead>
+                          <TableHead>{t('targetsImport.preview.cols.status')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -501,7 +501,7 @@ export default function TargetsImport() {
                   }}
                   className="flex-1"
                 >
-                  Cancelar
+                  {t('targetsImport.actions.cancel')}
                 </Button>
                 <Button
                   onClick={handleImport}
@@ -510,7 +510,7 @@ export default function TargetsImport() {
                   disabled={stats.valid === 0}
                 >
                   <Upload className="w-4 h-4 mr-2" />
-                  Importar {stats.valid} Alvos
+                  {t('targetsImport.actions.btnImport', { count: stats.valid })}
                 </Button>
               </div>
             </div>
@@ -523,30 +523,29 @@ export default function TargetsImport() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Sincronização com Microsoft 365
+                {t('targetsImport.integration.titleM365')}
               </CardTitle>
               <CardDescription>
-                Importe usuários diretamente do Azure Active Directory
+                {t('targetsImport.integration.descM365')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <Alert>
                 <AlertCircle className="w-4 h-4" />
-                <AlertTitle>Funcionalidade em Desenvolvimento</AlertTitle>
+                <AlertTitle>{t('targetsImport.integration.devTitle')}</AlertTitle>
                 <AlertDescription>
-                  A integração com Microsoft 365 / Azure AD está em desenvolvimento.
-                  Em breve você poderá sincronizar alvos automaticamente.
+                  {t('targetsImport.integration.devDescM365')}
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">Status da Conexão</p>
-                    <p className="text-sm text-muted-foreground">Não conectado</p>
+                    <p className="font-medium">{t('targetsImport.integration.statusTitle')}</p>
+                    <p className="text-sm text-muted-foreground">{t('targetsImport.integration.statusNotConnected')}</p>
                   </div>
                   <Button onClick={handleMicrosoftSync}>
-                    Conectar Microsoft 365
+                    {t('targetsImport.integration.btnM365')}
                   </Button>
                 </div>
               </div>
@@ -560,30 +559,29 @@ export default function TargetsImport() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Sincronização com Google Workspace
+                {t('targetsImport.integration.titleGoogle')}
               </CardTitle>
               <CardDescription>
-                Importe usuários diretamente do Google Workspace
+                {t('targetsImport.integration.descGoogle')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <Alert>
                 <AlertCircle className="w-4 h-4" />
-                <AlertTitle>Funcionalidade em Desenvolvimento</AlertTitle>
+                <AlertTitle>{t('targetsImport.integration.devTitle')}</AlertTitle>
                 <AlertDescription>
-                  A integração com Google Workspace está em desenvolvimento.
-                  Em breve você poderá sincronizar alvos automaticamente.
+                  {t('targetsImport.integration.devDescGoogle')}
                 </AlertDescription>
               </Alert>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
-                    <p className="font-medium">Status da Conexão</p>
-                    <p className="text-sm text-muted-foreground">Não conectado</p>
+                    <p className="font-medium">{t('targetsImport.integration.statusTitle')}</p>
+                    <p className="text-sm text-muted-foreground">{t('targetsImport.integration.statusNotConnected')}</p>
                   </div>
                   <Button onClick={handleGoogleSync}>
-                    Conectar Google Workspace
+                    {t('targetsImport.integration.btnGoogle')}
                   </Button>
                 </div>
               </div>

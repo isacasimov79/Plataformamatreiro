@@ -1,27 +1,39 @@
 {
   "common": {
+    "email": "E-mail",
+    "web": "Web",
+    "actions": "Ações",
+    "view": "Visualizar",
+    "edit": "Editar",
+    "clone": "Clonar",
+    "remove": "Remover",
+    "close": "Fechar",
+    "editTemplate": "Editar Template",
+    "saveChanges": "Salvar Alterações",
+    "cancel": "Cancelar",
+    "loadError": "Erro ao carregar dados",
+    "fillRequired": "Preencha todos os campos obrigatórios",
+    "unknownError": "Erro desconhecido",
+    "na": "N/A",
+    "inDevelopment": "Funcionalidade em desenvolvimento",
+    "simulation": "Esta é uma simulação. Nada foi excluído.",
+    "creating": "Criando...",
     "welcome": "Bem-vindo",
     "loading": "Carregando...",
     "save": "Salvar",
-    "cancel": "Cancelar",
     "delete": "Excluir",
-    "edit": "Editar",
     "create": "Criar",
     "search": "Pesquisar",
     "filter": "Filtrar",
     "export": "Exportar",
     "import": "Importar",
-    "actions": "Ações",
     "status": "Status",
     "name": "Nome",
-    "email": "E-mail",
     "password": "Senha",
     "confirm": "Confirmar",
     "back": "Voltar",
     "next": "Próximo",
     "finish": "Concluir",
-    "close": "Fechar",
-    "view": "Visualizar",
     "download": "Baixar",
     "upload": "Upload",
     "yes": "Sim",
@@ -45,9 +57,25 @@
     "noResults": "Nenhum resultado encontrado",
     "all": "Todos",
     "active": "Ativo",
-    "inactive": "Inativo"
+    "inactive": "Inativo",
+    "never": "Never"
   },
   "nav": {
+    "sections": {
+      "monitoring": "Monitoramento",
+      "awareness": "Conscientização",
+      "targetManagement": "Gestão de Alvos",
+      "configuration": "Configuração"
+    },
+    "advancedAnalytics": "Analytics Avançado",
+    "templateLibrary": "Biblioteca Templates",
+    "aiGenerator": "Gerador IA",
+    "gamification": "Gamificação",
+    "admin": "Administrador",
+    "clientView": "Visão do Cliente",
+    "masterView": "Visão Master",
+    "collapseMenu": "Recolher menu",
+    "expandMenu": "Expandir menu",
     "dashboard": "Dashboard",
     "analytics": "Analytics",
     "campaigns": "Campanhas",
@@ -73,19 +101,63 @@
     "viewingAs": "Visualizando"
   },
   "dashboard": {
-    "title": "Dashboard",
-    "overview": "Visão geral de todos os clientes",
+    "title": "Visão Geral do Sistema",
+    "overview": "Visão Geral do Sistema",
     "client": "Cliente",
     "activeCampaigns": "Campanhas Ativas",
-    "totalCampaigns": "no total",
+    "totalCampaigns": "campanhas criadas",
     "emailsSent": "E-mails Enviados",
-    "last30Days": "Últimos 30 dias",
+    "last30Days": "últimos 30 dias",
     "clickRate": "Taxa de Cliques",
-    "clicks": "cliques",
+    "clicks": "clicados",
     "compromiseRate": "Taxa de Comprometimento",
-    "compromises": "comprometimentos",
+    "compromises": "comprometidos",
+    "charts": {
+      "campaignPerformance": {
+        "title": "Desempenho de Campanhas",
+        "desc": "Comparação das 5 campanhas mais recentes"
+      },
+      "compromiseRate": {
+        "title": "Taxa de Comprometimento",
+        "desc": "Distribuição de usuários comprometidos vs não comprometidos"
+      }
+    },
+    "stats": {
+      "sent": "Enviados",
+      "opened": "Abertos",
+      "clicked": "Clicados",
+      "submitted": "Comprometidos",
+      "notCompromised": "Não Comprometidos",
+      "compromised": "Comprometidos"
+    },
+    "emptyData": "Sem dados",
+    "loading": "Carregando...",
+    "emptyDataAvailable": "Sem dados disponíveis",
+    "recentCampaigns": {
+      "0": "C",
+      "1": "a",
+      "2": "m",
+      "3": "p",
+      "4": "a",
+      "5": "n",
+      "6": "h",
+      "7": "a",
+      "8": "s",
+      "9": " ",
+      "10": "R",
+      "11": "e",
+      "12": "c",
+      "13": "e",
+      "14": "n",
+      "15": "t",
+      "16": "e",
+      "17": "s",
+      "title": "Campanhas Recentes",
+      "desc": "Status das últimas campanhas executadas",
+      "empty": "Nenhuma campanha criada ainda.",
+      "emptyDesc": "Use o botão 'Popular Banco' acima para criar dados de exemplo."
+    },
     "campaignPerformance": "Desempenho de Campanhas",
-    "recentCampaigns": "Campanhas Recentes",
     "sent": "enviados",
     "opened": "abertos",
     "clicked": "clicados",
@@ -120,7 +192,116 @@
     "quarter": "Trimestre"
   },
   "campaigns": {
+    "type": {
+      "recurring": "Agendada Recorrente",
+      "welcomeAutomation": "Automação Boas-vindas",
+      "standard": "Padrão"
+    },
+    "new": {
+      "title": "Nova Campanha",
+      "dialogTitle": "Nova Campanha de Phishing",
+      "dialogDesc": "Configure uma nova campanha de simulação de phishing",
+      "fields": {
+        "name": {
+          "label": "Nome da Campanha *",
+          "placeholder": "Ex: Teste de Segurança Q1 2024"
+        },
+        "tenant": {
+          "label": "Cliente *",
+          "placeholder": "Selecione o cliente"
+        },
+        "template": {
+          "label": "Template *",
+          "placeholder": "Selecione o template"
+        },
+        "type": {
+          "label": "Tipo de Campanha"
+        },
+        "date": {
+          "label": "Data de Agendamento (Opcional)",
+          "placeholder": "Selecione a data",
+          "clear": "Limpar data"
+        },
+        "targets": {
+          "label": "Grupos de Alvos *",
+          "selected": "alvos selecionados",
+          "empty": "Nenhum grupo disponível. Crie grupos de alvos primeiro.",
+          "members": "membros",
+          "syncActive": "Sincronização ativa",
+          "lastSync": "Última sync:"
+        },
+        "desc": {
+          "label": "Descrição",
+          "placeholder": "Descrição opcional da campanha..."
+        }
+      },
+      "actions": {
+        "submit": "Criar Campanha"
+      }
+    },
+    "messages": {
+      "selectTenant": "Selecione um cliente",
+      "created": "Campanha \"{{count}}\" criada com sucesso!",
+      "scheduledFor": "Agendada para {{count}} • {{count}} alvos",
+      "readyToStart": "Pronta para ser iniciada • {{count}} alvos",
+      "loadError": "Erro ao carregar campanhas",
+      "reportTitle": "Relatório da campanha \"{{count}}\"",
+      "paused": "Campanha \"{{count}}\" pausada",
+      "resumed": "Campanha \"{{count}}\" retomada",
+      "editingTitle": "Editando \"{{count}}\"",
+      "deleted": "Campanha \"{{count}}\" removida"
+    },
     "title": "Campanhas",
+    "subtitle": {
+      "master": "{{count}} campanhas em todos os clientes",
+      "tenant": "{{count}} campanhas para {{tenant}}"
+    },
+    "stats": {
+      "total": "Total de Campanhas",
+      "running": "Em Execução",
+      "scheduled": "Agendadas",
+      "completed": "Concluídas"
+    },
+    "searchPlaceholder": "Buscar campanhas...",
+    "table": {
+      "title": "Campanhas Cadastradas",
+      "desc": "Histórico e status das campanhas",
+      "col": {
+        "campaign": "Campanha",
+        "client": "Cliente",
+        "type": "Tipo",
+        "status": "Status",
+        "progress": "Progresso",
+        "metrics": "Métricas",
+        "actions": "Ações"
+      }
+    },
+    "progress": {
+      "openings": "Aberturas"
+    },
+    "metrics": {
+      "sent": "Enviados:",
+      "opened": "Abertos:",
+      "clicked": "Cliques:",
+      "compromised": "Comprometidos:",
+      "submitted": "Comprometidos"
+    },
+    "actions": {
+      "viewReport": "Ver relatório",
+      "pause": "Pausar campanha",
+      "resume": "Retomar campanha",
+      "edit": "Editar",
+      "delete": "Excluir"
+    },
+    "status": {
+      "completed": "Concluída",
+      "running": "Em execução",
+      "scheduled": "Agendada",
+      "paused": "Pausada",
+      "draft": "Rascunho",
+      "active": "Ativa",
+      "cancelled": "Cancelada"
+    },
     "newCampaign": "Nova Campanha",
     "editCampaign": "Editar Campanha",
     "deleteCampaign": "Excluir Campanha",
@@ -146,25 +327,122 @@
     "createSuccess": "Campanha criada com sucesso!",
     "updateSuccess": "Campanha atualizada com sucesso!",
     "deleteSuccess": "Campanha excluída com sucesso!",
-    "readyToStart": "Pronta para ser iniciada",
-    "status": {
-      "draft": "Rascunho",
-      "scheduled": "Agendada",
-      "running": "Em execução",
-      "active": "Ativa",
-      "paused": "Pausada",
-      "completed": "Concluída",
-      "cancelled": "Cancelada"
-    },
-    "metrics": {
-      "sent": "Enviados",
-      "opened": "Abertos",
-      "clicked": "Clicados",
-      "submitted": "Comprometidos"
-    }
+    "readyToStart": "Pronta para ser iniciada"
   },
   "templates": {
-    "title": "Templates de E-mail",
+    "library": {
+      "title": "Biblioteca de Templates",
+      "desc": "Templates profissionais prontos para suas campanhas de phishing",
+      "usedTimes": "Usado {{count}}x",
+      "clickRate": "{{count}}% taxa de clique",
+      "emptyTitle": "Nenhum template encontrado",
+      "emptyDesc1": "Nenhum template no banco de dados. Execute o seed para criar templates iniciais.",
+      "emptyDesc2": "Tente ajustar os filtros ou criar seus próprios templates",
+      "subject": "Assunto:",
+      "body": "Corpo do E-mail:",
+      "clone": "Clonar Template"
+    },
+    "filters": {
+      "category": "Categoria",
+      "difficulty": "Dificuldade",
+      "type": "Tipo",
+      "all": "Todos os tipos",
+      "emails": "E-mails",
+      "landingPages": "Landing Pages"
+    },
+    "categories": {
+      "all": "Todas Categorias",
+      "banking": "Bancário",
+      "hr": "RH",
+      "it": "TI",
+      "delivery": "Entrega",
+      "finance": "Finanças",
+      "logistics": "Logística",
+      "social": "Social",
+      "covid": "COVID-19",
+      "credential_harvest": "Coleta de Credenciais",
+      "malware": "Malware",
+      "business_email": "Comprometimento de E-mail Corporativo",
+      "social_engineering": "Engenharia Social",
+      "spear_phishing": "Spear Phishing",
+      "gift_card": "Golpe de Gift Card"
+    },
+    "difficulty": {
+      "all": "Todas Dificuldades",
+      "basic": "Básico",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado",
+      "easy": "Fácil",
+      "medium": "Médio",
+      "hard": "Difícil"
+    },
+    "messages": {
+      "libraryLoadError": "Erro ao carregar templates",
+      "cloneSuccess": "Template clonado com sucesso!",
+      "cloneError": "Erro ao clonar template",
+      "loadError": "Erro ao carregar templates",
+      "loadErrorDesc": "Não foi possível carregar os templates.",
+      "created": "Template criado!",
+      "createdDesc": "O template foi adicionado com sucesso",
+      "updated": "Template atualizado!",
+      "updatedDesc": "As alterações foram salvas",
+      "htmlSaved": "Template HTML salvo!",
+      "htmlSavedDesc": "Template criado com editor avançado",
+      "cloned": "Template clonado!",
+      "clonedDesc": "Cópia de \"{{count}}\" criada com sucesso",
+      "deleted": "Template removido!",
+      "deletedDesc": "\"{{count}}\" foi deletado"
+    },
+    "title": "Templates",
+    "desc": "Gerencie templates de e-mail e landing pages de phishing",
+    "actions": {
+      "htmlEditor": "Editor HTML Avançado",
+      "new": "Novo Template"
+    },
+    "stats": {
+      "total": "Total",
+      "emails": "E-mails",
+      "web": "Web",
+      "mostUsed": "Mais Usado"
+    },
+    "searchPlaceholder": "Buscar templates...",
+    "table": {
+      "title": "Lista de Templates",
+      "desc": "{{count}} templates encontrados",
+      "subject": "Assunto:",
+      "used": "usado",
+      "cols": {
+        "name": "Nome",
+        "type": "Tipo",
+        "category": "Categoria",
+        "difficulty": "Dificuldade",
+        "usage": "Uso",
+        "actions": "Ações"
+      }
+    },
+    "view": {
+      "desc": "Visualização do template • {{count}} usos",
+      "labels": {
+        "type": "Tipo",
+        "category": "Categoria",
+        "difficulty": "Dificuldade",
+        "subject": "Assunto",
+        "content": "Conteúdo"
+      },
+      "tabs": {
+        "preview": "Preview",
+        "code": "Código HTML"
+      }
+    },
+    "edit": {
+      "title": "Editar Template",
+      "desc": "Faça alterações no template selecionado",
+      "labels": {
+        "name": "Nome do Template",
+        "subject": "Assunto do E-mail",
+        "content": "Conteúdo"
+      }
+    },
     "newTemplate": "Novo Template",
     "editTemplate": "Editar Template",
     "deleteTemplate": "Excluir Template",
@@ -179,15 +457,7 @@
     "tenant": "Cliente",
     "createSuccess": "Template criado com sucesso!",
     "updateSuccess": "Template atualizado com sucesso!",
-    "deleteSuccess": "Template excluído com sucesso!",
-    "categories": {
-      "credential_harvest": "Coleta de Credenciais",
-      "malware": "Malware",
-      "business_email": "Comprometimento de E-mail Corporativo",
-      "social_engineering": "Engenharia Social",
-      "spear_phishing": "Spear Phishing",
-      "gift_card": "Golpe de Gift Card"
-    }
+    "deleteSuccess": "Template excluído com sucesso!"
   },
   "landingPages": {
     "title": "Landing Pages",
@@ -207,6 +477,126 @@
   },
   "targets": {
     "title": "E-mails Alvo",
+    "descMaster": "Gerencie todos os alvos de campanhas",
+    "descTenant": "Cliente: {{tenant}}",
+    "actions": {
+      "viewGroups": "Ver Grupos",
+      "export": "Exportar",
+      "cleanData": "Limpar Dados",
+      "addTargets": "Adicionar Alvos",
+      "chooseMethod": "Escolha o método",
+      "addIndividual": "Adicionar Individual",
+      "addBulk": "Adicionar em Massa (Lista)",
+      "importCsv": "Importar CSV/Excel",
+      "importIntegration": "Importar da Integração",
+      "addIndividualDialogTitle": "Adicionar E-mail Alvo",
+      "addIndividualDialogDesc": "Adicione um novo alvo para campanhas de phishing",
+      "addBulkDialogTitle": "Adicionar E-mails Alvo em Massa",
+      "addBulkDialogDesc": "Adicione múltiplos e-mails alvos para campanhas de phishing"
+    },
+    "labels": {
+      "fullName": "Nome Completo",
+      "email": "E-mail",
+      "department": "Departamento",
+      "position": "Cargo",
+      "group": "Grupo",
+      "tenant": "Cliente",
+      "emails": "E-mails"
+    },
+    "placeholders": {
+      "name": "João Silva",
+      "email": "joao.silva@empresa.com.br",
+      "department": "TI",
+      "position": "Analista de Sistemas",
+      "selectGroup": "Selecione o grupo",
+      "selectTenant": "Selecione o cliente",
+      "emailsBulk": "joao.silva@empresa.com.br\nmaria.souza@empresa.com.br"
+    },
+    "integration": {
+      "title": "Importar da Integração",
+      "desc": "Importe usuários diretamente do Microsoft 365 ou Google Workspace",
+      "connected": "Conectado",
+      "m365Desc": "Importar usuários do Azure AD/Entra ID",
+      "btnM365": "Importar do M365",
+      "googleDesc": "Importar usuários do Google Directory",
+      "btnGoogle": "Importar do Google",
+      "configTitle": "Configuração de Integrações",
+      "configDesc1": "Para configurar ou reconectar integrações, acesse a página de ",
+      "configLink": "Integrações",
+      "_configDesc2": ""
+    },
+    "stats": {
+      "total": "Total de Alvos",
+      "active": "Ativos",
+      "bounced": "Bounced",
+      "optedOut": "Opted Out"
+    },
+    "searchPlaceholder": "Buscar por nome, e-mail ou departamento...",
+    "filters": {
+      "source": "Filtrar por origem",
+      "sourceAll": "Todas as origens",
+      "sourceManual": "Manual",
+      "sourceAzure": "Azure AD",
+      "sourceCsv": "Importação CSV"
+    },
+    "table": {
+      "title": "Lista de E-mails Alvo",
+      "desc": "{{count}} alvos encontrados",
+      "cols": {
+        "name": "Nome",
+        "email": "E-mail",
+        "department": "Departamento",
+        "position": "Cargo",
+        "group": "Grupo",
+        "tenant": "Cliente",
+        "status": "Status",
+        "actions": "Ações"
+      },
+      "actions": {
+        "edit": "Editar",
+        "history": "Histórico",
+        "remove": "Remover"
+      }
+    },
+    "status": {
+      "active": "Ativo",
+      "bounced": "Bounced",
+      "optedOut": "Opted Out"
+    },
+    "messages": {
+      "offlineWarning": "Modo Offline",
+      "offlineDesc": "Servidor não disponível. Usando dados de demonstração.",
+      "added": "E-mail alvo adicionado!",
+      "addedDesc": "O alvo foi adicionado com sucesso à lista",
+      "bulkAdded": "E-mails alvos adicionados!",
+      "bulkAddedDesc": "{{count}} alvos foram adicionados à lista",
+      "importStarted": "Importação iniciada!",
+      "importStartedDesc": "Os e-mails alvos estão sendo processados",
+      "deleted": "E-mail alvo removido!",
+      "deletedDesc": "O alvo foi removido da lista",
+      "exported": "Lista exportada!",
+      "exportedDesc": "{{count}} alvos exportados em CSV",
+      "cleanupNoTenant": "Nenhum tenant selecionado",
+      "cleanupSuccess": "Alvos removidos com sucesso!",
+      "cleanupSuccessDesc": "{{count}} alvos foram excluídos do tenant {{tenant}}",
+      "cleanupOffline": "Dados limpos (Modo Offline)",
+      "cleanupOfflineDesc": "Os alvos foram removidos localmente. Quando o servidor estiver disponível, será necessário fazer a limpeza definitiva.",
+      "cleanupError": "Erro ao limpar alvos",
+      "cleanupErrorDesc": "Tente novamente"
+    },
+    "cleanupDialog": {
+      "title": "Limpar Dados do Cliente",
+      "desc": "Tem certeza que deseja remover TODOS os alvos associados ao cliente {{tenant}}? Esta ação não pode ser desfeita e os dados não poderão ser recuperados.",
+      "btnClean": "Sim, Limpar Dados",
+      "btnCleaning": "Limpando..."
+    },
+    "groups": {
+      "ti": "TI",
+      "rh": "RH",
+      "financeiro": "Financeiro",
+      "comercial": "Comercial",
+      "diretoria": "Diretoria"
+    },
     "newTarget": "Novo Alvo",
     "importTargets": "Importar Alvos",
     "editTarget": "Editar Alvo",
@@ -232,20 +622,138 @@
   },
   "targetGroups": {
     "title": "Grupos de Alvos",
-    "newGroup": "Novo Grupo",
-    "editGroup": "Editar Grupo",
-    "deleteGroup": "Excluir Grupo",
-    "groupName": "Nome do Grupo",
-    "members": "Membros",
-    "addMembers": "Adicionar Membros",
-    "dynamic": "Dinâmico",
-    "static": "Estático",
-    "rules": "Regras",
-    "createSuccess": "Grupo criado com sucesso!",
-    "updateSuccess": "Grupo atualizado com sucesso!",
-    "deleteSuccess": "Grupo excluído com sucesso!"
+    "descMaster": "Gerencie grupos de alvos para campanhas",
+    "descTenant": "Cliente: {{tenant}}",
+    "actions": {
+      "viewTargets": "Ver Alvos Individuais",
+      "addGroup": "Adicionar Grupo",
+      "chooseMethod": "Escolha o método",
+      "createLocal": "Criar Grupo Local",
+      "importIntegration": "Importar da Integração",
+      "addMembers": "Adicionar Membros",
+      "editGroup": "Editar Grupo",
+      "exportMembers": "Exportar Membros",
+      "removeGroup": "Remover Grupo"
+    },
+    "stats": {
+      "total": "Total de Grupos",
+      "local": "Grupos Locais",
+      "integration": "Da Integração",
+      "totalMembers": "Total de Membros"
+    },
+    "searchPlaceholder": "Buscar grupos por nome ou descrição...",
+    "table": {
+      "title": "Lista de Grupos",
+      "desc": "{{count}} grupos encontrados (hierarquia expandível)",
+      "emptyTitle": "Nenhum grupo encontrado",
+      "emptyBtn": "Criar Primeiro Grupo",
+      "cols": {
+        "name": "Nome do Grupo",
+        "description": "Descrição",
+        "members": "Membros",
+        "type": "Tipo",
+        "tenant": "Cliente",
+        "actions": "Ações"
+      }
+    },
+    "types": {
+      "local": "Local",
+      "integration": "Integração"
+    },
+    "dialogs": {
+      "createTitle": "Criar Grupo de Alvos",
+      "createDesc": "Crie um grupo local para organizar alvos de campanhas",
+      "editTitle": "Editar Grupo de Alvos",
+      "editDesc": "Edite um grupo local para organizar alvos de campanhas",
+      "addMembersTitle": "Adicionar Membros ao Grupo",
+      "addMembersDesc": "Adicione emails individuais ou outros grupos como membros",
+      "labels": {
+        "name": "Nome do Grupo",
+        "nameHolder": "Departamento de TI",
+        "desc": "Descrição",
+        "descHolder": "Descrição do grupo...",
+        "parentGroup": "Grupo Pai (opcional)",
+        "parentGroupHolder": "Nenhum (grupo raiz)",
+        "parentGroupHint": "Crie uma hierarquia adicionando este grupo dentro de outro",
+        "tenant": "Cliente",
+        "tenantHolder": "Selecione o cliente",
+        "addInitialMembers": "Adicionar Membros Iniciais",
+        "btnEmails": "Adicionar Emails",
+        "btnGroups": "Adicionar Grupos",
+        "emailsHint": "Um email por linha",
+        "groupsEmpty": "Nenhum grupo disponível",
+        "membersCount": "membros",
+        "emailsCardTitle": "Emails Individuais",
+        "emailsCardList": "Lista de E-mails",
+        "groupsCardTitle": "Grupos Existentes",
+        "groupsCardDesc": "Selecionar Grupos",
+        "groupsCardHint": "Grupos dentro de grupos (hierarquia)"
+      },
+      "buttons": {
+        "cancel": "Cancelar",
+        "create": "Criar Grupo",
+        "update": "Atualizar Grupo"
+      }
+    },
+    "messages": {
+      "created": "Grupo criado!",
+      "createdDesc": "O grupo de alvos foi criado com sucesso",
+      "updated": "Grupo atualizado!",
+      "updatedDesc": "O grupo de alvos foi atualizado com sucesso",
+      "membersAdded": "Membros adicionados!",
+      "membersAddedDesc": "Os membros foram adicionados ao grupo",
+      "deleted": "Grupo removido!",
+      "deletedDesc": "O grupo foi removido com sucesso",
+      "errorLoad": "Erro ao carregar grupos de alvos"
+    }
   },
   "trainings": {
+    "newTrainingTitle": "Criar Novo Treinamento",
+    "newTrainingSubtitle": "Adicione um novo treinamento de segurança da informação",
+    "createSuccessDesc": "O treinamento foi criado com sucesso.",
+    "messages": {
+      "titleRequired": "Por favor, preencha o título do treinamento"
+    },
+    "modals": {
+      "new": {
+        "linkInfo": "Link para o vídeo ou apresentação do treinamento"
+      }
+    },
+    "categories": {
+      "basic": "Básico",
+      "intermediate": "Intermediário",
+      "advanced": "Avançado",
+      "phishing": "Phishing",
+      "social_engineering": "Engenharia Social",
+      "lgpd": "LGPD",
+      "compliance": "Compliance"
+    },
+    "subtitle": "Gerencie vídeos e slides de conscientização em segurança",
+    "statsTotal": "Total Treinamentos",
+    "statsEnrolled": "Inscritos",
+    "statsCompleted": "Concluídos",
+    "statsAvgScore": "Nota Média",
+    "searchPlaceholder": "Buscar treinamentos...",
+    "listTitle": "Lista de Treinamentos",
+    "availableCount": "{{count}} treinamentos disponíveis",
+    "tableTitle": "Título",
+    "tableType": "Tipo",
+    "tableCategory": "Categoria",
+    "tableDuration": "Duração",
+    "tableProgress": "Progresso",
+    "tableAvgScore": "Nota Média",
+    "tableActions": "Ações",
+    "typeVideo": "Vídeo",
+    "typeSlides": "Slides",
+    "actionWatch": "Assistir",
+    "actionViewResults": "Ver Resultados",
+    "deleteConfirm": "Tem certeza que deseja excluir este treinamento?",
+    "deleteSuccess": "Treinamento excluído!",
+    "deleteError": "Erro ao excluir treinamento",
+    "updateSuccess": "Treinamento atualizado!",
+    "editTitle": "Editar Treinamento",
+    "editSubtitle": "Atualize as informações de \"{{count}}\"",
+    "emptyState": "Nenhum treinamento criado ainda.",
     "title": "Treinamentos",
     "newTraining": "Novo Treinamento",
     "editTraining": "Editar Treinamento",
@@ -261,11 +769,80 @@
     "quiz": "Questionário",
     "certificate": "Certificado",
     "minutes": "minutos",
-    "createSuccess": "Treinamento criado com sucesso!",
-    "updateSuccess": "Treinamento atualizado com sucesso!",
-    "deleteSuccess": "Treinamento excluído com sucesso!"
+    "createSuccess": "Treinamento criado com sucesso!"
   },
   "certificates": {
+    "subtitle": "Gerencie certificados de conclusão de treinamentos",
+    "stats": {
+      "issued": "Total Emitidos",
+      "active": "Ativos",
+      "revoked": "Revogados",
+      "templates": "Templates"
+    },
+    "tabs": {
+      "issued": "Certificados Emitidos",
+      "templates": "Templates",
+      "validation": "Validação"
+    },
+    "searchPlaceholder": "Buscar certificados por nome, e-mail, treinamento...",
+    "registeredCount": "{{count}} certificados registrados",
+    "table": {
+      "code": "Código",
+      "user": "Usuário",
+      "training": "Treinamento",
+      "issueDate": "Data de Emissão",
+      "score": "Nota",
+      "status": "Status",
+      "actions": "Ações"
+    },
+    "actions": {
+      "download": "Baixar PDF",
+      "revoke": "Revogar",
+      "advancedEditor": "Editor HTML Avançado",
+      "newTemplate": "Novo Template",
+      "createTemplate": "Criar Template"
+    },
+    "modals": {
+      "newTemplate": {
+        "title": "Criar Novo Template",
+        "subtitle": "Configure um novo modelo de certificado",
+        "fields": {
+          "name": "Nome do Template",
+          "description": "Descrição",
+          "bgColor": "Cor de Fundo",
+          "fontColor": "Cor da Fonte"
+        }
+      }
+    },
+    "template": {
+      "defaultBadge": "Padrão"
+    },
+    "validation": {
+      "title": "Validar Certificado",
+      "subtitle": "Verifique a autenticidade de um certificado pelo código",
+      "fields": {
+        "code": "Código do Certificado"
+      },
+      "result": {
+        "valid": "Certificado Válido"
+      }
+    },
+    "preview": {
+      "title": "CERTIFICADO DE CONCLUSÃO",
+      "certifyThat": "Certificamos que",
+      "completedTraining": "concluiu com sucesso o treinamento",
+      "completionDate": "Data de Conclusão",
+      "finalScore": "Nota Final"
+    },
+    "messages": {
+      "downloaded": "Certificado baixado!",
+      "downloadedDesc": "{{name}}.pdf foi salvo",
+      "revoked": "Certificado revogado!",
+      "revokedDesc": "O certificado foi invalidado",
+      "templateCreated": "Template criado!",
+      "templateSaved": "Template de certificado salvo!",
+      "templateSavedDesc": "Template HTML criado com sucesso"
+    },
     "title": "Certificados",
     "issuedCertificates": "Certificados Emitidos",
     "viewCertificate": "Ver Certificado",
@@ -296,7 +873,131 @@
     "departmentAnalysis": "Análise por Departamento",
     "mostVulnerable": "Usuários Mais Vulneráveis",
     "timelineHistory": "Linha do Tempo de Campanhas",
-    "interactions": "interações de risco"
+    "interactions": "interações de risco",
+    "errorLoadingData": "Erro ao carregar os dados do relatório.",
+    "errorElementNotFound": "Elemento do relatório não encontrado para exportação.",
+    "generatingPdf": "Gerando o seu PDF, por favor aguarde...",
+    "pdfTitle": "Relatório Consolidado - Matreiro",
+    "pdfGeneratedAt": "Gerado em",
+    "pdfClient": "Cliente",
+    "pdfExportSuccess": "PDF exportado com sucesso!",
+    "pdfExportSuccessDesc": "O download do seu relatório iniciará automaticamente.",
+    "pdfExportError": "Houve um erro ao exportar o PDF.",
+    "pdfExportErrorDesc": "Tente novamente mais tarde.",
+    "subtitle": "Visualize o desempenho das campanhas e métricas de conscientização.",
+    "timeFilters": {
+      "last7Days": "Últimos 7 dias",
+      "last30Days": "Últimos 30 dias",
+      "last90Days": "Últimos 90 dias",
+      "thisYear": "Este Ano"
+    },
+    "btnExportPdf": "Exportar em PDF",
+    "kpis": {
+      "openRate": "Taxa Média de Abertura",
+      "vsLastMonth": "{{count}} em relação ao mês anterior",
+      "clickRate": "Taxa Média de Cliques",
+      "compromiseRate": "Índice de Comprometimento",
+      "evaluatedUsers": "Total de Usuários Avaliados",
+      "activeBase": "Representa {{percent}} da base ativa"
+    },
+    "tabs": {
+      "overview": "Visão Geral",
+      "departments": "Desempenho por Setor",
+      "vulnerable": "Usuários Críticos",
+      "timeline": "Linha do Tempo"
+    },
+    "charts": {
+      "evolution": {
+        "title": "Evolução Temporal",
+        "desc": "Acompanhamento do comportamento de risco"
+      },
+      "risk": {
+        "title": "Distribuição de Risco",
+        "desc": "Proporção do nível de risco dos usuários"
+      },
+      "department": {
+        "title": "Análise por Departamento",
+        "desc": "Visão geral de comprometimento por área",
+        "legendTotal": "Total de Colaboradores",
+        "legendComp": "Comprometidos"
+      },
+      "vulnerable": {
+        "title": "Alvos Mais Vulneráveis",
+        "desc": "Usuários com maior índice de falhas",
+        "incidents": "Frequência de incidentes ({{count}})"
+      },
+      "timelineList": {
+        "title": "Histórico de Campanhas",
+        "desc": "Últimas campanhas executadas"
+      }
+    },
+    "buttons": {
+      "viewDetails": "Ver Detalhes"
+    },
+    "campaignStats": {
+      "sent": "Enviados",
+      "opened": "Abertos",
+      "clicked": "Clicados",
+      "compromised": "Comprometidos"
+    }
+  },
+  "enhancedAnalytics": {
+    "title": "Analytics Avançado",
+    "subtitle": "Métricas avançadas e análise de vulnerabilidade",
+    "timeRange": "Selecione o período",
+    "timeRanges": {
+      "7d": "Últimos 7 dias",
+      "30d": "Últimos 30 dias",
+      "90d": "Últimos 90 dias",
+      "1y": "Último ano"
+    },
+    "metrics": {
+      "sent": "E-mails Enviados",
+      "openRate": "Taxa de Abertura",
+      "clickRate": "Taxa de Clique",
+      "submitRate": "Taxa de Comprometimento"
+    },
+    "charts": {
+      "timeSeriesTitle": "Evolução Temporal",
+      "timeSeriesDesc": "Métricas de performance ao longo do período",
+      "timeSeriesOpened": "Abertos",
+      "timeSeriesClicked": "Clicados",
+      "timeSeriesSubmitted": "Submetidos",
+      "noData": "Sem dados temporais para o período selecionado",
+      "runCampaigns": "Execute campanhas para gerar dados"
+    },
+    "departments": {
+      "title": "Vulnerabilidade por Departamento",
+      "subtitle": "Taxa de cliques em phishing por departamento",
+      "clicked": "Clicaram",
+      "total": "Total",
+      "noData": "Sem dados de departamento. Importe alvos com departamentos via integração."
+    },
+    "distribution": {
+      "title": "Distribuição de Eventos",
+      "subtitle": "Proporção de cada tipo de evento",
+      "sent": "Enviados",
+      "opened": "Abertos",
+      "clicked": "Clicados",
+      "submitted": "Submetidos",
+      "noData": "Sem dados de campanha para exibir"
+    },
+    "ranking": {
+      "title": "Ranking de Departamentos",
+      "subtitle": "Classificação por taxa de cliques (menor é melhor)",
+      "position": "Posição",
+      "department": "Departamento",
+      "total": "Total",
+      "clicked": "Clicaram",
+      "rate": "Taxa",
+      "status": "Status"
+    },
+    "status": {
+      "excellent": "Excelente",
+      "good": "Bom",
+      "regular": "Regular",
+      "critical": "Crítico"
+    }
   },
   "tenants": {
     "title": "Clientes",
@@ -330,6 +1031,52 @@
       "starter": "Starter",
       "professional": "Professional",
       "enterprise": "Enterprise"
+    },
+    "errorLoading": "Error Loading",
+    "errorLoadingDesc": "Error Loading Desc",
+    "errorLoadingTemplates": "Error Loading Templates",
+    "errorLoadingTemplatesDesc": "Error Loading Templates Desc",
+    "success": {
+      "removed": "Removed",
+      "removedDesc": "Removed Desc",
+      "configSaved": "Config Saved",
+      "phishingEnabled": "Phishing Enabled",
+      "phishingDisabled": "Phishing Disabled",
+      "logoSaved": "Logo Saved",
+      "logoSavedDesc": "Logo Saved Desc"
+    },
+    "errorRemoving": "Error Removing",
+    "errorRemovingDesc": "Error Removing Desc",
+    "errorSavingConfig": "Error Saving Config",
+    "errorSavingConfigDesc": "Error Saving Config Desc",
+    "subtitle": "Subtitle",
+    "searchPlaceholder": "Search Placeholder",
+    "table": {
+      "title": "Title",
+      "desc": "Desc",
+      "colName": "Col Name",
+      "colCnpj": "Col Cnpj",
+      "colParent": "Col Parent",
+      "colStatus": "Col Status",
+      "colCreatedAt": "Col Created At",
+      "colActions": "Col Actions",
+      "impersonating": "Impersonating",
+      "impersonateTitle": "Impersonate Title",
+      "deleteTitle": "Delete Title",
+      "configureTitle": "Configure Title",
+      "uploadLogoTitle": "Upload Logo Title"
+    },
+    "dialogConfig": {
+      "title": "Title",
+      "desc": "Desc",
+      "enable": "Enable",
+      "delayDays": "Delay Days",
+      "template": "Template",
+      "templatePlaceholder": "Template Placeholder"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "save": "Save"
     }
   },
   "systemUsers": {
@@ -353,12 +1100,102 @@
       "sub_tenant_admin": "Admin do Sub-Cliente",
       "manager": "Gerente",
       "analyst": "Analista",
-      "viewer": "Visualizador"
+      "viewer": "Visualizador",
+      "admin": "Admin",
+      "user": "User",
+      "superadminFull": "Superadmin Full",
+      "adminFull": "Admin Full",
+      "userFull": "User Full",
+      "masterClient": "Master Client"
+    },
+    "success": {
+      "added": "Added",
+      "addedDesc": "Added Desc",
+      "updated": "Updated",
+      "updatedDesc": "Updated Desc",
+      "removed": "Removed",
+      "removedDesc": "Removed Desc",
+      "resetSent": "Reset Sent",
+      "resetSentDesc": "Reset Sent Desc"
+    },
+    "subtitleSuper": "Subtitle Super",
+    "subtitleClient": "Subtitle Client",
+    "btnAdd": "Btn Add",
+    "dialogs": {
+      "add": {
+        "title": "Title",
+        "desc": "Desc",
+        "info": "Info"
+      },
+      "edit": {
+        "title": "Title",
+        "desc": "Desc"
+      }
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Name Placeholder",
+      "email": "Email",
+      "emailPlaceholder": "Email Placeholder",
+      "role": "Role",
+      "rolePlaceholder": "Role Placeholder",
+      "client": "Client",
+      "clientPlaceholder": "Client Placeholder",
+      "status": "Status"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create",
+      "save": "Save"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "superadmins": "Superadmins",
+      "admins": "Admins"
+    },
+    "filters": {
+      "search": "Search"
+    },
+    "table": {
+      "title": "Title",
+      "desc": "Desc",
+      "colName": "Col Name",
+      "colEmail": "Col Email",
+      "colRole": "Col Role",
+      "colClient": "Col Client",
+      "colLastLogin": "Col Last Login",
+      "colStatus": "Col Status",
+      "colActions": "Col Actions",
+      "master": "Master"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "resetPassword": "Reset Password",
+      "removeAccess": "Remove Access"
     }
   },
   "permissions": {
     "title": "Permissões e RBAC",
-    "roles": "Papéis",
+    "roles": {
+      "superadmin": {
+        "desc": "Desc"
+      },
+      "admin": {
+        "desc": "Desc"
+      },
+      "manager": {
+        "desc": "Desc"
+      },
+      "analyst": {
+        "desc": "Desc"
+      },
+      "permissionsCount": "Permissions Count"
+    },
     "newRole": "Novo Papel",
     "editRole": "Editar Papel",
     "deleteRole": "Excluir Papel",
@@ -381,6 +1218,213 @@
       "update": "Atualizar",
       "delete": "Excluir",
       "export": "Exportar"
+    },
+    "data": {
+      "campaigns": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "start": {
+          "name": "Name"
+        },
+        "pause": {
+          "name": "Name"
+        },
+        "results": {
+          "name": "Name"
+        },
+        "export": {
+          "name": "Name"
+        }
+      },
+      "targets": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "import": {
+          "name": "Name"
+        },
+        "export": {
+          "name": "Name"
+        }
+      },
+      "templates": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "global": {
+          "name": "Name"
+        }
+      },
+      "users": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "impersonate": {
+          "name": "Name"
+        },
+        "roles": {
+          "name": "Name"
+        }
+      },
+      "tenants": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "configure": {
+          "name": "Name"
+        },
+        "sub": {
+          "name": "Name"
+        }
+      },
+      "trainings": {
+        "create": {
+          "name": "Name"
+        },
+        "read": {
+          "name": "Name"
+        },
+        "update": {
+          "name": "Name"
+        },
+        "delete": {
+          "name": "Name"
+        },
+        "assign": {
+          "name": "Name"
+        },
+        "results": {
+          "name": "Name"
+        }
+      },
+      "reports": {
+        "view": {
+          "name": "Name"
+        },
+        "export": {
+          "name": "Name"
+        },
+        "global": {
+          "name": "Name"
+        },
+        "captured": {
+          "name": "Name"
+        }
+      },
+      "system": {
+        "audit": {
+          "name": "Name"
+        },
+        "settings": {
+          "name": "Name"
+        },
+        "roles": {
+          "name": "Name"
+        },
+        "integrations": {
+          "name": "Name"
+        }
+      }
+    },
+    "errors": {
+      "nameRequired": "Name Required",
+      "systemRole": "System Role"
+    },
+    "success": {
+      "roleUpdated": "Role Updated",
+      "roleCreated": "Role Created",
+      "roleDeleted": "Role Deleted",
+      "permissionsUpdated": "Permissions Updated"
+    },
+    "subtitle": "Subtitle",
+    "tabs": {
+      "roles": "Roles",
+      "users": "Users",
+      "allPermissions": "All Permissions",
+      "rolesCount": "Roles Count",
+      "usersCount": "Users Count",
+      "permissionsCount": "Permissions Count",
+      "permissionsModuleCount": "Permissions Module Count"
+    },
+    "buttons": {
+      "newRole": "New Role",
+      "managePermissions": "Manage Permissions",
+      "cancel": "Cancel",
+      "save": "Save",
+      "addExtraRole": "Add Extra Role",
+      "close": "Close"
+    },
+    "badges": {
+      "system": "System"
+    },
+    "users": {
+      "extraPermissions": "Extra Permissions"
+    },
+    "dialogs": {
+      "role": {
+        "edit": "Edit",
+        "desc": "Desc",
+        "permissionsLabel": "Permissions Label"
+      },
+      "user": {
+        "title": "Title",
+        "currentRole": "Current Role",
+        "changeRole": "Change Role",
+        "extraRoles": "Extra Roles",
+        "extraRolesDesc": "Extra Roles Desc"
+      }
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "Name Placeholder",
+      "desc": "Desc",
+      "descPlaceholder": "Desc Placeholder"
     }
   },
   "integrations": {
@@ -400,7 +1444,144 @@
     "apiKey": "Chave de API",
     "clientId": "ID do Cliente",
     "clientSecret": "Segredo do Cliente",
-    "redirectUri": "URI de Redirecionamento"
+    "redirectUri": "URI de Redirecionamento",
+    "errorLoading": "Error Loading",
+    "errorLoadingDesc": "Error Loading Desc",
+    "items": {
+      "azure": {
+        "desc": "Desc",
+        "features": {
+          "0": "0",
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      },
+      "ms365": {
+        "desc": "Desc",
+        "features": {
+          "0": "0",
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      },
+      "google": {
+        "desc": "Desc",
+        "features": {
+          "0": "0",
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      },
+      "smtp": {
+        "name": "Name",
+        "desc": "Desc",
+        "features": {
+          "0": "0",
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      },
+      "webhooks": {
+        "desc": "Desc",
+        "features": {
+          "0": "0",
+          "1": "1",
+          "2": "2",
+          "3": "3"
+        }
+      }
+    },
+    "errors": {
+      "azureConnect": "Azure Connect",
+      "azureVerify": "Azure Verify",
+      "save": "Save",
+      "tryAgain": "Try Again",
+      "disconnect": "Disconnect"
+    },
+    "success": {
+      "connected": "Connected",
+      "disconnected": "Disconnected"
+    },
+    "syncing": "Syncing",
+    "sync": {
+      "groupsMsg": "Groups Msg",
+      "successMsg": "Success Msg",
+      "error": "Error",
+      "completed": "Completed"
+    },
+    "status": {
+      "connected": "Connected",
+      "error": "Error",
+      "disconnected": "Disconnected"
+    },
+    "subtitle": "Subtitle",
+    "alert": {
+      "title": "Title",
+      "desc": "Desc"
+    },
+    "card": {
+      "features": "Features",
+      "lastSync": "Last Sync"
+    },
+    "buttons": {
+      "sync": "Sync",
+      "config": "Config",
+      "disconnect": "Disconnect",
+      "connect": "Connect"
+    },
+    "dialog": {
+      "title": "Title",
+      "desc": "Desc",
+      "azure": {
+        "tenantId": "Tenant Id",
+        "clientId": "Client Id",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Client Secret Placeholder",
+        "allowedDomains": "Allowed Domains",
+        "domainsHelper": "Domains Helper"
+      },
+      "autoSync": "Auto Sync",
+      "autoSyncDesc": "Auto Sync Desc",
+      "ms365": {
+        "tenantId": "Tenant Id",
+        "clientId": "Client Id",
+        "clientSecret": "Client Secret"
+      },
+      "google": {
+        "clientId": "Client Id",
+        "clientSecret": "Client Secret",
+        "domain": "Domain"
+      },
+      "smtp": {
+        "host": "Host",
+        "port": "Port",
+        "security": "Security",
+        "username": "Username",
+        "password": "Password"
+      },
+      "webhooks": {
+        "url": "Url",
+        "secret": "Secret",
+        "events": "Events",
+        "eventOptions": {
+          "started": "Started",
+          "completed": "Completed",
+          "opened": "Opened",
+          "clicked": "Clicked",
+          "submitted": "Submitted",
+          "training": "Training"
+        }
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "saving": "Saving",
+        "saveAndConnect": "Save And Connect"
+      }
+    }
   },
   "notifications": {
     "title": "Notificações",
@@ -443,7 +1624,12 @@
     "deleteAutomation": "Excluir Automação",
     "automationName": "Nome da Automação",
     "trigger": "Gatilho",
-    "conditions": "Condições",
+    "conditions": {
+      "inGroup": "In Group",
+      "notInGroup": "Not In Group",
+      "inDepartment": "In Department",
+      "always": "Always"
+    },
     "actions": "Ações",
     "enabled": "Ativada",
     "disabled": "Desativada",
@@ -453,15 +1639,194 @@
       "campaignCompleted": "Campanha concluída",
       "userCompromised": "Usuário comprometido",
       "trainingDue": "Treinamento vencido",
-      "schedule": "Agendamento"
+      "schedule": "Agendamento",
+      "newAd": "New Ad",
+      "newGoogle": "New Google",
+      "addedGroup": "Added Group"
+    },
+    "errorLoading": "Error Loading",
+    "success": {
+      "created": "Created",
+      "createdDesc": "Created Desc",
+      "activated": "Activated",
+      "activatedDesc": "Activated Desc",
+      "pausedDesc": "Paused Desc",
+      "removed": "Removed",
+      "removedDesc": "Removed Desc"
+    },
+    "subtitle": "Subtitle",
+    "client": "Client",
+    "buttons": {
+      "newAutomation": "New Automation"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "paused": "Paused",
+      "executed": "Executed"
+    },
+    "searchPlaceholder": "Search Placeholder",
+    "table": {
+      "title": "Title",
+      "desc": "Desc",
+      "colName": "Col Name",
+      "colTrigger": "Col Trigger",
+      "colCondition": "Col Condition",
+      "colCampaign": "Col Campaign",
+      "colExecutions": "Col Executions",
+      "colClient": "Col Client",
+      "colStatus": "Col Status",
+      "colActions": "Col Actions"
+    },
+    "empty": {
+      "message": "Message",
+      "action": "Action"
+    },
+    "delayLabel": "Delay Label",
+    "groupsCount": "Groups Count",
+    "templateNotFound": "Template Not Found",
+    "status": {
+      "active": "Active",
+      "paused": "Paused"
+    },
+    "menu": {
+      "actions": "Actions",
+      "pause": "Pause",
+      "activate": "Activate",
+      "edit": "Edit",
+      "history": "History",
+      "remove": "Remove"
+    },
+    "dialog": {
+      "title": "Title",
+      "desc": "Desc",
+      "basicInfo": {
+        "title": "Title",
+        "nameLabel": "Name Label",
+        "namePlaceholder": "Name Placeholder",
+        "descLabel": "Desc Label",
+        "descPlaceholder": "Desc Placeholder",
+        "clientLabel": "Client Label",
+        "clientPlaceholder": "Client Placeholder"
+      },
+      "trigger": {
+        "title": "Title",
+        "desc": "Desc",
+        "eventLabel": "Event Label",
+        "eventPlaceholder": "Event Placeholder",
+        "events": {
+          "newAd": "New Ad",
+          "newGoogle": "New Google",
+          "addedGroup": "Added Group",
+          "removedGroup": "Removed Group"
+        },
+        "delayLabel": "Delay Label",
+        "delayUnit": "Delay Unit",
+        "delayHelper": "Delay Helper"
+      },
+      "conditions": {
+        "title": "Title",
+        "desc": "Desc",
+        "typeLabel": "Type Label",
+        "typePlaceholder": "Type Placeholder",
+        "types": {
+          "always": "Always",
+          "inGroup": "In Group",
+          "notInGroup": "Not In Group",
+          "inDepartment": "In Department",
+          "custom": "Custom"
+        },
+        "groupsInLabel": "Groups In Label",
+        "membersCount": "Members Count",
+        "groupsNotInLabel": "Groups Not In Label",
+        "warningHtml": "Warning Html",
+        "departmentLabel": "Department Label",
+        "departmentPlaceholder": "Department Placeholder",
+        "departments": {
+          "ti": "Ti",
+          "rh": "Rh",
+          "finance": "Finance",
+          "commercial": "Commercial",
+          "board": "Board",
+          "marketing": "Marketing"
+        }
+      },
+      "action": {
+        "title": "Title",
+        "desc": "Desc",
+        "templateLabel": "Template Label",
+        "templatePlaceholder": "Template Placeholder",
+        "helperText": "Helper Text"
+      },
+      "flowExample": {
+        "title": "Title",
+        "step1": {
+          "newAd": "New Ad",
+          "newGoogle": "New Google",
+          "empty": "Empty"
+        },
+        "step2": {
+          "inGroup": "In Group",
+          "notInGroup": "Not In Group",
+          "inDepartment": "In Department",
+          "always": "Always",
+          "empty": "Empty"
+        },
+        "step3": {
+          "text": "Text"
+        }
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "create": "Create"
+      }
     }
   },
   "settings": {
     "title": "Configurações",
-    "general": "Geral",
-    "security": "Segurança",
+    "general": {
+      "title": "Title",
+      "desc": "Desc",
+      "orgName": "Org Name",
+      "domain": "Domain",
+      "description": "Description",
+      "timezone": "Timezone",
+      "language": "Language",
+      "maintenance": "Maintenance",
+      "maintenanceDesc": "Maintenance Desc",
+      "autoArchive": "Auto Archive",
+      "autoArchiveDesc": "Auto Archive Desc"
+    },
+    "security": {
+      "title": "Title",
+      "desc": "Desc",
+      "2fa": "2fa",
+      "2faDesc": "2fa Desc",
+      "auditLogs": "Audit Logs",
+      "auditLogsDesc": "Audit Logs Desc",
+      "sessionTimeout": "Session Timeout",
+      "sessionTimeoutDesc": "Session Timeout Desc",
+      "whitelist": "Whitelist",
+      "whitelistDesc": "Whitelist Desc",
+      "passwordPolicy": "Password Policy",
+      "policyBasic": "Policy Basic",
+      "policyMedium": "Policy Medium",
+      "policyStrong": "Policy Strong"
+    },
     "email": "E-mail",
-    "notifications": "Notificações",
+    "notifications": {
+      "title": "Title",
+      "desc": "Desc",
+      "email": "Email",
+      "emailCreds": "Email Creds",
+      "emailCampaignDone": "Email Campaign Done",
+      "emailIntegrationFail": "Email Integration Fail",
+      "emailWeeklyReport": "Email Weekly Report",
+      "platform": "Platform",
+      "platformNewUsers": "Platform New Users",
+      "platformUpdates": "Platform Updates",
+      "platformAlerts": "Platform Alerts"
+    },
     "billing": "Faturamento",
     "companyName": "Nome da Empresa",
     "timezone": "Fuso Horário",
@@ -475,7 +1840,127 @@
     "smtpUsername": "Usuário SMTP",
     "smtpPassword": "Senha SMTP",
     "testConnection": "Testar Conexão",
-    "saveSuccess": "Configurações salvas com sucesso!"
+    "saveSuccess": "Configurações salvas com sucesso!",
+    "subtitle": "Gerencie as configurações e integrações da plataforma",
+    "tabs": {
+      "general": "General",
+      "smtp": "Smtp",
+      "syslog": "Syslog",
+      "integrations": "Integrations",
+      "security": "Security",
+      "notifications": "Notifications"
+    },
+    "buttons": {
+      "saving": "Saving",
+      "save": "Save",
+      "savePrefs": "Save Prefs"
+    },
+    "smtp": {
+      "title": "Configuração de E-mail (SMTP)",
+      "desc": "Configure o servidor SMTP para envio de e-mails de simulação de phishing",
+      "host": "Servidor SMTP",
+      "port": "Porta",
+      "user": "Usuário",
+      "pass": "Senha",
+      "from": "E-mail de Origem",
+      "encryption": "Criptografia",
+      "verified": "Conexão Verificada",
+      "lastTest": "Último teste: {{date}} às {{time}}",
+      "test": "Enviar E-mail de Teste",
+      "sendingMethod": "Método de Envio de E-mail",
+      "sendingMethodDesc": "Selecione como os e-mails de phishing serão enviados para este tenant.",
+      "method": "Método",
+      "methodClient": "SMTP do Cliente",
+      "methodGraph": "Microsoft Graph API",
+      "methodMaster": "SMTP da Tenant Master",
+      "masterDomain": "Domínio Autorizado",
+      "saveMethod": "Salvar Método",
+      "badgeClient": "Usando SMTP próprio",
+      "badgeGraph": "Usando Graph API",
+      "badgeMaster": "Usando SMTP Master",
+      "emailMethodSaved": "Método de envio salvo!",
+      "emailMethodSavedDesc": "A configuração de envio de e-mail foi atualizada",
+      "emailMethodError": "Erro ao salvar método de envio",
+      "selectTenant": "Selecione um cliente primeiro"
+    },
+    "syslog": {
+      "title": "Title",
+      "desc": "Desc",
+      "host": "Host",
+      "port": "Port",
+      "protocol": "Protocol",
+      "eventTypes": "Event Types",
+      "auditEvents": "Audit Events",
+      "auditEventsDesc": "Audit Events Desc",
+      "phishingEvents": "Phishing Events",
+      "phishingEventsDesc": "Phishing Events Desc",
+      "examples": "Examples",
+      "test": "Test"
+    },
+    "integrations": {
+      "m365": {
+        "title": "Title",
+        "desc": "Desc",
+        "tenantId": "Tenant Id",
+        "clientId": "Client Id",
+        "clientSecret": "Client Secret",
+        "clientSecretHolder": "Client Secret Holder",
+        "enableSync": "Enable Sync",
+        "enableSyncDesc": "Enable Sync Desc",
+        "autoSync": "Auto Sync",
+        "autoSyncDesc": "Auto Sync Desc",
+        "btnSync": "Btn Sync"
+      },
+      "statusConnected": "Status Connected",
+      "statusDisconnected": "Status Disconnected",
+      "azure": {
+        "allowedDomains": "Allowed Domains",
+        "allowedDomainsDesc": "Allowed Domains Desc",
+        "title": "Title",
+        "desc": "Desc",
+        "helpTitle": "Help Title",
+        "helpStep1": "Help Step1",
+        "helpStep2": "Help Step2",
+        "helpStep3": "Help Step3",
+        "helpStep4": "Help Step4",
+        "helpStep5": "Help Step5",
+        "helpStep6": "Help Step6",
+        "helpStep7": "Help Step7",
+        "helpStep8": "Help Step8",
+        "tenantId": "Tenant Id",
+        "tenantIdHint": "Tenant Id Hint",
+        "clientId": "Client Id",
+        "clientSecret": "Client Secret",
+        "clientSecretHint": "Client Secret Hint",
+        "permissions": "Permissions",
+        "permUser": "Perm User",
+        "permGroup": "Perm Group",
+        "permGroupMember": "Perm Group Member",
+        "permMail": "Perm Mail",
+        "enableSync": "Enable Sync",
+        "enableSyncDesc": "Enable Sync Desc",
+        "autoSync": "Auto Sync",
+        "autoSyncDesc": "Auto Sync Desc",
+        "btnTest": "Btn Test",
+        "btnSyncUsers": "Btn Sync Users",
+        "btnSyncGroups": "Btn Sync Groups"
+      },
+      "google": {
+        "title": "Title",
+        "desc": "Desc",
+        "serviceAccount": "Service Account",
+        "domain": "Domain",
+        "enableSync": "Enable Sync",
+        "enableSyncDesc": "Enable Sync Desc"
+      },
+      "keycloak": {
+        "title": "Title",
+        "desc": "Desc",
+        "activeNotice": "Active Notice",
+        "readonlyNotice": "Readonly Notice"
+      },
+      "statusActive": "Status Active"
+    }
   },
   "debug": {
     "title": "Modo Debug",
@@ -533,5 +2018,418 @@
     "subtitle": "Oops! A página que você está procurando não existe.",
     "goHome": "Voltar para o Dashboard",
     "description": "A página pode ter sido movida ou excluída."
+  },
+  "advancedDashboard": {
+    "title": "Dashboard Avançado",
+    "subtitle": "Análises e métricas detalhadas de segurança",
+    "filters": {
+      "last30days": "Últimos 30 dias"
+    },
+    "actions": {
+      "export": "Exportar"
+    },
+    "messages": {
+      "exportedTitle": "Relatório exportado!",
+      "exportedDesc": "O arquivo PDF foi baixado com sucesso"
+    },
+    "cards": {
+      "clickRate": {
+        "title": "Taxa de Cliques Global"
+      },
+      "captureRate": {
+        "title": "Taxa de Captura"
+      },
+      "criticalUsers": {
+        "title": "Usuários Críticos",
+        "desc": "Vulnerabilidade alta"
+      },
+      "completionRate": {
+        "title": "Taxa de Conclusão",
+        "desc": "Treinamentos concluídos"
+      },
+      "vsLastMonth": "vs. mês anterior"
+    },
+    "charts": {
+      "campaignTrends": {
+        "title": "Tendência de Campanhas",
+        "desc": "Métricas dos últimos 6 meses",
+        "sent": "E-mails Enviados",
+        "clicks": "Cliques",
+        "captures": "Capturas de Dados"
+      },
+      "vulnerabilityDistribution": {
+        "title": "Distribuição de Vulnerabilidade",
+        "desc": "Classificação dos usuários por risco"
+      },
+      "departmentAnalysis": {
+        "title": "Análise por Departamento",
+        "desc": "Vulnerabilidade vs. Conclusão de Treinamentos",
+        "vulnPercent": "Vulnerabilidade %",
+        "trainingsPercent": "Treinamentos %"
+      },
+      "heatmap": {
+        "title": "Mapa de Calor - Cliques por Horário",
+        "desc": "Horários com maior atividade de cliques",
+        "days": {
+          "mon": "Segunda",
+          "tue": "Terça",
+          "wed": "Quarta",
+          "thu": "Quinta",
+          "fri": "Sexta"
+        }
+      },
+      "topVulnerable": {
+        "title": "Top Vulneráveis",
+        "desc": "Usuários que mais clicaram",
+        "captures": "capturas"
+      }
+    },
+    "insights": {
+      "title": "Insights e Recomendações",
+      "item1": {
+        "title": "Taxa de Captura Alta no Departamento de Vendas",
+        "desc": "65% dos funcionários de vendas clicaram em links de phishing. Recomenda-se treinamento específico para este departamento."
+      },
+      "item2": {
+        "title": "Pico de Atividade entre 14h-16h",
+        "desc": "A maioria dos cliques ocorre após o almoço. Considere agendar campanhas para este horário."
+      },
+      "item3": {
+        "title": "Melhora Significativa no Departamento de TI",
+        "desc": "A vulnerabilidade do time de TI caiu de 35% para 18% após treinamentos. Ótimo resultado!"
+      }
+    }
+  },
+  "sources": {
+    "manual": "Manual",
+    "azure_ad": "Azure AD",
+    "entra_id": "Entra ID",
+    "office365": "Office 365",
+    "google_workspace": "Google Workspace",
+    "nested": "Grupo de Grupos"
+  },
+  "ai": {
+    "title": "IA - Gerador de Conteúdo",
+    "desc": "Use inteligência artificial para criar e analisar templates de phishing",
+    "providersConfigured": "{{count}} provider(s) configurado(s)",
+    "tabs": {
+      "generate": "Gerar Template",
+      "analyze": "Analisar Template",
+      "settings": "Provedores IA"
+    },
+    "providers": {
+      "label": "Provedor de IA",
+      "auto": "Auto (primeiro disponível)",
+      "configured": "✅",
+      "notConfigured": "❌ (não configurado)",
+      "modelLabel": "Modelo",
+      "modelPlaceholder": "Modelo padrão",
+      "selectFirst": "Selecione um provedor primeiro",
+      "settingsTitle": "Configuração de Provedores",
+      "settingsDesc": "Configure as chaves de API dos provedores de IA. As chaves são armazenadas de forma segura no banco de dados.",
+      "modelsAvailable": "{{count}} modelo(s) disponível(is)",
+      "statusConfigured": "Configurado",
+      "statusPending": "Pendente",
+      "addKeys": "Adicionar/Atualizar Chaves",
+      "saveKeys": "Salvar Chaves de API",
+      "saving": "Salvando...",
+      "openAiKey": "Chave de API OpenAI",
+      "anthropicKey": "Chave de API Anthropic",
+      "geminiKey": "Chave de API Google Gemini",
+      "minimaxKey": "Chave de API Minimax",
+      "openRouterKey": "Chave de API OpenRouter"
+    },
+    "generate": {
+      "title": "Configurações",
+      "desc": "Configure os parâmetros para gerar um template personalizado",
+      "categoryLabel": "Categoria",
+      "difficultyLabel": "Dificuldade",
+      "languageLabel": "Idioma",
+      "customInstructions": "Instruções Personalizadas (opcional)",
+      "customPlaceholder": "Ex: Incluir referência a Black Friday, usar tom mais urgente...",
+      "btnGenerating": "Gerando...",
+      "btnGenerate": "Gerar Template com IA",
+      "resultTitle": "Template Gerado",
+      "resultDesc": "Resultado da geração com inteligência artificial",
+      "subject": "Assunto",
+      "body": "Corpo",
+      "tips": "Dicas de Identificação",
+      "viaProvider": "via {{provider}}",
+      "saveAsTemplate": "Salvar como Template",
+      "emptyState": "Configure e clique em \"Gerar\" para criar um template",
+      "languages": {
+        "pt": "Português (BR)",
+        "en": "English",
+        "es": "Español"
+      },
+      "categories": {
+        "banking": "Bancário",
+        "hr": "Recursos Humanos",
+        "it": "TI / Segurança",
+        "delivery": "Entrega",
+        "finance": "Finanças",
+        "social": "Redes Sociais",
+        "cloud": "Cloud / SaaS"
+      }
+    },
+    "analyze": {
+      "title": "Seu Template",
+      "desc": "Cole o template que você deseja analisar",
+      "subjectLabel": "Assunto do E-mail",
+      "subjectPlaceholder": "Ex: Ação Necessária: Confirme sua Conta",
+      "bodyLabel": "Corpo do E-mail",
+      "bodyPlaceholder": "Cole o HTML ou texto do e-mail aqui...",
+      "btnAnalyzing": "Analisando...",
+      "btnAnalyze": "Analisar com IA",
+      "resultTitle": "Análise",
+      "resultDesc": "Insights e recomendações da IA",
+      "viaProvider": "Análise via {{provider}}",
+      "urgency": "Urgência",
+      "trust": "Confiança",
+      "effectiveness": "Efetividade",
+      "strengths": "Pontos Fortes",
+      "weaknesses": "Pontos Fracos",
+      "suggestions": "Sugestões de Melhoria",
+      "detection": "Indicadores de Detecção",
+      "emptyState": "Insira um template e clique em \"Analisar\""
+    },
+    "messages": {
+      "keysSaved": "Chaves de API salvas com sucesso!",
+      "keysSaveError": "Erro ao salvar chaves de API",
+      "selectParams": "Selecione categoria e dificuldade",
+      "generatedVia": "Template gerado via {{provider}}!",
+      "generateError": "Erro ao gerar template",
+      "fillFields": "Preencha o assunto e o corpo do e-mail",
+      "analysisComplete": "Análise concluída!",
+      "analyzeError": "Erro ao analisar template",
+      "fallbackLocal": "Fallback Local"
+    },
+    "scores": {
+      "excellent": "Excelente",
+      "good": "Bom",
+      "needsImprovement": "Precisa Melhorar"
+    }
+  },
+  "targetsImport": {
+    "title": "Importar Alvos",
+    "subtitle": "Importe alvos via CSV/Excel ou integrações",
+    "btnDownloadTemplate": "Baixar Template",
+    "tabs": {
+      "file": "Arquivo CSV/Excel",
+      "microsoft": "Microsoft 365",
+      "google": "Google Workspace"
+    },
+    "file": {
+      "uploadTitle": "Upload de Arquivo",
+      "uploadDesc": "Faça upload de um arquivo CSV ou Excel (.xlsx, .xls) com os dados dos alvos",
+      "dropArea": "Clique para selecionar ou arraste o arquivo aqui",
+      "dropHint": "Formatos aceitos: CSV, XLSX, XLS",
+      "removeFile": "Remover arquivo",
+      "guideTitle": "Formato do Arquivo",
+      "guideDesc": "O arquivo deve conter as seguintes colunas:",
+      "colEmail": "(obrigatório) - Endereço de e-mail do alvo",
+      "colName": "(opcional) - Nome completo",
+      "colDept": "(opcional) - Departamento",
+      "colPos": "(opcional) - Cargo/Função",
+      "processing": "Processando arquivo...",
+      "btnProcess": "Processar Arquivo"
+    },
+    "stats": {
+      "total": "Total",
+      "valid": "Válidos",
+      "warnings": "Avisos",
+      "errors": "Erros",
+      "duplicates": "Duplicados"
+    },
+    "options": {
+      "title": "Opções de Importação",
+      "groupSelect": "Grupo de Destino",
+      "groupSelectHolder": "Selecione um grupo...",
+      "createGroup": "Criar novo grupo"
+    },
+    "preview": {
+      "title": "Prévia dos Dados",
+      "desc": "Revise os dados antes de importar",
+      "count": "({{count}} registros)",
+      "cols": {
+        "email": "Email",
+        "name": "Nome",
+        "dept": "Departamento",
+        "pos": "Cargo",
+        "status": "Status"
+      },
+      "status": {
+        "valid": "Válido",
+        "warning": "Aviso",
+        "error": "Erro"
+      }
+    },
+    "actions": {
+      "cancel": "Cancelar",
+      "btnImport": "Importar {{count}} Alvos"
+    },
+    "integration": {
+      "titleM365": "Sincronização com Microsoft 365",
+      "descM365": "Importe usuários diretamente do Azure Active Directory",
+      "titleGoogle": "Sincronização com Google Workspace",
+      "descGoogle": "Importe usuários diretamente do Google Workspace",
+      "devTitle": "Funcionalidade em Desenvolvimento",
+      "devDescM365": "A integração com Microsoft 365 / Azure AD está em desenvolvimento. Em breve você poderá sincronizar alvos automaticamente.",
+      "devDescGoogle": "A integração com Google Workspace está em desenvolvimento. Em breve você poderá sincronizar alvos automaticamente.",
+      "statusTitle": "Status da Conexão",
+      "statusNotConnected": "Não conectado",
+      "btnM365": "Conectar Microsoft 365",
+      "btnGoogle": "Conectar Google Workspace"
+    },
+    "messages": {
+      "invalidFormat": "Formato de arquivo inválido",
+      "invalidFormatDesc": "Por favor, selecione um arquivo CSV ou Excel (.xlsx, .xls)",
+      "fileSelected": "Arquivo selecionado",
+      "noFile": "Nenhum arquivo selecionado",
+      "processSuccess": "Arquivo processado com sucesso",
+      "processSuccessDesc": "{{count}} registros válidos encontrados",
+      "processError": "Erro ao processar arquivo",
+      "noValidRecords": "Nenhum registro válido para importar",
+      "importSuccess": "Importação concluída!",
+      "importSuccessDesc": "{{count}} alvos importados com sucesso",
+      "templateDownloaded": "Template baixado com sucesso"
+    }
+  },
+  "style": "Style",
+  "name": "Name",
+  "description": "Description",
+  "delay": "Delay",
+  "\\n": "\\n",
+  "audit": {
+    "exportSuccessTitle": "Export Success Title",
+    "exportSuccessDesc": "Export Success Desc",
+    "syslogSuccessTitle": "Syslog Success Title",
+    "syslogSuccessDesc": "Syslog Success Desc",
+    "categories": {
+      "auth": "Auth",
+      "user": "User",
+      "campaign": "Campaign",
+      "system": "System",
+      "security": "Security"
+    },
+    "status": {
+      "success": "Success",
+      "failure": "Failure",
+      "warning": "Warning"
+    },
+    "title": "Title",
+    "subtitle": "Subtitle",
+    "btnSyslog": "Btn Syslog",
+    "btnExport": "Btn Export",
+    "stats": {
+      "total": "Total",
+      "success": "Success",
+      "failures": "Failures",
+      "warnings": "Warnings"
+    },
+    "filters": {
+      "search": "Search",
+      "category": "Category",
+      "allCategories": "All Categories",
+      "status": "Status",
+      "allStatus": "All Status"
+    },
+    "table": {
+      "title": "Title",
+      "desc": "Desc",
+      "colDate": "Col Date",
+      "colUser": "Col User",
+      "colAction": "Col Action",
+      "colCategory": "Col Category",
+      "colDetails": "Col Details",
+      "colStatus": "Col Status",
+      "noLogsData": "No Logs Data"
+    }
+  },
+  "org-name": "Org-name",
+  "org-domain": "Org-domain",
+  "org-description": "Org-description",
+  "timezone": "Timezone",
+  "language": "Language",
+  "smtp-host": "Smtp-host",
+  "smtp-port": "Smtp-port",
+  "smtp-user": "Smtp-user",
+  "smtp-password": "Smtp-password",
+  "smtp-from": "Smtp-from",
+  "smtp-encryption": "Smtp-encryption",
+  "syslog-host": "Syslog-host",
+  "syslog-port": "Syslog-port",
+  "syslog-protocol": "Syslog-protocol",
+  "syslog-facility": "Syslog-facility",
+  "ms-allowed-domains": "Ms-allowed-domains",
+  "ms-tenant-id": "Ms-tenant-id",
+  "ms-client-id": "Ms-client-id",
+  "ms-client-secret": "Ms-client-secret",
+  "google-service-account": "Google-service-account",
+  "google-domain": "Google-domain",
+  "azure-tenant-id": "Azure-tenant-id",
+  "azure-client-id": "Azure-client-id",
+  "azure-client-secret": "Azure-client-secret",
+  "azure-allowed-domains": "Azure-allowed-domains",
+  "a": "A",
+  "gamification": {
+    "title": "Gamificação",
+    "subtitle": "Engajamento e Conquistas dos Colaboradores",
+    "stats": {
+      "level": "Nível {{level}}",
+      "points": "{{current}} pontos • Faltam {{next}} para o próximo nível"
+    },
+    "achievements": {
+      "title": "Conquistas",
+      "desc": "Resumo do seu progresso",
+      "unlocked": "{{total}} medalhas possíveis"
+    },
+    "badges": {
+      "title": "Suas Medalhas",
+      "desc": "Conquistas alcançadas baseadas no seu desempenho de segurança",
+      "firstCampaign": {
+        "name": "Primeiro Alerta",
+        "desc": "Completou a primeira simulação com sucesso"
+      },
+      "perfectMonth": {
+        "name": "Mês Impecável",
+        "desc": "Nenhuma falha de segurança no mês passado"
+      },
+      "eagleEye": {
+        "name": "Olho de Águia",
+        "desc": "Reportou 5 phishings simulados consecutivos"
+      },
+      "masterTrainer": {
+        "name": "Mestre Guardião",
+        "desc": "Concluiu todos os treinamentos do semestre"
+      },
+      "champion": {
+        "name": "Campeão de Segurança",
+        "desc": "Melhor pontuação do departamento no trimestre"
+      },
+      "earnedOn": "Conquistada em {{date}}",
+      "locked": "Bloqueada"
+    },
+    "rankings": {
+      "title": "Ranking do Departamento",
+      "desc": "Classificação de conscientização em segurança da informação",
+      "avoided": "{{count}} ataques evitados",
+      "failed": "{{count}} falhas",
+      "points": "pontos",
+      "empty": "Nenhum ranking disponível",
+      "emptyHint": "Execute testes para gerar ranking"
+    },
+    "challenges": {
+      "title": "Desafios Ativos",
+      "desc": "Complete os desafios abaixo para ganhar mais pontos no mês",
+      "reward": "Recompensa: {{points}} pontos",
+      "progress": "{{current}} de {{total}} para concluir",
+      "createCampaign": {
+        "title": "Missão: Alerta Máximo"
+      },
+      "avoidPhishing": {
+        "title": "Missão: Barreira Intransponível"
+      }
+    }
   }
 }

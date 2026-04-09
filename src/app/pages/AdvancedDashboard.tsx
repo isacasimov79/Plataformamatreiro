@@ -99,8 +99,8 @@ export function AdvancedDashboard() {
   const { t } = useTranslation();
 
   const handleExport = () => {
-    toast.success('Relatório exportado!', {
-      description: 'O arquivo PDF foi baixado com sucesso',
+    toast.success(t('advancedDashboard.messages.exportedTitle'), {
+      description: t('advancedDashboard.messages.exportedDesc'),
     });
   };
 
@@ -111,20 +111,20 @@ export function AdvancedDashboard() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              Dashboard Avançado
+              {t('advancedDashboard.title')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
-              Análises e métricas detalhadas de segurança
+              {t('advancedDashboard.subtitle')}
             </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline">
               <Calendar className="w-4 h-4 mr-2" />
-              Últimos 30 dias
+              {t('advancedDashboard.filters.last30days')}
             </Button>
             <Button onClick={handleExport} className="bg-[#834a8b] hover:bg-[#6d3d75]">
               <Download className="w-4 h-4 mr-2" />
-              Exportar
+              {t('advancedDashboard.actions.export')}
             </Button>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function AdvancedDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
               <Mail className="w-4 h-4" />
-              Taxa de Cliques Global
+              {t('advancedDashboard.cards.clickRate.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -147,7 +147,7 @@ export function AdvancedDashboard() {
                 +5.3%
               </Badge>
             </div>
-            <p className="text-xs text-gray-500 mt-2">vs. mês anterior</p>
+            <p className="text-xs text-gray-500 mt-2">{t('advancedDashboard.cards.vsLastMonth')}</p>
           </CardContent>
         </Card>
 
@@ -155,7 +155,7 @@ export function AdvancedDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
               <Target className="w-4 h-4" />
-              Taxa de Captura
+              {t('advancedDashboard.cards.captureRate.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -166,7 +166,7 @@ export function AdvancedDashboard() {
                 +2.8%
               </Badge>
             </div>
-            <p className="text-xs text-gray-500 mt-2">vs. mês anterior</p>
+            <p className="text-xs text-gray-500 mt-2">{t('advancedDashboard.cards.vsLastMonth')}</p>
           </CardContent>
         </Card>
 
@@ -174,7 +174,7 @@ export function AdvancedDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Usuários Críticos
+              {t('advancedDashboard.cards.criticalUsers.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -185,7 +185,7 @@ export function AdvancedDashboard() {
                 -12
               </Badge>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Vulnerabilidade alta</p>
+            <p className="text-xs text-gray-500 mt-2">{t('advancedDashboard.cards.criticalUsers.desc')}</p>
           </CardContent>
         </Card>
 
@@ -193,7 +193,7 @@ export function AdvancedDashboard() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-600 flex items-center gap-2">
               <Award className="w-4 h-4" />
-              Taxa de Conclusão
+              {t('advancedDashboard.cards.completionRate.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -204,7 +204,7 @@ export function AdvancedDashboard() {
                 +8.2%
               </Badge>
             </div>
-            <p className="text-xs text-gray-500 mt-2">Treinamentos concluídos</p>
+            <p className="text-xs text-gray-500 mt-2">{t('advancedDashboard.cards.completionRate.desc')}</p>
           </CardContent>
         </Card>
       </div>
@@ -214,8 +214,8 @@ export function AdvancedDashboard() {
         {/* Campaign Trends */}
         <Card>
           <CardHeader>
-            <CardTitle>Tendência de Campanhas</CardTitle>
-            <CardDescription>Métricas dos últimos 6 meses</CardDescription>
+            <CardTitle>{t('advancedDashboard.charts.campaignTrends.title')}</CardTitle>
+            <CardDescription>{t('advancedDashboard.charts.campaignTrends.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -246,7 +246,7 @@ export function AdvancedDashboard() {
                   stroke="#3b82f6"
                   strokeWidth={2}
                   fill="url(#colorEnviados)"
-                  name="E-mails Enviados"
+                  name={t('advancedDashboard.charts.campaignTrends.sent')}
                 />
                 <Area
                   key="area-cliques"
@@ -255,7 +255,7 @@ export function AdvancedDashboard() {
                   stroke="#f59e0b"
                   strokeWidth={2}
                   fill="url(#colorCliques)"
-                  name="Cliques"
+                  name={t('advancedDashboard.charts.campaignTrends.clicks')}
                 />
                 <Area
                   key="area-capturas"
@@ -264,7 +264,7 @@ export function AdvancedDashboard() {
                   stroke="#ef4444"
                   strokeWidth={2}
                   fill="url(#colorCapturas)"
-                  name="Capturas de Dados"
+                  name={t('advancedDashboard.charts.campaignTrends.captures')}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -274,8 +274,8 @@ export function AdvancedDashboard() {
         {/* User Vulnerability Distribution */}
         <Card>
           <CardHeader>
-            <CardTitle>Distribuição de Vulnerabilidade</CardTitle>
-            <CardDescription>Classificação dos usuários por risco</CardDescription>
+            <CardTitle>{t('advancedDashboard.charts.vulnerabilityDistribution.title')}</CardTitle>
+            <CardDescription>{t('advancedDashboard.charts.vulnerabilityDistribution.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -304,21 +304,21 @@ export function AdvancedDashboard() {
       {/* Department Analysis */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Análise por Departamento</CardTitle>
+          <CardTitle>{t('advancedDashboard.charts.departmentAnalysis.title')}</CardTitle>
           <CardDescription>
-            Vulnerabilidade vs. Conclusão de Treinamentos
+            {t('advancedDashboard.charts.departmentAnalysis.desc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={departmentData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="department" stroke="#6b7280" />
-              <YAxis stroke="#6b7280" />
+              <XAxis dataKey="department" stroke="#6b7280" angle={-45} textAnchor="end" height={100} tick={{ fontSize: 11 }} tickMargin={10} interval={0} />
+              <YAxis stroke="#6b7280" width={40} />
               <Tooltip />
               <Legend />
-              <Bar key="bar-vulnerabilidade" dataKey="vulnerabilidade" fill="#ef4444" name="Vulnerabilidade %" />
-              <Bar key="bar-treinamentos" dataKey="treinamentos" fill="#10b981" name="Treinamentos %" />
+              <Bar key="bar-vulnerabilidade" dataKey="vulnerabilidade" fill="#ef4444" name={t('advancedDashboard.charts.departmentAnalysis.vulnPercent')} />
+              <Bar key="bar-treinamentos" dataKey="treinamentos" fill="#10b981" name={t('advancedDashboard.charts.departmentAnalysis.trainingsPercent')} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
@@ -331,9 +331,9 @@ export function AdvancedDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Mapa de Calor - Cliques por Horário
+              {t('advancedDashboard.charts.heatmap.title')}
             </CardTitle>
-            <CardDescription>Horários com maior atividade de cliques</CardDescription>
+            <CardDescription>{t('advancedDashboard.charts.heatmap.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -343,11 +343,11 @@ export function AdvancedDashboard() {
                 <YAxis stroke="#6b7280" />
                 <Tooltip />
                 <Legend />
-                <Line key="line-seg" type="monotone" dataKey="seg" stroke="#3b82f6" name="Segunda" />
-                <Line key="line-ter" type="monotone" dataKey="ter" stroke="#10b981" name="Terça" />
-                <Line key="line-qua" type="monotone" dataKey="qua" stroke="#f59e0b" name="Quarta" />
-                <Line key="line-qui" type="monotone" dataKey="qui" stroke="#8b5cf6" name="Quinta" />
-                <Line key="line-sex" type="monotone" dataKey="sex" stroke="#ef4444" name="Sexta" />
+                <Line key="line-seg" type="monotone" dataKey="seg" stroke="#3b82f6" name={t('advancedDashboard.charts.heatmap.days.mon')} />
+                <Line key="line-ter" type="monotone" dataKey="ter" stroke="#10b981" name={t('advancedDashboard.charts.heatmap.days.tue')} />
+                <Line key="line-qua" type="monotone" dataKey="qua" stroke="#f59e0b" name={t('advancedDashboard.charts.heatmap.days.wed')} />
+                <Line key="line-qui" type="monotone" dataKey="qui" stroke="#8b5cf6" name={t('advancedDashboard.charts.heatmap.days.thu')} />
+                <Line key="line-sex" type="monotone" dataKey="sex" stroke="#ef4444" name={t('advancedDashboard.charts.heatmap.days.fri')} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -358,9 +358,9 @@ export function AdvancedDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShieldAlert className="w-5 h-5 text-red-600" />
-              Top Vulneráveis
+              {t('advancedDashboard.charts.topVulnerable.title')}
             </CardTitle>
-            <CardDescription>Usuários que mais clicaram</CardDescription>
+            <CardDescription>{t('advancedDashboard.charts.topVulnerable.desc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -380,7 +380,7 @@ export function AdvancedDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-red-600">{user.rate}%</p>
-                    <p className="text-xs text-gray-500">{user.captures} capturas</p>
+                    <p className="text-xs text-gray-500">{user.captures} {t('advancedDashboard.charts.topVulnerable.captures')}</p>
                   </div>
                 </div>
               ))}
@@ -394,7 +394,7 @@ export function AdvancedDashboard() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-600" />
-            Insights e Recomendações
+            {t('advancedDashboard.insights.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -404,11 +404,10 @@ export function AdvancedDashboard() {
                 <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-red-900">
-                    Taxa de Captura Alta no Departamento de Vendas
+                    {t('advancedDashboard.insights.item1.title')}
                   </h4>
                   <p className="text-sm text-red-700 mt-1">
-                    65% dos funcionários de vendas clicaram em links de phishing. Recomenda-se
-                    treinamento específico para este departamento.
+                    {t('advancedDashboard.insights.item1.desc')}
                   </p>
                 </div>
               </div>
@@ -419,11 +418,10 @@ export function AdvancedDashboard() {
                 <Clock className="w-5 h-5 text-orange-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-orange-900">
-                    Pico de Atividade entre 14h-16h
+                    {t('advancedDashboard.insights.item2.title')}
                   </h4>
                   <p className="text-sm text-orange-700 mt-1">
-                    A maioria dos cliques ocorre após o almoço. Considere agendar campanhas
-                    para este horário.
+                    {t('advancedDashboard.insights.item2.desc')}
                   </p>
                 </div>
               </div>
@@ -434,11 +432,10 @@ export function AdvancedDashboard() {
                 <Award className="w-5 h-5 text-green-600 mt-0.5" />
                 <div>
                   <h4 className="font-semibold text-green-900">
-                    Melhora Significativa no Departamento de TI
+                    {t('advancedDashboard.insights.item3.title')}
                   </h4>
                   <p className="text-sm text-green-700 mt-1">
-                    A vulnerabilidade do time de TI caiu de 35% para 18% após treinamentos.
-                    Ótimo resultado!
+                    {t('advancedDashboard.insights.item3.desc')}
                   </p>
                 </div>
               </div>

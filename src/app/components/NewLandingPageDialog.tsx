@@ -20,7 +20,7 @@ import {
 } from './ui/select';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import * as supabaseApi from '../lib/supabaseApi';
+import * as apiLocal from '../lib/apiLocal';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NewLandingPageDialogProps {
@@ -63,7 +63,7 @@ export function NewLandingPageDialog({
       const jsContent = generateJsFromTemplate();
 
       // Criar landing page no banco
-      const newLandingPage = await supabaseApi.createLandingPage({
+      const newLandingPage = await apiLocal.createLandingPage({
         tenantId: impersonatedTenant?.id || null,
         name: formData.name,
         description: formData.description,

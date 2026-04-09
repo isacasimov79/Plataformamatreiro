@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def execute_campaign(self, campaign_id):
-    """Send all emails for a campaign (batched, rate-limited)."""
+    """Send all emails for a campaign via Graph API or SMTP."""
     from campaigns.models import Campaign, CampaignEvent, Target
     from templates.models import EmailTemplate
     from tenants.models_settings import TenantSettings
@@ -34,25 +34,54 @@ def execute_campaign(self, campaign_id):
     # Get targets
     targets = []
     if campaign.target_list:
-        targets = Target.objects.filter(id__in=campaign.target_list, status='active')
+        targets = list(Target.objects.filter(id__in=campaign.target_list, status='active'))
     elif campaign.tenant:
-        targets = Target.objects.filter(tenant=campaign.tenant, status='active')
+        targets = list(Target.objects.filter(tenant=campaign.tenant, status='active'))
 
     if not targets:
         logger.warning(f"Campaign {campaign_id} has no targets")
         return {'sent': 0}
-
-    # Get SMTP config for tenant
-    smtp_config = _get_smtp_config(campaign.tenant)
-    if not smtp_config:
-        logger.error(f"No SMTP configured for tenant {campaign.tenant}")
-        return {'error': 'SMTP not configured'}
 
     # Get phishing domain
     phishing_base = 'http://localhost:8080'
     if template.phishing_domain:
         domain = template.phishing_domain.domain
         phishing_base = f"https://{domain}" if template.phishing_domain.ssl_enabled else f"http://{domain}"
+
+    # Determine sending method based on tenant configuration
+    try:
+        tenant_settings = TenantSettings.objects.get(tenant=campaign.tenant)
+        sending_method = tenant_settings.email_sending_method
+    except TenantSettings.DoesNotExist:
+        sending_method = 'smtp_client'  # fallback
+        tenant_settings = None
+
+    graph_client = None
+    smtp_config = None
+
+    if sending_method == 'graph_api':
+        graph_client = _get_graph_client(campaign.tenant)
+        if not graph_client:
+            logger.error(f"Graph API selected but not configured for tenant {campaign.tenant}")
+            return {'error': 'Graph API not configured'}
+    elif sending_method == 'smtp_master':
+        # Use parent tenant's (master) SMTP config
+        master_tenant = campaign.tenant.parent_tenant if campaign.tenant.parent_tenant else campaign.tenant
+        smtp_config = _get_smtp_config(master_tenant)
+        if not smtp_config:
+            logger.error(f"Master SMTP selected but not configured")
+            return {'error': 'Master SMTP not configured'}
+    else:  # smtp_client (default)
+        smtp_config = _get_smtp_config(campaign.tenant)
+        if not smtp_config:
+            # Fallback: try Graph API
+            graph_client = _get_graph_client(campaign.tenant)
+
+    from_email = _get_from_email(campaign.tenant, graph_client, smtp_config)
+
+    if not graph_client and not smtp_config:
+        logger.error(f"No sending method configured for tenant {campaign.tenant}")
+        return {'error': 'No Graph API or SMTP configured. Configure email sending in tenant settings.'}
 
     # Update campaign status
     campaign.status = 'active'
@@ -69,17 +98,26 @@ def execute_campaign(self, campaign_id):
             # Build email HTML with tracking
             html = _inject_tracking(template.body_html, token, phishing_base)
 
-            # Send email
-            _send_email(
-                smtp_config=smtp_config,
-                to_email=target.email,
-                to_name=f"{target.first_name} {target.last_name}".strip(),
-                subject=template.subject,
-                html_body=html,
-                text_body=template.body_text or '',
-            )
+            # Send via Graph API or SMTP
+            if graph_client:
+                result = graph_client.send_mail(
+                    from_email=from_email,
+                    to_email=target.email,
+                    subject=template.subject,
+                    body_html=html,
+                )
+                if not result.get('success'):
+                    raise Exception(result.get('error', 'Graph send failed'))
+            else:
+                _send_email(
+                    smtp_config=smtp_config,
+                    to_email=target.email,
+                    to_name=f"{target.first_name} {target.last_name}".strip(),
+                    subject=template.subject,
+                    html_body=html,
+                    text_body=template.body_text or '',
+                )
 
-            # Record sent event
             CampaignEvent.objects.create(
                 campaign=campaign,
                 event_type='sent',
@@ -99,7 +137,9 @@ def execute_campaign(self, campaign_id):
     # Update campaign counters
     campaign.emails_sent = sent_count
     campaign.target_count = len(targets)
-    campaign.save(update_fields=['emails_sent', 'target_count'])
+    if sent_count == len(targets):
+        campaign.status = 'completed'
+    campaign.save(update_fields=['emails_sent', 'target_count', 'status'])
 
     logger.info(f"Campaign {campaign_id} sent {sent_count}/{len(targets)} emails")
     return {'sent': sent_count, 'total': len(targets)}
@@ -208,9 +248,75 @@ def evaluate_automations():
     return {'evaluated': automations.count(), 'fired': fired}
 
 
+@shared_task
+def sync_all_azure_tenants():
+    """Periodic task to sync Azure AD users for all tenants that have it configured."""
+    from tenants.models_settings import TenantSettings
+
+    tenants_with_azure = TenantSettings.objects.filter(
+        azure_auto_sync=True,
+    ).exclude(azure_tenant_id='').exclude(azure_client_id='')
+
+    results = []
+    for ts in tenants_with_azure:
+        result = sync_azure_ad.delay(ts.tenant_id)
+        results.append({'tenant_id': ts.tenant_id, 'task_id': str(result.id)})
+
+    logger.info(f"Queued Azure AD sync for {len(results)} tenants")
+    return {'queued': len(results), 'tenants': results}
+
 # =====================================================
 # HELPER FUNCTIONS
 # =====================================================
+
+def _get_graph_client(tenant):
+    """Get Microsoft Graph client for sending emails, from tenant or system settings."""
+    from tenants.models_settings import TenantSettings
+    from core.models_system_settings import SystemSettings
+    from matreiro.microsoft_graph import MicrosoftGraphClient
+
+    # Try tenant-level Azure settings first
+    if tenant:
+        try:
+            ts = TenantSettings.objects.get(tenant=tenant)
+            if ts.azure_tenant_id and ts.azure_client_id and ts.azure_client_secret:
+                return MicrosoftGraphClient(
+                    ts.azure_tenant_id, ts.azure_client_id, ts.get_azure_client_secret()
+                )
+        except TenantSettings.DoesNotExist:
+            pass
+
+    # Fall back to system integration settings
+    integrations = SystemSettings.get_value('integrations', {})
+    o365 = integrations.get('microsoft365', {})
+    if o365.get('tenantId') and o365.get('clientId') and o365.get('clientSecret'):
+        return MicrosoftGraphClient(
+            o365['tenantId'], o365['clientId'], o365['clientSecret']
+        )
+    return None
+
+
+def _get_from_email(tenant, graph_client=None, smtp_config=None):
+    """Determine the from_email address."""
+    from tenants.models_settings import TenantSettings
+    from core.models_system_settings import SystemSettings
+
+    # Try tenant settings
+    if tenant:
+        try:
+            ts = TenantSettings.objects.get(tenant=tenant)
+            if ts.smtp_from_email:
+                return ts.smtp_from_email
+        except TenantSettings.DoesNotExist:
+            pass
+
+    # From SMTP config
+    if smtp_config and smtp_config.get('from_email'):
+        return smtp_config['from_email']
+
+    # Fallback
+    return 'noreply@matreiro.com'
+
 
 def _get_smtp_config(tenant):
     """Get SMTP config for a tenant, falling back to system defaults."""

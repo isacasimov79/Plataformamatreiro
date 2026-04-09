@@ -35,37 +35,39 @@ import {
   Menu,
   X,
   ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import { LanguageSelector } from './LanguageSelector';
 import { ThemeToggle } from './ThemeToggle';
 import { NotificationCenter } from './NotificationCenter';
-import { getTenants } from '../lib/supabaseApi';
+import { getTenants } from '../lib/apiLocal';
 
 const navigationSections = [
   {
-    title: 'Monitoramento',
+    titleKey: 'nav.sections.monitoring',
     items: [
       { nameKey: 'nav.dashboard', href: '/', icon: LayoutDashboard },
       { nameKey: 'nav.analytics', href: '/analytics', icon: TrendingUp },
-      { nameKey: 'Analytics Avançado', href: '/enhanced-analytics', icon: BarChart3, badge: 'NEW' },
+      { nameKey: 'nav.advancedAnalytics', href: '/enhanced-analytics', icon: BarChart3, badge: 'NEW' },
       { nameKey: 'nav.reports', href: '/reports', icon: BarChart3 },
     ]
   },
   {
-    title: 'Conscientização',
+    titleKey: 'nav.sections.awareness',
     items: [
       { nameKey: 'nav.campaigns', href: '/campaigns', icon: Mail },
       { nameKey: 'nav.templates', href: '/templates', icon: FileText },
-      { nameKey: 'Biblioteca Templates', href: '/template-library', icon: FileText, badge: 'NEW' },
-      { nameKey: 'Gerador IA', href: '/ai-generator', icon: Zap, badge: 'NEW' },
+      { nameKey: 'nav.templateLibrary', href: '/template-library', icon: FileText, badge: 'NEW' },
+      { nameKey: 'nav.aiGenerator', href: '/ai-generator', icon: Zap, badge: 'NEW' },
       { nameKey: 'nav.trainings', href: '/trainings', icon: GraduationCap },
-      { nameKey: 'Gamificação', href: '/gamification', icon: Award, badge: 'NEW' },
+      { nameKey: 'nav.gamification', href: '/gamification', icon: Award, badge: 'NEW' },
       { nameKey: 'nav.certificates', href: '/certificates', icon: Award },
     ]
   },
   {
-    title: 'Gestão de Alvos',
+    titleKey: 'nav.sections.targetManagement',
     items: [
       { nameKey: 'nav.tenants', href: '/tenants', icon: Building2, requiresSuperAdmin: true },
       { nameKey: 'nav.targets', href: '/targets', icon: Target },
@@ -74,7 +76,7 @@ const navigationSections = [
     ]
   },
   {
-    title: 'Configuração',
+    titleKey: 'nav.sections.configuration',
     items: [
       { nameKey: 'nav.systemUsers', href: '/system-users', icon: UserCog },
       { nameKey: 'nav.permissions', href: '/permissions', icon: Shield, requiresSuperAdmin: true },
@@ -92,6 +94,9 @@ export function Layout() {
   const navigate = useNavigate();
   const { user, impersonatedTenant, logout, impersonateTenant } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('matreiro-sidebar-collapsed') === 'true';
+  });
   const { t } = useTranslation();
   const [tenants, setTenants] = useState<any[]>([]);
 
@@ -100,6 +105,10 @@ export function Layout() {
       loadTenants();
     }
   }, [user]);
+
+  useEffect(() => {
+    localStorage.setItem('matreiro-sidebar-collapsed', String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   const loadTenants = async () => {
     try {
@@ -117,6 +126,10 @@ export function Layout() {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
   return (
@@ -144,83 +157,111 @@ export function Layout() {
 
       {/* Sidebar */}
       <aside
+        data-sidebar
         className={`
+          text-[#b0b1d0]
           fixed lg:static inset-y-0 left-0 z-40
-          w-64 bg-[#242545] border-r border-[#3a3a5e] flex flex-col shadow-2xl
-          transform transition-transform duration-300 ease-in-out
+          ${isSidebarCollapsed ? 'w-[68px]' : 'w-64'} 
+          bg-[#242545] border-r border-[#3a3a5e] flex flex-col shadow-2xl
+          transform transition-all duration-300 ease-in-out
           ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        <div className="h-16 flex items-center justify-center px-6 border-b border-[#3a3a5e] bg-white">
-          <div className="flex items-center gap-2">
-            <img src={logoMatreiro} alt="Matreiro" className="h-7" />
-            <span className="text-xl font-bold text-[#242545]">Matreiro</span>
-          </div>
-        </div>
-
-        <div className="p-4 border-b border-[#3a3a5e] bg-[#2d2d51]/50">
-          <div className="mb-3">
-            <div className="text-sm font-semibold text-white truncate">{user?.name}</div>
-            <div className="text-[11px] text-gray-400 truncate opacity-80">{user?.email}</div>
-            {user?.isSuperadmin && (
-              <Badge className="mt-2 text-[10px] bg-[#9D4B97] hover:bg-[#b058aa] text-white border-0 py-0 h-4">
-                Administrador
-              </Badge>
+        {/* Logo Header */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-[#3a3a5e] bg-white flex-shrink-0">
+          <div className={`flex items-center gap-2 ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
+            <img src={logoMatreiro} alt="Matreiro" className="h-7 flex-shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="text-xl font-bold text-[#242545] whitespace-nowrap">Matreiro</span>
             )}
           </div>
-
-          {user?.isSuperadmin && (
-            <div className="mt-3">
-              <Select
-                value={impersonatedTenant?.id || 'master'}
-                onValueChange={(value) => impersonateTenant(value === 'master' ? null : value)}
-              >
-                <SelectTrigger className="h-8 text-[11px] bg-[#1a1a35] border-[#3a3a5e] text-white focus:ring-0">
-                  <SelectValue placeholder="Visão do Cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a35] border-[#3a3a5e] text-white">
-                  <SelectItem value="master">📊 Visão Master</SelectItem>
-                  {tenants.filter(t => t.status === 'active').map(tenant => (
-                    <SelectItem key={tenant.id} value={tenant.id}>🏢 {tenant.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {impersonatedTenant && (
-            <div className="mt-2 p-2 bg-[#9D4B97]/20 border border-[#9D4B97]/30 rounded text-[10px] text-[#e0c7e6] flex items-center">
-              <ChevronRight className="w-3 h-3 mr-1" /> Cliente: {impersonatedTenant.name}
-            </div>
-          )}
         </div>
 
-        <nav className="flex-1 p-3 overflow-y-auto custom-scrollbar space-y-6">
+        {/* User Info - hidden when collapsed */}
+        {!isSidebarCollapsed && (
+          <div className="p-4 border-b border-[#3a3a5e] bg-[#2d2d51]/50 flex-shrink-0">
+            <div className="mb-3">
+              <div className="text-sm font-semibold text-white truncate">{user?.name}</div>
+              <div className="text-[11px] text-[#7C7EAA] truncate">{user?.email}</div>
+              {user?.isSuperadmin && (
+                <Badge className="mt-2 text-[10px] bg-[#9D4B97] hover:bg-[#b058aa] text-white border-0 py-0 h-4">
+                  {t('nav.admin')}
+                </Badge>
+              )}
+            </div>
+
+            {user?.isSuperadmin && (
+              <div className="mt-3">
+                <Select
+                  value={impersonatedTenant?.id || 'master'}
+                  onValueChange={(value) => impersonateTenant(value === 'master' ? null : value)}
+                >
+                  <SelectTrigger className="h-8 text-[11px] bg-[#1a1a35] border-[#3a3a5e] text-white focus:ring-0">
+                    <SelectValue placeholder={t('nav.clientView')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a35] border-[#3a3a5e] text-white">
+                    <SelectItem value="master">📊 {t('nav.masterView')}</SelectItem>
+                    {tenants.filter(t => t.status === 'active').map(tenant => (
+                      <SelectItem key={tenant.id} value={tenant.id}>🏢 {tenant.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {impersonatedTenant && (
+              <div className="mt-2 p-2 bg-[#9D4B97]/20 border border-[#9D4B97]/30 rounded text-[10px] text-[#e0c7e6] flex items-center">
+                <ChevronRight className="w-3 h-3 mr-1 flex-shrink-0" /> {t('common.client', 'Cliente')}: {impersonatedTenant.name}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Collapsed User Avatar */}
+        {isSidebarCollapsed && (
+          <div className="p-2 border-b border-[#3a3a5e] bg-[#2d2d51]/50 flex-shrink-0 flex justify-center">
+            <div className="w-9 h-9 rounded-full bg-[#9D4B97] flex items-center justify-center text-white text-sm font-bold" title={user?.name || ''}>
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <nav className="flex-1 p-2 overflow-y-auto custom-scrollbar space-y-4">
           {navigationSections.map((section) => (
-            <div key={section.title}>
-              <h3 className="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-2 opacity-50">
-                {section.title}
-              </h3>
-              <ul className="space-y-1">
+            <div key={section.titleKey}>
+              {!isSidebarCollapsed && (
+                <h3 className="px-3 text-[10px] font-bold text-[#7C7EAA] uppercase tracking-[0.15em] mb-2">
+                  {t(section.titleKey)}
+                </h3>
+              )}
+              {isSidebarCollapsed && (
+                <div className="h-px bg-[#3a3a5e] mx-2 mb-2" />
+              )}
+              <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   if (item.requiresSuperAdmin && !user?.isSuperadmin) return null;
                   const isActive = item.href === '/' ? location.pathname === '/' : location.pathname.startsWith(item.href);
+                  const label = item.nameKey.startsWith('nav.') ? t(item.nameKey) : item.nameKey;
                   return (
                     <li key={item.nameKey}>
                       <Link
                         to={item.href}
                         onClick={closeMobileMenu}
-                        className={`flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 group ${
+                        title={isSidebarCollapsed ? label : undefined}
+                        className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2 text-sm rounded-lg transition-all duration-200 group ${
                           isActive
                             ? 'bg-[#9D4B97]/15 text-[#e0c7e6] font-medium border-l-2 border-[#9D4B97]'
-                            : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                            : 'text-[#b0b1d0] hover:bg-white/5 hover:text-white'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <item.icon className={`w-4 h-4 transition-colors ${isActive ? 'text-[#9D4B97]' : 'text-gray-400 group-hover:text-white'}`} />
-                          <span>{item.nameKey.startsWith('nav.') ? t(item.nameKey) : item.nameKey}</span>
+                        <div className={`flex items-center ${isSidebarCollapsed ? '' : 'gap-3'}`}>
+                          <item.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? 'text-[#9D4B97]' : 'text-[#7C7EAA] group-hover:text-white'}`} />
+                          {!isSidebarCollapsed && (
+                            <span className="text-inherit">{label}</span>
+                          )}
                         </div>
-                        {item.badge && (
+                        {!isSidebarCollapsed && item.badge && (
                           <span className="text-[9px] bg-[#9D4B97] text-white px-1.5 py-0.5 rounded font-bold uppercase">
                             {item.badge}
                           </span>
@@ -234,15 +275,33 @@ export function Layout() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-[#3a3a5e] bg-[#1a1a35]">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-gray-400 hover:bg-red-500/10 hover:text-red-400 text-xs h-9 transition-colors"
-            onClick={handleLogout}
+        {/* Bottom: Collapse toggle + Logout */}
+        <div className="border-t border-[#3a3a5e] bg-[#1a1a35] flex-shrink-0 p-2 space-y-1">
+          {/* Collapse Toggle Button */}
+          <button
+            onClick={toggleSidebar}
+            title={isSidebarCollapsed ? t('nav.expandMenu') : t('nav.collapseMenu')}
+            className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} w-full py-2 rounded-lg text-xs transition-all duration-200 hover:bg-white/10 cursor-pointer text-[#7C7EAA]`}
           >
-            <LogOut className="w-4 h-4 mr-3" />
-            {t('nav.logout')}
-          </Button>
+            {isSidebarCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4" />
+            ) : (
+              <>
+                <PanelLeftClose className="w-4 h-4 flex-shrink-0" />
+                <span className="text-inherit">{t('nav.collapseMenu')}</span>
+              </>
+            )}
+          </button>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            title={isSidebarCollapsed ? t('nav.logout') : undefined}
+            className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'gap-3 px-3'} w-full py-2 rounded-lg text-xs transition-all duration-200 hover:bg-red-500/10 cursor-pointer text-[#7C7EAA]`}
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" />
+            {!isSidebarCollapsed && <span className="text-inherit">{t('nav.logout')}</span>}
+          </button>
         </div>
       </aside>
 

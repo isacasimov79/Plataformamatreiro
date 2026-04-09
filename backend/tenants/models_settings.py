@@ -35,6 +35,27 @@ class TenantSettings(models.Model):
         choices=[('none', 'None'), ('tls', 'TLS'), ('ssl', 'SSL')],
         default='tls'
     )
+    
+    # ========================
+    # Email Sending Method
+    # ========================
+    EMAIL_METHOD_CHOICES = [
+        ('smtp_client', 'SMTP do Cliente'),
+        ('graph_api', 'Microsoft Graph API'),
+        ('smtp_master', 'SMTP da Tenant Master'),
+    ]
+    email_sending_method = models.CharField(
+        max_length=20,
+        choices=EMAIL_METHOD_CHOICES,
+        default='smtp_client',
+        help_text='Método de envio de e-mail: SMTP próprio do cliente, Graph API ou SMTP compartilhado do Master'
+    )
+    smtp_master_domain = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text='Domínio do SMTP Master autorizado para este tenant'
+    )
+    
     smtp_configured = models.BooleanField(default=False)
     smtp_verified = models.BooleanField(default=False)
     smtp_last_test_at = models.DateTimeField(null=True, blank=True)

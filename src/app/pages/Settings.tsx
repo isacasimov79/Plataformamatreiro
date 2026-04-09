@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import {
   Card,
@@ -48,14 +49,20 @@ import {
   azureTestConnection,
   azureSyncUsers,
   azureSyncGroups,
-} from '../lib/supabaseApi';
+  getTenantSettings,
+  updateTenantSettings,
+} from '../lib/apiLocal';
 
 export function Settings() {
+  const { t } = useTranslation();
   const { user, impersonatedTenant } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [syslogEnabled, setSyslogEnabled] = useState(false);
   const [phishingSyslogEnabled, setPhishingSyslogEnabled] = useState(false);
+  const [emailSendingMethod, setEmailSendingMethod] = useState('smtp_client');
+  const [smtpMasterDomain, setSmtpMasterDomain] = useState('');
+  const [savingEmailMethod, setSavingEmailMethod] = useState(false);
   
   // Settings state
   const [settings, setSettings] = useState<any>({
@@ -109,7 +116,46 @@ export function Settings() {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+    loadTenantEmailSettings();
+  }, [impersonatedTenant]);
+
+  const loadTenantEmailSettings = async () => {
+    try {
+      const tenantId = impersonatedTenant?.id;
+      if (!tenantId) return;
+      const data = await getTenantSettings(tenantId);
+      if (data) {
+        setEmailSendingMethod(data.email_sending_method || 'smtp_client');
+        setSmtpMasterDomain(data.smtp_master_domain || '');
+      }
+    } catch (error) {
+      console.error('Error loading tenant email settings:', error);
+    }
+  };
+
+  const handleSaveEmailMethod = async () => {
+    const tenantId = impersonatedTenant?.id;
+    if (!tenantId) {
+      toast.error(t('settings.smtp.selectTenant', 'Selecione um cliente primeiro'));
+      return;
+    }
+    setSavingEmailMethod(true);
+    try {
+      await updateTenantSettings(tenantId, {
+        email_sending_method: emailSendingMethod,
+        smtp_master_domain: smtpMasterDomain,
+      });
+      toast.success(t('settings.smtp.emailMethodSaved', 'Método de envio salvo!'), {
+        description: t('settings.smtp.emailMethodSavedDesc', 'A configuração de envio de e-mail foi atualizada'),
+      });
+    } catch (error: any) {
+      toast.error(t('settings.smtp.emailMethodError', 'Erro ao salvar método de envio'), {
+        description: error.message,
+      });
+    } finally {
+      setSavingEmailMethod(false);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -706,10 +752,10 @@ export function Settings() {
           <SettingsIcon className="w-8 h-8 text-[#242545]" />
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-[#242545]">
-              Configurações do Sistema
+              {t('settings.title')}
             </h1>
             <p className="text-gray-500 mt-1 text-sm md:text-base">
-              Gerencie integrações, SMTP, domínios e preferências
+              {t('settings.subtitle')}
             </p>
           </div>
         </div>
@@ -719,27 +765,27 @@ export function Settings() {
         <TabsList>
           <TabsTrigger value="general">
             <Globe className="w-4 h-4 mr-2" />
-            Geral
+            {t('settings.tabs.general')}
           </TabsTrigger>
           <TabsTrigger value="smtp">
             <Mail className="w-4 h-4 mr-2" />
-            SMTP
+            {t('settings.tabs.smtp')}
           </TabsTrigger>
           <TabsTrigger value="syslog">
             <Server className="w-4 h-4 mr-2" />
-            Syslog
+            {t('settings.tabs.syslog')}
           </TabsTrigger>
           <TabsTrigger value="integrations">
             <Cloud className="w-4 h-4 mr-2" />
-            Integrações
+            {t('settings.tabs.integrations')}
           </TabsTrigger>
           <TabsTrigger value="security">
             <Shield className="w-4 h-4 mr-2" />
-            Segurança
+            {t('settings.tabs.security')}
           </TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="w-4 h-4 mr-2" />
-            Notificações
+            {t('settings.tabs.notifications')}
           </TabsTrigger>
         </TabsList>
 
@@ -747,26 +793,28 @@ export function Settings() {
         <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>Configurações Gerais</CardTitle>
+              <CardTitle>{t('settings.general.title')}</CardTitle>
               <CardDescription>
-                Informações básicas da organização e preferências
+                {t('settings.general.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSaveGeneral} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="org-name">Nome da Organização</Label>
+                    <Label htmlFor="org-name">{t('settings.general.orgName')}</Label>
                     <Input
                       id="org-name"
+                      name="org-name"
                       defaultValue={settings.general.organizationName || ''}
                       className="mt-2"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="org-domain">Domínio Principal</Label>
+                    <Label htmlFor="org-domain">{t('settings.general.domain')}</Label>
                     <Input
                       id="org-domain"
+                      name="org-domain"
                       defaultValue={settings.general.domain || ''}
                       className="mt-2"
                     />
@@ -774,9 +822,10 @@ export function Settings() {
                 </div>
 
                 <div>
-                  <Label htmlFor="org-description">Descrição</Label>
+                  <Label htmlFor="org-description">{t('settings.general.description')}</Label>
                   <Textarea
                     id="org-description"
+                    name="org-description"
                     defaultValue={settings.general.description || ''}
                     rows={3}
                     className="mt-2"
@@ -785,7 +834,7 @@ export function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="timezone">Fuso Horário</Label>
+                    <Label htmlFor="timezone">{t('settings.general.timezone')}</Label>
                     <input type="hidden" name="timezone" value={settings.general.timezone || ''} id="timezone-hidden" />
                     <Select
                       defaultValue={settings.general.timezone || 'america-sao-paulo'}
@@ -815,7 +864,7 @@ export function Settings() {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="language">Idioma Padrão</Label>
+                    <Label htmlFor="language">{t('settings.general.language')}</Label>
                     <input type="hidden" name="language" value={settings.general.language || ''} id="language-hidden" />
                     <Select
                       defaultValue={settings.general.language || 'pt-br'}
@@ -842,9 +891,9 @@ export function Settings() {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">Modo de Manutenção</p>
+                    <p className="font-medium">{t('settings.general.maintenance')}</p>
                     <p className="text-sm text-gray-500">
-                      Desabilita acesso temporário à plataforma
+                      {t('settings.general.maintenanceDesc')}
                     </p>
                   </div>
                   <Switch
@@ -855,9 +904,9 @@ export function Settings() {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">Auto-arquivar Campanhas</p>
+                    <p className="font-medium">{t('settings.general.autoArchive')}</p>
                     <p className="text-sm text-gray-500">
-                      Arquivar automaticamente campanhas após 90 dias
+                      {t('settings.general.autoArchiveDesc')}
                     </p>
                   </div>
                   <Switch
@@ -875,12 +924,12 @@ export function Settings() {
                     {isLoading ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Salvando...
+                        {t('settings.buttons.saving')}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Salvar Alterações
+                        {t('settings.buttons.save')}
                       </>
                     )}
                   </Button>
@@ -894,16 +943,87 @@ export function Settings() {
         <TabsContent value="smtp">
           <Card>
             <CardHeader>
-              <CardTitle>Configurações de E-mail (SMTP)</CardTitle>
+              <CardTitle>{t('settings.smtp.title')}</CardTitle>
               <CardDescription>
-                Configure o servidor SMTP para envio de campanhas
+                {t('settings.smtp.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Email Sending Method Selector */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Mail className="w-5 h-5 text-purple-700" />
+                  <h3 className="text-sm font-semibold text-purple-900">
+                    {t('settings.smtp.sendingMethod', 'Método de Envio de E-mail')}
+                  </h3>
+                </div>
+                <p className="text-xs text-purple-700 mb-3">
+                  {t('settings.smtp.sendingMethodDesc', 'Selecione como os e-mails de phishing serão enviados para este tenant.')}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-xs text-purple-800">{t('settings.smtp.method', 'Método')}</Label>
+                    <Select
+                      value={emailSendingMethod}
+                      onValueChange={setEmailSendingMethod}
+                    >
+                      <SelectTrigger className="mt-1 bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="smtp_client">
+                          📧 {t('settings.smtp.methodClient', 'SMTP do Cliente')}
+                        </SelectItem>
+                        <SelectItem value="graph_api">
+                          ☁️ {t('settings.smtp.methodGraph', 'Microsoft Graph API')}
+                        </SelectItem>
+                        <SelectItem value="smtp_master">
+                          🏢 {t('settings.smtp.methodMaster', 'SMTP da Tenant Master')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {emailSendingMethod === 'smtp_master' && (
+                    <div>
+                      <Label className="text-xs text-purple-800">{t('settings.smtp.masterDomain', 'Domínio Autorizado')}</Label>
+                      <Input
+                        value={smtpMasterDomain}
+                        onChange={(e) => setSmtpMasterDomain(e.target.value)}
+                        placeholder="ex: phishing.underprotection.com.br"
+                        className="mt-1 bg-white"
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSaveEmailMethod}
+                    disabled={savingEmailMethod}
+                    className="bg-purple-700 hover:bg-purple-800 text-white"
+                  >
+                    {savingEmailMethod ? (
+                      <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="w-3 h-3 mr-1" />
+                    )}
+                    {t('settings.smtp.saveMethod', 'Salvar Método')}
+                  </Button>
+                  <Badge variant="secondary" className="text-xs">
+                    {emailSendingMethod === 'smtp_client'
+                      ? t('settings.smtp.badgeClient', 'Usando SMTP próprio')
+                      : emailSendingMethod === 'graph_api'
+                        ? t('settings.smtp.badgeGraph', 'Usando Graph API')
+                        : t('settings.smtp.badgeMaster', 'Usando SMTP Master')}
+                  </Badge>
+                </div>
+              </div>
+
               <form onSubmit={handleSaveSMTP} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="smtp-host">Servidor SMTP</Label>
+                    <Label htmlFor="smtp-host">{t('settings.smtp.host')}</Label>
                     <Input
                       id="smtp-host"
                       name="smtp-host"
@@ -913,7 +1033,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="smtp-port">Porta</Label>
+                    <Label htmlFor="smtp-port">{t('settings.smtp.port')}</Label>
                     <Input
                       id="smtp-port"
                       name="smtp-port"
@@ -926,7 +1046,7 @@ export function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="smtp-user">Usuário SMTP</Label>
+                    <Label htmlFor="smtp-user">{t('settings.smtp.user')}</Label>
                     <Input
                       id="smtp-user"
                       name="smtp-user"
@@ -935,7 +1055,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="smtp-password">Senha SMTP</Label>
+                    <Label htmlFor="smtp-password">{t('settings.smtp.pass')}</Label>
                     <Input
                       id="smtp-password"
                       name="smtp-password"
@@ -947,7 +1067,7 @@ export function Settings() {
                 </div>
 
                 <div>
-                  <Label htmlFor="smtp-from">E-mail Remetente Padrão</Label>
+                  <Label htmlFor="smtp-from">{t('settings.smtp.from')}</Label>
                   <Input
                     id="smtp-from"
                     name="smtp-from"
@@ -957,7 +1077,7 @@ export function Settings() {
                 </div>
 
                 <div>
-                  <Label htmlFor="smtp-encryption">Tipo de Criptografia</Label>
+                  <Label htmlFor="smtp-encryption">{t('settings.smtp.encryption')}</Label>
                   <input type="hidden" name="smtp-encryption" value={settings.smtp.encryption || ''} id="smtp-encryption-hidden" />
                   <Select
                     defaultValue={settings.smtp.encryption || 'tls'}
@@ -985,9 +1105,9 @@ export function Settings() {
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-blue-600" />
                     <div>
-                      <p className="font-medium text-blue-900">Conexão Verificada</p>
+                      <p className="font-medium text-blue-900">{t('settings.smtp.verified')}</p>
                       <p className="text-sm text-blue-700">
-                        Último teste: 08/03/2026 às 10:30
+                        {t('settings.smtp.lastTest', { date: '08/03/2026', time: '10:30' })}
                       </p>
                     </div>
                   </div>
@@ -1001,7 +1121,7 @@ export function Settings() {
                     disabled={isLoading}
                   >
                     <Mail className="w-4 h-4 mr-2" />
-                    Enviar E-mail de Teste
+                    {t('settings.smtp.test')}
                   </Button>
                   <Button
                     type="submit"
@@ -1009,7 +1129,7 @@ export function Settings() {
                     className="bg-[#834a8b] hover:bg-[#6d3d75]"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar Configurações
+                    {t('settings.buttons.save')}
                   </Button>
                 </div>
               </form>
@@ -1021,16 +1141,16 @@ export function Settings() {
         <TabsContent value="syslog">
           <Card>
             <CardHeader>
-              <CardTitle>Configurações de Syslog</CardTitle>
+              <CardTitle>{t('settings.syslog.title')}</CardTitle>
               <CardDescription>
-                Configure o servidor Syslog para envio de logs de auditoria e eventos de phishing
+                {t('settings.syslog.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSaveSyslog} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="syslog-host">Servidor Syslog</Label>
+                    <Label htmlFor="syslog-host">{t('settings.syslog.host')}</Label>
                     <Input
                       id="syslog-host"
                       name="syslog-host"
@@ -1040,7 +1160,7 @@ export function Settings() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="syslog-port">Porta</Label>
+                    <Label htmlFor="syslog-port">{t('settings.syslog.port')}</Label>
                     <Input
                       id="syslog-port"
                       name="syslog-port"
@@ -1053,7 +1173,7 @@ export function Settings() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="syslog-protocol">Protocolo</Label>
+                    <Label htmlFor="syslog-protocol">{t('settings.syslog.protocol')}</Label>
                     <input type="hidden" name="syslog-protocol" value={settings.syslog.protocol || ''} id="syslog-protocol-hidden" />
                     <Select
                       defaultValue={settings.syslog.protocol || 'udp'}
@@ -1108,14 +1228,14 @@ export function Settings() {
 
                 <div className="space-y-4">
                   <h3 className="font-semibold text-[#242545]">
-                    Tipos de Eventos para Enviar
+                    {t('settings.syslog.eventTypes')}
                   </h3>
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium">Logs de Auditoria</p>
+                      <p className="font-medium">{t('settings.syslog.auditEvents')}</p>
                       <p className="text-sm text-gray-500">
-                        Enviar logs de auditoria do sistema para Syslog
+                        {t('settings.syslog.auditEventsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1126,9 +1246,9 @@ export function Settings() {
 
                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="font-medium">Eventos de Phishing</p>
+                      <p className="font-medium">{t('settings.syslog.phishingEvents')}</p>
                       <p className="text-sm text-gray-500">
-                        Enviar eventos de campanhas (aberturas, cliques, submissões)
+                        {t('settings.syslog.phishingEventsDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1141,9 +1261,9 @@ export function Settings() {
                 {(syslogEnabled || phishingSyslogEnabled) && (
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      <Activity className="w-5 h-5 text-blue-600" />
+                       <Activity className="w-5 h-5 text-blue-600" />
                       <p className="font-medium text-blue-900">
-                        Exemplos de Mensagens Syslog
+                        {t('settings.syslog.examples')}
                       </p>
                     </div>
                     <div className="space-y-2 text-xs">
@@ -1177,7 +1297,7 @@ export function Settings() {
                     disabled={isLoading}
                   >
                     <Server className="w-4 h-4 mr-2" />
-                    Enviar Mensagem de Teste
+                    {t('settings.syslog.test')}
                   </Button>
                   <Button
                     type="submit"
@@ -1185,7 +1305,7 @@ export function Settings() {
                     className="bg-[#834a8b] hover:bg-[#6d3d75]"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar Configurações
+                    {t('settings.buttons.save')}
                   </Button>
                 </div>
               </form>
@@ -1203,20 +1323,20 @@ export function Settings() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Cloud className="w-5 h-5 text-blue-600" />
-                      Microsoft 365 / Azure AD
+                      {t('settings.integrations.m365.title')}
                     </CardTitle>
                     <CardDescription>
-                      Sincronize usuários automaticamente do Azure Active Directory
+                      {t('settings.integrations.m365.desc')}
                     </CardDescription>
                   </div>
                   <Badge className={settings?.integrations?.microsoft365?.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
                     {settings?.integrations?.microsoft365?.enabled ? (
                       <>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Conectado
+                        {t('settings.integrations.statusConnected')}
                       </>
                     ) : (
-                      'Não Conectado'
+                      t('settings.integrations.statusDisconnected')
                     )}
                   </Badge>
                 </div>
@@ -1229,7 +1349,7 @@ export function Settings() {
                 }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="ms-tenant-id">Tenant ID</Label>
+                      <Label htmlFor="ms-tenant-id">{t('settings.integrations.m365.tenantId')}</Label>
                       <Input
                         id="ms-tenant-id"
                         name="ms-tenant-id"
@@ -1239,7 +1359,7 @@ export function Settings() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="ms-client-id">Client ID</Label>
+                      <Label htmlFor="ms-client-id">{t('settings.integrations.m365.clientId')}</Label>
                       <Input
                         id="ms-client-id"
                         name="ms-client-id"
@@ -1251,38 +1371,37 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <Label htmlFor="ms-client-secret">Client Secret</Label>
+                    <Label htmlFor="ms-client-secret">{t('settings.integrations.m365.clientSecret')}</Label>
                     <Input
                       id="ms-client-secret"
                       name="ms-client-secret"
                       type="password"
                       defaultValue={settings?.integrations?.microsoft365?.clientSecret || ''}
-                      placeholder="Digite o Client Secret"
+                      placeholder={t('settings.integrations.m365.clientSecretHolder')}
                       className="mt-2"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="ms-allowed-domains">Domínios Permitidos (filtro)</Label>
+                    <Label htmlFor="ms-allowed-domains">{t('settings.integrations.azure.allowedDomains')}</Label>
                     <Textarea
                       id="ms-allowed-domains"
                       name="ms-allowed-domains"
                       defaultValue={settings?.integrations?.microsoft365?.allowedDomains?.join('\n') || ''}
-                      placeholder="acme.com&#10;globalbank.com.br&#10;healthplus.com.br"
+                      placeholder="acme.com&#10;globalbank.com.br"
                       className="mt-2 font-mono text-sm"
                       rows={4}
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      🔒 Digite um domínio por linha. Apenas usuários desses domínios serão sincronizados. 
-                      Deixe vazio para sincronizar todos os usuários.
+                      🔒 {t('settings.integrations.azure.allowedDomainsDesc')}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-sm font-medium">{t('settings.integrations.m365.enableSync')}</p>
                       <p className="text-xs text-gray-500">
-                        Ativar sincronização com Microsoft 365
+                        {t('settings.integrations.m365.enableSyncDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1293,9 +1412,9 @@ export function Settings() {
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Sincronização Automática</p>
+                      <p className="text-sm font-medium">{t('settings.integrations.m365.autoSync')}</p>
                       <p className="text-xs text-gray-500">
-                        Sincronizar usuários diariamente às 06:00
+                        {t('settings.integrations.m365.autoSyncDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1312,7 +1431,7 @@ export function Settings() {
                       disabled={isLoading || !settings?.integrations?.microsoft365?.enabled}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Sincronizar Agora
+                      {t('settings.integrations.m365.btnSync')}
                     </Button>
                     <Button 
                       type="submit"
@@ -1343,20 +1462,20 @@ export function Settings() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Cloud className="w-5 h-5 text-[#0078D4]" />
-                      Microsoft Azure Graph API
+                      {t('settings.integrations.azure.title')}
                     </CardTitle>
                     <CardDescription>
-                      Importar usuários, grupos e configurar SMTP via Microsoft Graph API
+                      {t('settings.integrations.azure.desc')}
                     </CardDescription>
                   </div>
                   <Badge className={settings?.integrations?.azure?.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
                     {settings?.integrations?.azure?.enabled ? (
                       <>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Conectado
+                        {t('settings.integrations.statusConnected')}
                       </>
                     ) : (
-                      'Não Conectado'
+                      t('settings.integrations.statusDisconnected')
                     )}
                   </Badge>
                 </div>
@@ -1367,16 +1486,16 @@ export function Settings() {
                   <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                     <div className="space-y-2 text-sm text-amber-900">
-                      <p className="font-semibold">Como configurar o Azure AD:</p>
+                      <p className="font-semibold">{t('settings.integrations.azure.helpTitle')}</p>
                       <ol className="list-decimal list-inside space-y-1 text-xs">
-                        <li>Acesse o <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portal Azure</a></li>
-                        <li>Vá em <strong>Azure Active Directory</strong> → <strong>App registrations</strong></li>
-                        <li>Clique em <strong>New registration</strong> e dê um nome ao app</li>
-                        <li>Copie o <strong>Application (client) ID</strong> e o <strong>Directory (tenant) ID</strong></li>
-                        <li>Vá em <strong>Certificates & secrets</strong> → <strong>New client secret</strong></li>
-                        <li>Copie o <strong>Value</strong> do secret (não o Secret ID!)</li>
-                        <li>Em <strong>API permissions</strong>, adicione as permissões necessárias (listadas abaixo)</li>
-                        <li>Clique em <strong>Grant admin consent</strong> para aprovar</li>
+                        <li>{t('settings.integrations.azure.helpStep1')} <a href="https://portal.azure.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Portal Azure</a></li>
+                        <li>{t('settings.integrations.azure.helpStep2')}</li>
+                        <li>{t('settings.integrations.azure.helpStep3')}</li>
+                        <li>{t('settings.integrations.azure.helpStep4')}</li>
+                        <li>{t('settings.integrations.azure.helpStep5')}</li>
+                        <li>{t('settings.integrations.azure.helpStep6')}</li>
+                        <li>{t('settings.integrations.azure.helpStep7')}</li>
+                        <li>{t('settings.integrations.azure.helpStep8')}</li>
                       </ol>
                     </div>
                   </div>
@@ -1389,7 +1508,7 @@ export function Settings() {
                 }} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="azure-tenant-id">Azure Tenant ID</Label>
+                      <Label htmlFor="azure-tenant-id">{t('settings.integrations.azure.tenantId')}</Label>
                       <Input
                         id="azure-tenant-id"
                         name="azure-tenant-id"
@@ -1398,11 +1517,11 @@ export function Settings() {
                         className="mt-2"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Também chamado de <strong>Directory ID</strong> (formato UUID)
+                        {t('settings.integrations.azure.tenantIdHint')}
                       </p>
                     </div>
                     <div>
-                      <Label htmlFor="azure-client-id">Application (Client) ID</Label>
+                      <Label htmlFor="azure-client-id">{t('settings.integrations.azure.clientId')}</Label>
                       <Input
                         id="azure-client-id"
                         name="azure-client-id"
@@ -1417,7 +1536,7 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <Label htmlFor="azure-client-secret">Client Secret (Value)</Label>
+                    <Label htmlFor="azure-client-secret">{t('settings.integrations.azure.clientSecret')}</Label>
                     <Input
                       id="azure-client-secret"
                       name="azure-client-secret"
@@ -1427,7 +1546,7 @@ export function Settings() {
                       className="mt-2"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      ⚠️ Use o <strong>Value</strong> (não o Secret ID). Expira após 24 meses.
+                      ⚠️ {t('settings.integrations.azure.clientSecretHint')}
                     </p>
                   </div>
 
@@ -1449,21 +1568,21 @@ export function Settings() {
 
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-sm font-medium text-blue-900 mb-2">
-                      📘 Permissões necessárias no Azure AD:
+                       📘 {t('settings.integrations.azure.permissions')}
                     </p>
                     <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                      <li><code className="bg-blue-100 px-1 rounded">User.Read.All</code> - Ler usuários</li>
-                      <li><code className="bg-blue-100 px-1 rounded">Group.Read.All</code> - Ler grupos</li>
-                      <li><code className="bg-blue-100 px-1 rounded">GroupMember.Read.All</code> - Ler membros de grupos</li>
-                      <li><code className="bg-blue-100 px-1 rounded">Mail.Send</code> - Enviar emails via SMTP</li>
+                      <li><code className="bg-blue-100 px-1 rounded">User.Read.All</code> - {t('settings.integrations.azure.permUser')}</li>
+                      <li><code className="bg-blue-100 px-1 rounded">Group.Read.All</code> - {t('settings.integrations.azure.permGroup')}</li>
+                      <li><code className="bg-blue-100 px-1 rounded">GroupMember.Read.All</code> - {t('settings.integrations.azure.permGroupMember')}</li>
+                      <li><code className="bg-blue-100 px-1 rounded">Mail.Send</code> - {t('settings.integrations.azure.permMail')}</li>
                     </ul>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-sm font-medium">{t('settings.integrations.azure.enableSync')}</p>
                       <p className="text-xs text-gray-500">
-                        Ativar sincronização com Azure AD
+                        {t('settings.integrations.azure.enableSyncDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1474,9 +1593,9 @@ export function Settings() {
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Sincronização Automática</p>
+                      <p className="text-sm font-medium">{t('settings.integrations.azure.autoSync')}</p>
                       <p className="text-xs text-gray-500">
-                        Sincronizar usuários e grupos diariamente às 06:00
+                        {t('settings.integrations.azure.autoSyncDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1493,7 +1612,7 @@ export function Settings() {
                       disabled={isLoading || !settings?.integrations?.azure?.tenantId}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
-                      Testar Conexão
+                      {t('settings.integrations.azure.btnTest')}
                     </Button>
                     <Button
                       type="button"
@@ -1502,7 +1621,7 @@ export function Settings() {
                       disabled={isLoading || !settings?.integrations?.azure?.enabled}
                     >
                       <Users className="w-4 h-4 mr-2" />
-                      Sincronizar Usuários
+                      {t('settings.integrations.azure.btnSyncUsers')}
                     </Button>
                     <Button
                       type="button"
@@ -1511,7 +1630,7 @@ export function Settings() {
                       disabled={isLoading || !settings?.integrations?.azure?.enabled}
                     >
                       <Users className="w-4 h-4 mr-2" />
-                      Sincronizar Grupos
+                      {t('settings.integrations.azure.btnSyncGroups')}
                     </Button>
                     <Button 
                       type="submit"
@@ -1521,12 +1640,12 @@ export function Settings() {
                       {isLoading ? (
                         <>
                           <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                          Salvando...
+                          {t('settings.buttons.saving')}
                         </>
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Salvar
+                          {t('settings.buttons.save')}
                         </>
                       )}
                     </Button>
@@ -1542,20 +1661,20 @@ export function Settings() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Cloud className="w-5 h-5 text-red-600" />
-                      Google Workspace
+                      {t('settings.integrations.google.title')}
                     </CardTitle>
                     <CardDescription>
-                      Importe usuários do Google Workspace
+                      {t('settings.integrations.google.desc')}
                     </CardDescription>
                   </div>
                   <Badge className={settings.integrations.googleWorkspace.enabled ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}>
                     {settings.integrations.googleWorkspace.enabled ? (
                       <>
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        Conectado
+                        {t('settings.integrations.statusConnected')}
                       </>
                     ) : (
-                      'Não Conectado'
+                      t('settings.integrations.statusDisconnected')
                     )}
                   </Badge>
                 </div>
@@ -1567,7 +1686,7 @@ export function Settings() {
                   handleSaveIntegrations('googleWorkspace', formData);
                 }} className="space-y-4">
                   <div>
-                    <Label htmlFor="google-service-account">Service Account JSON</Label>
+                    <Label htmlFor="google-service-account">{t('settings.integrations.google.serviceAccount')}</Label>
                     <Textarea
                       id="google-service-account"
                       name="google-service-account"
@@ -1579,7 +1698,7 @@ export function Settings() {
                   </div>
 
                   <div>
-                    <Label htmlFor="google-domain">Domínio Google Workspace</Label>
+                    <Label htmlFor="google-domain">{t('settings.integrations.google.domain')}</Label>
                     <Input
                       id="google-domain"
                       name="google-domain"
@@ -1591,9 +1710,9 @@ export function Settings() {
 
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                      <p className="text-sm font-medium">Habilitar Integração</p>
+                      <p className="text-sm font-medium">{t('settings.integrations.google.enableSync')}</p>
                       <p className="text-xs text-gray-500">
-                        Ativar sincronização com Google Workspace
+                        {t('settings.integrations.google.enableSyncDesc')}
                       </p>
                     </div>
                     <Switch
@@ -1610,12 +1729,12 @@ export function Settings() {
                     {isLoading ? (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                        Salvando...
+                        {t('settings.buttons.saving')}
                       </>
                     ) : (
                       <>
                         <Save className="w-4 h-4 mr-2" />
-                        Salvar Configurações
+                        {t('settings.buttons.save')}
                       </>
                     )}
                   </Button>
@@ -1630,15 +1749,15 @@ export function Settings() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Key className="w-5 h-5 text-purple-600" />
-                      Keycloak IAM
+                      {t('settings.integrations.keycloak.title')}
                     </CardTitle>
                     <CardDescription>
-                      Configurações de autenticação e Single Sign-On
+                      {t('settings.integrations.keycloak.desc')}
                     </CardDescription>
                   </div>
                   <Badge className="bg-green-100 text-green-700">
                     <CheckCircle className="w-3 h-3 mr-1" />
-                    Ativo
+                    {t('settings.integrations.statusActive')}
                   </Badge>
                 </div>
               </CardHeader>
@@ -1677,11 +1796,10 @@ export function Settings() {
 
                   <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                     <p className="text-sm text-purple-900">
-                      ✅ Autenticação via Keycloak está ativa. Usuários fazem login através de{' '}
-                      <strong>https://iam.upn.com.br</strong>
+                      ✅ {t('settings.integrations.keycloak.activeNotice')}
                     </p>
                     <p className="text-xs text-purple-700 mt-2">
-                      ℹ️ As configurações do Keycloak são gerenciadas externamente e não podem ser editadas aqui.
+                      ℹ️ {t('settings.integrations.keycloak.readonlyNotice')}
                     </p>
                   </div>
                 </div>
@@ -1694,18 +1812,18 @@ export function Settings() {
         <TabsContent value="security">
           <Card>
             <CardHeader>
-              <CardTitle>Configurações de Segurança</CardTitle>
+              <CardTitle>{t('settings.security.title')}</CardTitle>
               <CardDescription>
-                Políticas de acesso e proteção de dados
+                {t('settings.security.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">Autenticação de Dois Fatores (2FA)</p>
+                    <p className="font-medium">{t('settings.security.2fa')}</p>
                     <p className="text-sm text-gray-500">
-                      Obrigar 2FA para todos os administradores
+                      {t('settings.security.2faDesc')}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -1713,9 +1831,9 @@ export function Settings() {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">Auditoria de Logs</p>
+                    <p className="font-medium">{t('settings.security.auditLogs')}</p>
                     <p className="text-sm text-gray-500">
-                      Registrar todas as ações no sistema
+                      {t('settings.security.auditLogsDesc')}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -1723,9 +1841,9 @@ export function Settings() {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">Timeout de Sessão</p>
+                    <p className="font-medium">{t('settings.security.sessionTimeout')}</p>
                     <p className="text-sm text-gray-500">
-                      Desconectar usuários inativos após 30 minutos
+                      {t('settings.security.sessionTimeoutDesc')}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -1733,27 +1851,27 @@ export function Settings() {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium">IPs Permitidos (Whitelist)</p>
+                    <p className="font-medium">{t('settings.security.whitelist')}</p>
                     <p className="text-sm text-gray-500">
-                      Restringir acesso apenas a IPs específicos
+                      {t('settings.security.whitelistDesc')}
                     </p>
                   </div>
                   <Switch />
                 </div>
 
                 <div>
-                  <Label htmlFor="password-policy">Política de Senhas</Label>
+                  <Label htmlFor="password-policy">{t('settings.security.passwordPolicy')}</Label>
                   <Select defaultValue="strong">
                     <SelectTrigger className="mt-2" id="password-policy">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="basic">Básica (mínimo 8 caracteres)</SelectItem>
+                      <SelectItem value="basic">{t('settings.security.policyBasic')}</SelectItem>
                       <SelectItem value="medium">
-                        Média (8+ caracteres, letras e números)
+                        {t('settings.security.policyMedium')}
                       </SelectItem>
                       <SelectItem value="strong">
-                        Forte (12+ caracteres, maiúsculas, números e símbolos)
+                        {t('settings.security.policyStrong')}
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1762,7 +1880,7 @@ export function Settings() {
                 <div className="flex justify-end">
                   <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar Configurações
+                    {t('settings.buttons.save')}
                   </Button>
                 </div>
               </div>
@@ -1774,48 +1892,48 @@ export function Settings() {
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
-              <CardTitle>Preferências de Notificações</CardTitle>
+              <CardTitle>{t('settings.notifications.title')}</CardTitle>
               <CardDescription>
-                Configure quando e como receber alertas
+                {t('settings.notifications.desc')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <h3 className="font-semibold mb-4">Notificações por E-mail</h3>
+                  <h3 className="font-semibold mb-4">{t('settings.notifications.email')}</h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Nova captura de credenciais</p>
+                      <p className="text-sm">{t('settings.notifications.emailCreds')}</p>
                       <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Campanha finalizada</p>
+                      <p className="text-sm">{t('settings.notifications.emailCampaignDone')}</p>
                       <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Falha em integração</p>
+                      <p className="text-sm">{t('settings.notifications.emailIntegrationFail')}</p>
                       <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Relatório semanal</p>
+                      <p className="text-sm">{t('settings.notifications.emailWeeklyReport')}</p>
                       <Switch />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-4">Notificações na Plataforma</h3>
+                  <h3 className="font-semibold mb-4">{t('settings.notifications.platform')}</h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Novos usuários sincronizados</p>
+                      <p className="text-sm">{t('settings.notifications.platformNewUsers')}</p>
                       <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Atualizações do sistema</p>
+                      <p className="text-sm">{t('settings.notifications.platformUpdates')}</p>
                       <Switch defaultChecked />
                     </div>
                     <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm">Alertas de segurança</p>
+                      <p className="text-sm">{t('settings.notifications.platformAlerts')}</p>
                       <Switch defaultChecked />
                     </div>
                   </div>
@@ -1824,7 +1942,7 @@ export function Settings() {
                 <div className="flex justify-end">
                   <Button className="bg-[#834a8b] hover:bg-[#6d3d75]">
                     <Save className="w-4 h-4 mr-2" />
-                    Salvar Preferências
+                    {t('settings.buttons.savePrefs')}
                   </Button>
                 </div>
               </div>
