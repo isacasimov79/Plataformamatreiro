@@ -150,7 +150,7 @@ export function NewCampaignDialog() {
         status: formData.scheduledDate ? 'scheduled' : 'draft',
         target_count: totalTargets,
         target_list: targetEmails,
-        start_date: formData.scheduledDate?.toISOString() || null,
+        start_date: formData.scheduledDate?.toISOString() || new Date().toISOString(),
       });
 
       toast.success(t('campaigns.messages.created', { name: formData.name }), {
