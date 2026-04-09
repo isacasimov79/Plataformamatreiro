@@ -92,6 +92,15 @@ async function apiRequest<T>(
 }
 
 // =====================================================
+// AUTHENTICATION
+// =====================================================
+
+export async function microsoftLogin(msalResponse: any) {
+  // Envia o token ou objeto de resposta para a API
+  return apiRequest<any>('/api/v1/auth/microsoft-login/', 'POST', msalResponse);
+}
+
+// =====================================================
 // TENANTS (Clientes)
 // =====================================================
 

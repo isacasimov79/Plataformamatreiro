@@ -10,6 +10,7 @@ export interface User {
   isSuperadmin: boolean;
   roles: string[];
   avatar?: string;
+  token?: string;
 }
 
 export interface Tenant {

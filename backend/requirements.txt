@@ -127,3 +127,7 @@ flower==2.0.1
 python-crontab==3.0.0
 djangorestframework-simplejwt==5.3.1
 django-guardian==2.4.0
+
+PyJWT==2.8.0
+cryptography==42.0.5
+requests==2.31.0

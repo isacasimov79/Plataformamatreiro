@@ -54,6 +54,80 @@ class AuthViewSet(viewsets.GenericViewSet):
             }
         })
     
+    @action(detail=False, methods=['post'])
+    def microsoft_login(self, request):
+        """Exchange Microsoft Access/ID Token for local JWT."""
+        import jwt
+        from jwt import PyJWKClient
+        
+        access_token = request.data.get('accessToken')
+        id_token = request.data.get('idToken')
+        account = request.data.get('account', {})
+        
+        if not id_token:
+            return Response({'error': 'No ID Token provided'}, status=400)
+            
+        # Optional: Validate Signature explicitly via Azure JWKS URL
+        try:
+            jwks_client = PyJWKClient('https://login.microsoftonline.com/common/discovery/v2.0/keys')
+            signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+            
+            # Decode payload, turn off audience validation unless strictly matched to SPA Client ID
+            data = jwt.decode(
+                id_token,
+                signing_key.key,
+                algorithms=["RS256"],
+                options={"verify_aud": False}
+            )
+        except Exception as e:
+            return Response({'error': f'Invalid Token Signature: {str(e)}'}, status=400)
+            
+        email = data.get('email') or data.get('preferred_username') or account.get('username')
+        name = data.get('name') or account.get('name') or email
+        
+        if not email:
+            return Response({'error': 'Email claim not found in Microsoft Token'}, status=400)
+            
+        # Get or Create User according to policies
+        user, created = User.objects.get_or_create(email=email, defaults={'username': email, 'first_name': name})
+        
+        # Apply strict permissions for newly auto-provisioned SSO users (unless already existent)
+        if created:
+            user.is_active = False # Requires Admin Approval
+            user.role = 'viewer'
+            user.save()
+            
+            AuditLog.objects.create(
+                user=user, action='create', resource_type='auth',
+                details={'event': 'Azure SSO Provisioning Required Admin Approval'},
+                ip_address=get_client_ip(request)
+            )
+            return Response({'error': 'Account created but requires administrator approval.', 'success': False}, status=403)
+            
+        if not user.is_active:
+            return Response({'error': 'Account disabled or pending approval.', 'success': False}, status=403)
+            
+        # Create explicit session
+        user.last_login_ip = get_client_ip(request)
+        user.save(update_fields=['last_login_ip'])
+        
+        refresh = RefreshToken.for_user(user)
+        
+        AuditLog.objects.create(
+            user=user, action='login', resource_type='auth_sso',
+            details={'provider': 'Microsoft Entra'},
+            ip_address=get_client_ip(request),
+            user_agent=request.META.get('HTTP_USER_AGENT', '')
+        )
+        
+        return Response({
+            'user': UserSerializer(user).data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        })
+        
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def logout(self, request):
         """Logout endpoint."""

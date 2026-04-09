@@ -8,11 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { AlertCircle, Shield, KeyRound } from 'lucide-react';
 import logoMatreiro from '../../assets/a30d3ade4a75c608bfa9c14ebe020b7e956f0655.png';
 import logoUnderProtection from '../../imports/Logo_Positiva_-_Vetor-01.svg';
-import { login as keycloakLogin } from '../lib/keycloak';
+import { useMsal } from '@azure/msal-react';
 
 export function Login() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
@@ -24,9 +24,15 @@ export function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleKeycloakLogin = () => {
-    setIsLoading(true);
-    keycloakLogin();
+  const handleMicrosoftLogin = async () => {
+    try {
+      setIsLoading(true);
+      await login();
+    } catch(e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -68,12 +74,12 @@ export function Login() {
 
             {/* Botão principal de Keycloak */}
             <Button 
-              onClick={handleKeycloakLogin}
-              className="w-full bg-[#242545] hover:bg-[#2d2d51] h-12" 
+              onClick={handleMicrosoftLogin}
+              className="w-full bg-[#0078D4] hover:bg-[#005ba1] h-12" 
               disabled={isLoading}
             >
               <Shield className="w-5 h-5 mr-2" />
-              {isLoading ? 'Conectando ao Keycloak...' : 'Entrar com Keycloak'}
+              {isLoading ? 'Conectando à Microsoft...' : 'Entrar com Microsoft'}
             </Button>
 
             <div className="relative">
@@ -90,12 +96,12 @@ export function Login() {
               <div className="flex items-start gap-3">
                 <KeyRound className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <h4 className="text-sm font-medium text-blue-900">Autenticação Segura</h4>
+                  <h4 className="text-sm font-medium text-blue-900">Autenticação Corporativa</h4>
                   <p className="text-xs text-blue-700">
-                    Sua autenticação é gerenciada pelo Keycloak IAM da Under Protection Network.
+                    Sua autenticação é gerenciada diretamente pelo Microsoft Entra ID corporativo.
                   </p>
                   <div className="text-xs text-blue-600 font-mono bg-blue-100 px-2 py-1 rounded mt-2 inline-block">
-                    iam.upn.com.br/realm/underprotection
+                    login.microsoftonline.com
                   </div>
                 </div>
               </div>
@@ -103,10 +109,10 @@ export function Login() {
 
             <div className="pt-4 border-t">
               <p className="text-xs text-gray-500 text-center">
-                Ambiente de produção protegido por Keycloak
+                Ambiente de produção protegido por Entra ID
                 <br />
                 <span className="text-gray-400 mt-1 inline-block">
-                  OAuth 2.0 + OIDC + PKCE
+                  MSAL + SAML/OIDC
                 </span>
               </p>
             </div>
